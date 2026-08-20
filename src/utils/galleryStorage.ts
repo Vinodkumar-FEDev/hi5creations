@@ -50,12 +50,13 @@ function openDB(): Promise<IDBDatabase> {
 export async function getStoredGalleryImages(): Promise<StoredImage[]> {
   try {
     const res = await fetch("/api/gallery");
-    if (res.ok) {
+    const contentType = res.headers.get("content-type") || "";
+    if (res.ok && contentType.includes("application/json")) {
       const data = await res.json();
       if (Array.isArray(data)) return data;
     }
   } catch (err) {
-    console.warn("Physical gallery API not reachable, falling back to IndexedDB:", err);
+    console.warn("Physical gallery API not reachable, using IndexedDB:", err);
   }
 
   // Fallback to IndexedDB
@@ -93,8 +94,8 @@ export async function getStoredCount(): Promise<number> {
 }
 
 /**
- * Save new images array to physical public/assets/gallery/ folder via API.
- * Falls back to IndexedDB if API is unavailable.
+ * Save new images array.
+ * Tries physical asset server endpoint first, falls back to IndexedDB.
  * Enforces MAX_GALLERY_IMAGES (1000) capacity using FIFO pruning.
  */
 export async function saveGalleryImages(
@@ -109,7 +110,8 @@ export async function saveGalleryImages(
       body: JSON.stringify({ newImages }),
     });
 
-    if (res.ok) {
+    const contentType = res.headers.get("content-type") || "";
+    if (res.ok && contentType.includes("application/json")) {
       const data = await res.json();
       return {
         addedCount: data.addedCount || newImages.length,
@@ -117,7 +119,7 @@ export async function saveGalleryImages(
       };
     }
   } catch (err) {
-    console.warn("Physical upload API failed, writing to IndexedDB:", err);
+    console.warn("Physical upload API unavailable, saving to IndexedDB:", err);
   }
 
   // Fallback to IndexedDB
@@ -188,11 +190,12 @@ export async function deleteStoredImage(id: string): Promise<boolean> {
       body: JSON.stringify({ id }),
     });
 
-    if (res.ok) {
+    const contentType = res.headers.get("content-type") || "";
+    if (res.ok && contentType.includes("application/json")) {
       return true;
     }
   } catch (err) {
-    console.warn("Delete API failed, removing from IndexedDB:", err);
+    console.warn("Delete API unavailable, deleting from IndexedDB:", err);
   }
 
   try {
@@ -219,11 +222,12 @@ export async function clearAllStoredImages(): Promise<boolean> {
       headers: { "Content-Type": "application/json" },
     });
 
-    if (res.ok) {
+    const contentType = res.headers.get("content-type") || "";
+    if (res.ok && contentType.includes("application/json")) {
       return true;
     }
   } catch (err) {
-    console.warn("Clear API failed, clearing IndexedDB:", err);
+    console.warn("Clear API unavailable, clearing IndexedDB:", err);
   }
 
   try {
