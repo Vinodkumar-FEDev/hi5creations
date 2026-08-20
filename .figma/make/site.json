@@ -1,0 +1,10 @@
+{
+  "description": "This web application enables users to create professional websites tailored to their brand identity, enhancing online presence and customer engagement.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
