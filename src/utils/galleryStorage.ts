@@ -136,19 +136,15 @@ export async function uploadImageApi(
       }
       return data;
     } else {
-      const errText = await res.text();
-      try {
-        const parsed = JSON.parse(errText);
-        return { success: false, error: parsed.error || "Upload failed." };
-      } catch {
-        return { success: false, error: errText || "Upload failed on server." };
-      }
+      console.warn("PHP upload server unavailable (Vite local dev or Vercel preview), saving image to browser IndexedDB storage.");
+      return uploadToIndexedDBFallback(file, title, category, altText);
     }
   } catch (err: any) {
-    console.warn("Upload API failed, saving to IndexedDB fallback:", err);
+    console.warn("Upload API network request failed, saving image to browser IndexedDB storage:", err);
     return uploadToIndexedDBFallback(file, title, category, altText);
   }
 }
+
 
 /**
  * Delete image via PHP API
