@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { VirtuosoGrid } from "react-virtuoso";
 import {
-  fetchPaginatedImages,
-  ApiImageItem,
+  getStoredGalleryImages,
+  StoredImage,
   GALLERY_CATEGORIES,
 } from "../utils/galleryStorage";
 
@@ -12,63 +12,33 @@ const WHATSAPP_URL =
   "https://wa.me/916379239878?text=Hi%20Hi%205%20Creation%2C%20I'm%20interested%20in%20your%20signage%20services.%20I'd%20like%20to%20discuss%20my%20requirement.";
 
 const CATEGORIES = ["All", ...GALLERY_CATEGORIES];
-const PAGE_LIMIT = 40;
 
 export default function GalleryPage() {
   const [activeCategory, setActiveCategory] = useState("All");
-  const [items, setItems] = useState<ApiImageItem[]>([]);
-  const [page, setPage] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
+  const [allItems, setAllItems] = useState<StoredImage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<StoredImage | null>(null);
 
-  // Selected image for Lightbox Modal
-  const [selectedImage, setSelectedImage] = useState<ApiImageItem | null>(null);
-
-  // Initial load or category change reset
-  const loadInitialGallery = useCallback(async (cat: string) => {
+  const loadGallery = useCallback(async () => {
     setIsLoading(true);
-    setItems([]);
-    setPage(1);
     try {
-      const result = await fetchPaginatedImages(1, PAGE_LIMIT, cat);
-      setItems(result.images || []);
-      setTotalCount(result.total || 0);
-      setHasMore(result.hasMore);
+      const images = await getStoredGalleryImages();
+      setAllItems(images);
     } catch (err) {
-      console.error("Error loading gallery page:", err);
+      console.error("Error loading gallery images:", err);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadInitialGallery(activeCategory);
-  }, [activeCategory, loadInitialGallery]);
+    loadGallery();
+  }, [loadGallery]);
 
-  // Load next batch when scrolling near bottom
-  const loadNextPage = async () => {
-    if (isFetchingMore || !hasMore) return;
-    setIsFetchingMore(true);
-    const nextPage = page + 1;
-    try {
-      const result = await fetchPaginatedImages(nextPage, PAGE_LIMIT, activeCategory);
-      setItems((prev) => [...prev, ...(result.images || [])]);
-      setPage(nextPage);
-      setHasMore(result.hasMore);
-      setTotalCount(result.total || 0);
-    } catch (err) {
-      console.error("Error loading next batch:", err);
-    } finally {
-      setIsFetchingMore(false);
-    }
-  };
-
-  const handleCategoryChange = (cat: string) => {
-    if (cat === activeCategory) return;
-    setActiveCategory(cat);
-  };
+  const filteredItems =
+    activeCategory === "All"
+      ? allItems
+      : allItems.filter((item) => item.category === activeCategory);
 
   return (
     <>
@@ -77,7 +47,7 @@ export default function GalleryPage() {
         <title>{`Project Gallery - ${activeCategory !== "All" ? activeCategory + " | " : ""}Hi5 Creation Signage Coimbatore`}</title>
         <meta
           name="description"
-          content={`Browse ${totalCount > 0 ? totalCount + "+" : "our"} custom signage, LED sign boards, ACP elevation, and branding projects by Hi5 Creation Coimbatore.`}
+          content={`Explore ${filteredItems.length} custom signage, LED sign boards, ACP elevation, and branding projects by Hi5 Creation Coimbatore.`}
         />
         <link rel="canonical" href="https://hi5creations.com/gallery" />
         <meta property="og:title" content="Hi5 Creation - Signage & LED Board Project Gallery" />
@@ -95,7 +65,7 @@ export default function GalleryPage() {
             <div className="grid lg:grid-cols-2 gap-8 items-end">
               <div>
                 <p className="text-xs font-bold tracking-[0.2em] text-orange-500 uppercase mb-3">
-                  PROJECT GALLERY ({totalCount} IMAGES)
+                  PROJECT GALLERY ({allItems.length} IMAGES)
                 </p>
                 <h1
                   className="text-4xl lg:text-5xl font-extrabold text-stone-900 leading-tight tracking-tight"
@@ -106,7 +76,7 @@ export default function GalleryPage() {
               </div>
               <div>
                 <p className="text-stone-500 leading-relaxed mb-6 text-sm md:text-base">
-                  Explore our comprehensive portfolio of LED sign boards, ACP elevation, and custom branding installations.
+                  Explore our portfolio of uploaded signage, branding and custom installation projects in Coimbatore and beyond.
                 </p>
                 <div className="flex flex-wrap gap-3">
                   <a
@@ -136,7 +106,6 @@ export default function GalleryPage() {
                     </svg>
                     Admin Upload
                   </Link> */}
-
                 </div>
               </div>
             </div>
@@ -149,16 +118,32 @@ export default function GalleryPage() {
             <div className="flex gap-2 py-3.5 overflow-x-auto scrollbar-none">
               {CATEGORIES.map((cat) => {
                 const isActive = activeCategory === cat;
+                const count =
+                  cat === "All"
+                    ? allItems.length
+                    : allItems.filter((i) => i.category === cat).length;
                 return (
                   <button
                     key={cat}
-                    onClick={() => handleCategoryChange(cat)}
-                    className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${isActive
-                      ? "bg-orange-500 text-white shadow-sm"
-                      : "text-stone-600 hover:text-orange-500 border border-stone-200 hover:border-orange-300 bg-white"
-                      }`}
+                    onClick={() => setActiveCategory(cat)}
+                    className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                      isActive
+                        ? "bg-orange-500 text-white shadow-sm"
+                        : "text-stone-600 hover:text-orange-500 border border-stone-200 hover:border-orange-300 bg-white"
+                    }`}
                   >
                     <span>{cat}</span>
+                    {count > 0 && (
+                      <span
+                        className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                          isActive
+                            ? "bg-white/25 text-white"
+                            : "bg-stone-100 text-stone-500"
+                        }`}
+                      >
+                        {count}
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -169,17 +154,17 @@ export default function GalleryPage() {
         {/* Gallery Content Area */}
         <div className="max-w-7xl mx-auto px-5 lg:px-8 py-10">
           {isLoading ? (
-            /* Skeleton Loading Grid */
+            /* Loading Grid Skeletons */
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {Array.from({ length: 12 }).map((_, idx) => (
+              {Array.from({ length: 8 }).map((_, idx) => (
                 <div
                   key={idx}
                   className="animate-pulse bg-stone-200 rounded-xl h-64 border border-stone-300/50"
                 />
               ))}
             </div>
-          ) : items.length === 0 ? (
-            /* Empty State */
+          ) : filteredItems.length === 0 ? (
+            /* Empty Category State */
             <div className="bg-white rounded-3xl border border-stone-200 p-12 text-center max-w-xl mx-auto shadow-sm my-8">
               <div className="w-16 h-16 bg-stone-100 text-stone-400 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <svg
@@ -197,10 +182,10 @@ export default function GalleryPage() {
                 </svg>
               </div>
               <h3 className="text-xl font-bold text-stone-800 mb-2">
-                No Images Found
+                No Images for "{activeCategory}"
               </h3>
               <p className="text-stone-500 text-sm mb-6">
-                No project images have been uploaded under "{activeCategory}" yet.
+                No project images have been uploaded under this category yet.
               </p>
               <div className="flex flex-wrap justify-center gap-3">
                 {activeCategory !== "All" && (
@@ -208,40 +193,38 @@ export default function GalleryPage() {
                     onClick={() => setActiveCategory("All")}
                     className="px-5 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold rounded-full transition-colors"
                   >
-                    View All Categories
+                    View All Categories ({allItems.length})
                   </button>
                 )}
                 {/* <Link
                   to="/gallery/upload"
                   className="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold rounded-full transition-colors inline-flex items-center gap-1.5"
                 >
-                  + Upload Image Now
+                  + Upload to {activeCategory}
                 </Link> */}
               </div>
             </div>
           ) : (
-            /* Virtualized Grid View supporting high scale (5,000+ images) */
+            /* Virtualized Grid View */
             <div className="min-h-[600px]">
               <VirtuosoGrid
                 style={{ height: "700px" }}
-                totalCount={items.length}
-                endReached={loadNextPage}
+                totalCount={filteredItems.length}
                 components={{
                   List: forwardRefGridList,
                   Item: GridItemWrapper,
                 }}
                 itemContent={(index) => {
-                  const img = items[index];
+                  const img = filteredItems[index];
                   if (!img) return null;
                   return (
                     <figure
                       onClick={() => setSelectedImage(img)}
                       className="group relative rounded-xl overflow-hidden bg-stone-100 border border-stone-200/80 cursor-pointer shadow-sm hover:shadow-md transition-all h-64"
                     >
-                      {/* Grid uses fast 400px resized Thumbnail with explicit lazy attributes */}
                       <img
-                        src={img.thumb_path}
-                        alt={img.alt_text || `${img.title} - Hi5 Creation ${img.category}`}
+                        src={img.imageDataUrl}
+                        alt={`${img.title} — Hi5 Creation ${img.category}`}
                         width={400}
                         height={300}
                         loading="lazy"
@@ -260,38 +243,6 @@ export default function GalleryPage() {
                   );
                 }}
               />
-
-              {/* Infinite Load Status */}
-              <div className="mt-8 text-center py-4">
-                {isFetchingMore ? (
-                  <div className="inline-flex items-center gap-2 text-stone-500 text-xs font-semibold">
-                    <svg
-                      className="animate-spin h-4 w-4 text-orange-500"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
-                    Loading more images... ({items.length} of {totalCount})
-                  </div>
-                ) : !hasMore && items.length > 0 ? (
-                  <p className="text-xs text-stone-400 font-medium">
-                    Showing all {items.length} images in {activeCategory}
-                  </p>
-                ) : null}
-              </div>
             </div>
           )}
 
@@ -328,7 +279,7 @@ export default function GalleryPage() {
           </div>
         </div>
 
-        {/* Lightbox Modal (Loads Full High-Res Image on Click) */}
+        {/* Lightbox Modal */}
         {selectedImage && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/90 backdrop-blur-md transition-all"
@@ -347,10 +298,9 @@ export default function GalleryPage() {
               </button>
 
               <div className="max-h-[75vh] flex items-center justify-center bg-black">
-                {/* Full Resolution Image */}
                 <img
-                  src={selectedImage.full_path}
-                  alt={selectedImage.alt_text || selectedImage.title}
+                  src={selectedImage.imageDataUrl}
+                  alt={selectedImage.title}
                   className="max-h-[75vh] w-auto object-contain mx-auto"
                 />
               </div>
@@ -363,9 +313,6 @@ export default function GalleryPage() {
                   <h3 className="text-xl font-bold text-white mt-1">
                     {selectedImage.title}
                   </h3>
-                  <p className="text-stone-400 text-xs mt-0.5">
-                    Uploaded: {new Date(selectedImage.uploaded_at).toLocaleDateString()}
-                  </p>
                 </div>
 
                 <a
@@ -387,9 +334,7 @@ export default function GalleryPage() {
   );
 }
 
-// Virtuoso Grid Custom Container Components
-import React from "react";
-
+// Virtuoso Grid Container Helpers
 const forwardRefGridList = React.forwardRef<HTMLDivElement, any>(
   ({ children, ...props }, ref) => (
     <div

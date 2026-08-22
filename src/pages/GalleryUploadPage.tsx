@@ -2,10 +2,12 @@ import { useState, useEffect, useRef, ChangeEvent, DragEvent, FormEvent } from "
 import { Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import {
-  fetchPaginatedImages,
-  uploadImageApi,
-  deleteImageApi,
-  ApiImageItem,
+  getStoredGalleryImages,
+  saveGalleryImages,
+  deleteStoredImage,
+  clearAllStoredImages,
+  StoredImage,
+  MAX_GALLERY_IMAGES,
   GALLERY_CATEGORIES as CATEGORIES,
 } from "../utils/galleryStorage";
 
@@ -19,7 +21,6 @@ interface PendingFile {
   previewUrl: string;
   title: string;
   category: string;
-  altText: string;
 }
 
 export default function GalleryUploadPage() {
@@ -32,7 +33,7 @@ export default function GalleryUploadPage() {
   const [authError, setAuthError] = useState("");
 
   // Storage & Gallery State
-  const [storedImages, setStoredImages] = useState<ApiImageItem[]>([]);
+  const [storedImages, setStoredImages] = useState<StoredImage[]>([]);
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [globalCategory, setGlobalCategory] = useState(CATEGORIES[0]);
   const [isUploading, setIsUploading] = useState(false);
@@ -51,22 +52,18 @@ export default function GalleryUploadPage() {
   }, [isAuthenticated]);
 
   const loadImages = async () => {
-    try {
-      const res = await fetchPaginatedImages(1, 100, "All");
-      setStoredImages(res.images || []);
-    } catch (err) {
-      console.error("Failed to load existing gallery images:", err);
-    }
+    const images = await getStoredGalleryImages();
+    setStoredImages(images);
   };
 
   const handleLoginSubmit = (e: FormEvent) => {
     e.preventDefault();
-    const inputUser = usernameInput.trim().toLowerCase();
-    const inputPass = passwordInput.trim();
+    const user = usernameInput.trim().toLowerCase();
+    const pass = passwordInput.trim();
 
     if (
-      inputUser === "admin" &&
-      (inputPass === "Admin@123" || inputPass === "hi5creation123")
+      user === "admin" &&
+      (pass === "Admin@123" || pass === "hi5creation123")
     ) {
       setIsAuthenticated(true);
       setAuthError("");
@@ -74,8 +71,6 @@ export default function GalleryUploadPage() {
       setAuthError("Invalid username or password. Please try again.");
     }
   };
-
-
 
   const handleLogout = () => {
     setIsAuthenticated(false);
@@ -88,51 +83,34 @@ export default function GalleryUploadPage() {
     setToastMessage({ type, text });
     setTimeout(() => {
       setToastMessage(null);
-    }, 5000);
+    }, 4000);
   };
 
   const processFiles = (files: FileList | File[]) => {
-    const allowedExtensions = ["jpg", "jpeg", "png", "webp"];
-    const maxSizeBytes = 5 * 1024 * 1024; // 5MB limit
+    const validFiles = Array.from(files).filter((f) =>
+      f.type.startsWith("image/")
+    );
+    if (validFiles.length === 0) {
+      showToast("error", "Please select valid image files.");
+      return;
+    }
 
-    const validFiles: PendingFile[] = [];
-    const errors: string[] = [];
-
-    Array.from(files).forEach((file, idx) => {
-      const ext = file.name.split(".").pop()?.toLowerCase() || "";
-
-      if (!file.type.startsWith("image/") || !allowedExtensions.includes(ext)) {
-        errors.push(`"${file.name}" is not a supported format (JPG, PNG, WebP only).`);
-        return;
-      }
-
-      if (file.size > maxSizeBytes) {
-        errors.push(`"${file.name}" exceeds the 5MB file size limit.`);
-        return;
-      }
-
+    const newPending: PendingFile[] = validFiles.map((file, idx) => {
       const fileNameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
       const formattedTitle = fileNameWithoutExt
         .replace(/[-_]/g, " ")
         .replace(/\b\w/g, (c) => c.toUpperCase());
 
-      validFiles.push({
+      return {
         id: `pending_${Date.now()}_${idx}_${Math.random()}`,
         file,
         previewUrl: URL.createObjectURL(file),
         title: formattedTitle || "Gallery Project",
         category: globalCategory,
-        altText: `${formattedTitle || "Gallery Project"} - Hi5 Creation Signage`,
-      });
+      };
     });
 
-    if (errors.length > 0) {
-      showToast("error", errors.join(" "));
-    }
-
-    if (validFiles.length > 0) {
-      setPendingFiles((prev) => [...prev, ...validFiles]);
-    }
+    setPendingFiles((prev) => [...prev, ...newPending]);
   };
 
   const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
@@ -170,7 +148,7 @@ export default function GalleryUploadPage() {
 
   const updatePendingItem = (
     id: string,
-    field: "title" | "category" | "altText",
+    field: "title" | "category",
     value: string
   ) => {
     setPendingFiles((prev) =>
@@ -178,54 +156,78 @@ export default function GalleryUploadPage() {
     );
   };
 
+  const fileToDataUrl = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleUploadSubmit = async () => {
     if (pendingFiles.length === 0) return;
 
     setIsUploading(true);
-    let successCount = 0;
-    let failCount = 0;
-
-    for (const item of pendingFiles) {
-      const res = await uploadImageApi(
-        item.file,
-        item.title,
-        item.category,
-        item.altText
+    try {
+      const preparedImages = await Promise.all(
+        pendingFiles.map(async (item) => ({
+          title: item.title,
+          category: item.category,
+          imageDataUrl: await fileToDataUrl(item.file),
+        }))
       );
 
-      if (res.success) {
-        successCount++;
-        URL.revokeObjectURL(item.previewUrl);
+      const result = await saveGalleryImages(preparedImages);
+
+      pendingFiles.forEach((item) => URL.revokeObjectURL(item.previewUrl));
+      setPendingFiles([]);
+
+      await loadImages();
+
+      if (result.prunedCount > 0) {
+        showToast(
+          "info",
+          `Uploaded ${result.addedCount} images. ${result.prunedCount} oldest image(s) automatically removed to keep 1,000 item limit.`
+        );
       } else {
-        failCount++;
-        console.error(`Failed to upload ${item.file.name}:`, res.error);
+        showToast(
+          "success",
+          `Successfully saved ${result.addedCount} image(s) to gallery storage!`
+        );
       }
-    }
-
-    setPendingFiles([]);
-    await loadImages();
-    setIsUploading(false);
-
-    if (successCount > 0 && failCount === 0) {
-      showToast("success", `Successfully uploaded ${successCount} image(s) to server & database!`);
-    } else if (successCount > 0 && failCount > 0) {
-      showToast("info", `Uploaded ${successCount} image(s). ${failCount} failed.`);
-    } else {
-      showToast("error", "Failed to upload images to the server.");
+    } catch (err) {
+      console.error(err);
+      showToast("error", "Failed to save images. Please try again.");
+    } finally {
+      setIsUploading(false);
     }
   };
 
-  const handleDeleteItem = async (id: number | string) => {
-    if (!window.confirm("Are you sure you want to delete this image?")) return;
-
-    const success = await deleteImageApi(id);
+  const handleDeleteItem = async (id: string) => {
+    const success = await deleteStoredImage(id);
     if (success) {
-      setStoredImages((prev) => prev.filter((img) => String(img.id) !== String(id)));
-      showToast("info", "Image removed from server and database.");
-    } else {
-      showToast("error", "Failed to delete image.");
+      setStoredImages((prev) => prev.filter((img) => img.id !== id));
+      showToast("info", "Image deleted from gallery.");
     }
   };
+
+  const handleClearAll = async () => {
+    if (
+      window.confirm(
+        "Are you sure you want to delete ALL uploaded gallery images?"
+      )
+    ) {
+      await clearAllStoredImages();
+      setStoredImages([]);
+      showToast("info", "All uploaded gallery images cleared.");
+    }
+  };
+
+  const capacityPercentage = Math.min(
+    100,
+    Math.round((storedImages.length / MAX_GALLERY_IMAGES) * 100)
+  );
 
   return (
     <>
@@ -239,7 +241,6 @@ export default function GalleryUploadPage() {
         {!isAuthenticated && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/80 backdrop-blur-md">
             <div className="relative bg-white border border-stone-200 rounded-3xl p-8 max-w-md w-full shadow-2xl">
-              {/* Close / Cancel Button */}
               <button
                 onClick={() => navigate("/")}
                 className="absolute top-4 right-4 text-stone-400 hover:text-stone-700 w-8 h-8 rounded-full flex items-center justify-center transition-colors font-bold"
@@ -271,7 +272,7 @@ export default function GalleryUploadPage() {
                 Admin Access Required
               </h2>
               <p className="text-xs text-stone-500 text-center mb-6 leading-relaxed">
-                Please enter your admin credentials to upload images to the server.
+                Please enter your admin credentials to manage gallery image uploads.
               </p>
 
               {authError && (
@@ -328,7 +329,6 @@ export default function GalleryUploadPage() {
           </div>
         )}
 
-
         {/* TOAST NOTIFICATION */}
         {toastMessage && (
           <div
@@ -354,7 +354,7 @@ export default function GalleryUploadPage() {
                     ← Gallery
                   </Link>
                   <span>/</span>
-                  <span>PHP + MySQL Upload Manager</span>
+                  <span>Gallery Storage Manager</span>
                 </div>
                 <h1
                   className="text-3xl font-extrabold text-stone-900 tracking-tight"
@@ -379,6 +379,42 @@ export default function GalleryUploadPage() {
         {/* MAIN DASHBOARD CONTENT */}
         {isAuthenticated && (
           <div className="max-w-6xl mx-auto px-5 lg:px-8 py-10 space-y-10">
+            {/* CAPACITY BAR */}
+            <div className="bg-white rounded-3xl border border-stone-200 p-6 md:p-8 shadow-sm">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                <div>
+                  <h3 className="text-lg font-bold text-stone-900">
+                    Gallery Storage Capacity
+                  </h3>
+                  <p className="text-xs text-stone-500">
+                    {storedImages.length} of {MAX_GALLERY_IMAGES} slots used ({capacityPercentage}%)
+                  </p>
+                </div>
+
+                {storedImages.length > 0 && (
+                  <button
+                    onClick={handleClearAll}
+                    className="text-xs font-semibold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-4 py-2 rounded-full transition-colors self-start md:self-auto"
+                  >
+                    Clear All Images
+                  </button>
+                )}
+              </div>
+
+              <div className="w-full bg-stone-100 rounded-full h-3 overflow-hidden">
+                <div
+                  className={`h-full transition-all duration-500 rounded-full ${
+                    capacityPercentage > 85
+                      ? "bg-rose-500"
+                      : capacityPercentage > 60
+                      ? "bg-amber-500"
+                      : "bg-orange-500"
+                  }`}
+                  style={{ width: `${capacityPercentage}%` }}
+                />
+              </div>
+            </div>
+
             {/* UPLOAD FORM CARD */}
             <div className="bg-white rounded-3xl border border-stone-200 p-6 md:p-8 shadow-sm">
               <h2 className="text-xl font-bold text-stone-900 mb-6">
@@ -418,7 +454,7 @@ export default function GalleryUploadPage() {
                   type="file"
                   ref={fileInputRef}
                   multiple
-                  accept="image/jpeg,image/png,image/webp"
+                  accept="image/*"
                   onChange={handleFileSelect}
                   className="hidden"
                 />
@@ -441,7 +477,7 @@ export default function GalleryUploadPage() {
                   Drag & Drop images here, or click to browse
                 </h3>
                 <p className="text-xs text-stone-500">
-                  Supports JPG, PNG, and WebP images up to 5MB each.
+                  Select image files to add to your project gallery storage.
                 </p>
               </div>
 
@@ -463,10 +499,10 @@ export default function GalleryUploadPage() {
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                           </svg>
-                          Uploading & Processing...
+                          Saving Images...
                         </>
                       ) : (
-                        `Upload ${pendingFiles.length} File(s) Now`
+                        `Save ${pendingFiles.length} Image(s) Now`
                       )}
                     </button>
                   </div>
@@ -515,11 +551,11 @@ export default function GalleryUploadPage() {
               )}
             </div>
 
-            {/* SERVER STORED IMAGES MANAGING GRID */}
+            {/* STORED IMAGES MANAGING GRID */}
             <div className="bg-white rounded-3xl border border-stone-200 p-6 md:p-8 shadow-sm">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-stone-900">
-                  2. Existing Server Images ({storedImages.length})
+                  2. Existing Stored Gallery Images ({storedImages.length})
                 </h2>
                 <button
                   onClick={loadImages}
@@ -531,7 +567,7 @@ export default function GalleryUploadPage() {
 
               {storedImages.length === 0 ? (
                 <p className="text-xs text-stone-400 text-center py-8">
-                  No uploaded images found on the server database.
+                  No stored images in gallery database.
                 </p>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -541,8 +577,8 @@ export default function GalleryUploadPage() {
                       className="group relative rounded-xl overflow-hidden bg-stone-100 border border-stone-200 shadow-sm"
                     >
                       <img
-                        src={img.thumb_path}
-                        alt={img.alt_text || img.title}
+                        src={img.imageDataUrl}
+                        alt={img.title}
                         className="w-full h-36 object-cover"
                       />
                       <div className="p-2 bg-white text-[11px]">
