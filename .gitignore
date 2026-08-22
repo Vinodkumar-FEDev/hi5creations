@@ -18,3 +18,9 @@ logs/
 # beside it.
 /.plugins/
 /.opencode-skills/
+
+# Uploads & Production Config
+public/uploads/
+uploads/
+public/api/config.local.php
+

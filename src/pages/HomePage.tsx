@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 
 const WHATSAPP_URL =
   "https://wa.me/916379239878?text=Hi%20Hi%205%20Creation%2C%20I'm%20interested%20in%20your%20signage%20services.%20I'd%20like%20to%20discuss%20my%20requirement.";
@@ -97,7 +98,24 @@ const TESTIMONIALS = [
 
 export default function HomePage() {
   return (
-    <main className="pt-16">
+    <>
+      <Helmet>
+        <title>Hi5 Creation — Premier LED & ACP Sign Board Manufacturers in Coimbatore</title>
+        <meta
+          name="description"
+          content="Leading LED sign board manufacturer, ACP elevation cladding, acrylic 3D letters, and custom storefront branding in Coimbatore. High quality & durable signage."
+        />
+        <link rel="canonical" href="https://hi5creations.com/" />
+        <meta property="og:title" content="Hi5 Creation — Premier Signage Manufacturers in Coimbatore" />
+        <meta
+          property="og:description"
+          content="Custom LED sign boards, ACP cladding, acrylic signage, and visual branding solutions."
+        />
+        <meta property="og:type" content="website" />
+      </Helmet>
+
+      <main className="pt-16">
+
       {/* ── HERO ── */}
       <section className="min-h-[92vh] flex items-center bg-[#faf9f7] border-b border-stone-200">
         <div className="max-w-7xl mx-auto px-5 lg:px-8 w-full py-20 lg:py-0">
@@ -550,5 +568,7 @@ export default function HomePage() {
         </div>
       </section>
     </main>
+    </>
   );
 }
+

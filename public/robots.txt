@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Sitemap Location for Google & Bing Crawlers
+Sitemap: /sitemap.xml

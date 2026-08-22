@@ -82,8 +82,9 @@ export default function Navbar() {
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
               </svg>
-              Upload
+              Admin Upload
             </Link> */}
+
             <a
               href={WHATSAPP_URL}
               target="_blank"
