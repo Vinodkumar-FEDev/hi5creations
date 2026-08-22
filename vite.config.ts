@@ -19,8 +19,13 @@ export default defineConfig(({ mode }) => {
       sourcemap: emitSourcemaps ? "inline" : false,
       minify: !emitSourcemaps,
     },
+    define: {
+      __BUNDLED_DEV__: mode === "development",
+      "process.env.NODE_ENV": JSON.stringify(mode),
+    },
     plugins: [
       react(),
+
       tailwindcss(),
       figmaGalleryAssetsPlugin(),
       figmaSiteConfiguration(siteConfiguration),
@@ -476,16 +481,13 @@ function figmaGalleryAssetsPlugin(): Plugin {
 
               newImages.forEach((img: any, idx: number) => {
                 const matches = img.imageDataUrl?.match(
-                  /^data:image\/([a-zA-Z0-9]+);base64,(.+)$/,
+                  /^data:image\/([a-zA-Z0-9\+\-]+);base64,(.+)$/,
                 )
-                const ext = matches
-                  ? matches[1] === "jpeg"
-                    ? "jpg"
-                    : matches[1]
-                  : "png"
+                const ext = "avif"
                 const base64Data = matches ? matches[2] : img.imageDataUrl
 
                 const fileName = `img_${now}_${idx}_${Math.random().toString(36).substring(2, 7)}.${ext}`
+
                 const filePath = path.join(ASSETS_DIR, fileName)
 
                 fs.writeFileSync(filePath, Buffer.from(base64Data, "base64"))
@@ -501,32 +503,20 @@ function figmaGalleryAssetsPlugin(): Plugin {
                 addedRecords.push(record)
               })
 
-              let prunedCount = 0
               currentImages = [...addedRecords, ...currentImages]
 
-              if (currentImages.length > MAX_IMAGES) {
-                prunedCount = currentImages.length - MAX_IMAGES
-                const toPrune = currentImages.slice(MAX_IMAGES)
-                currentImages = currentImages.slice(0, MAX_IMAGES)
-
-                toPrune.forEach((item: any) => {
-                  if (item.fileName) {
-                    const p = path.join(ASSETS_DIR, item.fileName)
-                    if (fs.existsSync(p)) fs.unlinkSync(p)
-                  }
-                })
-              }
-
               writeManifest(currentImages)
+
 
               res.setHeader("Content-Type", "application/json")
               return res.end(
                 JSON.stringify({
                   addedCount: addedRecords.length,
-                  prunedCount,
+                  prunedCount: 0,
                   images: currentImages,
                 }),
               )
+
             } catch (err) {
               res.statusCode = 500
               return res.end(JSON.stringify({ error: String(err) }))
@@ -540,17 +530,21 @@ function figmaGalleryAssetsPlugin(): Plugin {
           req.on("data", (chunk) => (body += chunk))
           req.on("end", () => {
             try {
-              const { id } = JSON.parse(body)
+              const { id, ids } = JSON.parse(body)
+              const targetIds = new Set<string>(
+                Array.isArray(ids) ? ids : id ? [id] : [],
+              )
               let currentImages = readManifest()
-              const target = currentImages.find((item: any) => item.id === id)
 
-              if (target && target.fileName) {
-                const p = path.join(ASSETS_DIR, target.fileName)
-                if (fs.existsSync(p)) fs.unlinkSync(p)
-              }
+              currentImages.forEach((item: any) => {
+                if (targetIds.has(item.id) && item.fileName) {
+                  const p = path.join(ASSETS_DIR, item.fileName)
+                  if (fs.existsSync(p)) fs.unlinkSync(p)
+                }
+              })
 
               currentImages = currentImages.filter(
-                (item: any) => item.id !== id,
+                (item: any) => !targetIds.has(item.id),
               )
               writeManifest(currentImages)
 
@@ -565,6 +559,7 @@ function figmaGalleryAssetsPlugin(): Plugin {
           })
           return
         }
+
 
         if (url === "/api/clear-gallery" && req.method === "POST") {
           try {

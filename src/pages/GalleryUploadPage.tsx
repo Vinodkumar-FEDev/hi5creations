@@ -5,7 +5,9 @@ import {
   getStoredGalleryImages,
   saveGalleryImages,
   deleteStoredImage,
+  deleteMultipleStoredImages,
   clearAllStoredImages,
+  fileToAvifDataUrl,
   StoredImage,
   MAX_GALLERY_IMAGES,
   GALLERY_CATEGORIES as CATEGORIES,
@@ -14,6 +16,8 @@ import {
 // Declared Admin Credentials for Code-based Authentication
 const ADMIN_USERNAME = "Admin";
 const ADMIN_PASSWORD = "Admin@123";
+
+const AUTH_STORAGE_KEY = "hi5_admin_authenticated";
 
 interface PendingFile {
   id: string;
@@ -26,8 +30,10 @@ interface PendingFile {
 export default function GalleryUploadPage() {
   const navigate = useNavigate();
 
-  // Authentication State
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  // Authentication State with localStorage persistence
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return localStorage.getItem(AUTH_STORAGE_KEY) === "true";
+  });
   const [usernameInput, setUsernameInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
   const [authError, setAuthError] = useState("");
@@ -37,11 +43,20 @@ export default function GalleryUploadPage() {
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [globalCategory, setGlobalCategory] = useState(CATEGORIES[0]);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0, percentage: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [toastMessage, setToastMessage] = useState<{
     type: "success" | "error" | "info";
     text: string;
   } | null>(null);
+
+  // Multi-Selection & Filter & Pagination State for Existing Images
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [filterCategory, setFilterCategory] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 24;
+
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -54,6 +69,7 @@ export default function GalleryUploadPage() {
   const loadImages = async () => {
     const images = await getStoredGalleryImages();
     setStoredImages(images);
+    setSelectedIds(new Set());
   };
 
   const handleLoginSubmit = (e: FormEvent) => {
@@ -66,6 +82,7 @@ export default function GalleryUploadPage() {
       (pass === "Admin@123" || pass === "hi5creation123")
     ) {
       setIsAuthenticated(true);
+      localStorage.setItem(AUTH_STORAGE_KEY, "true");
       setAuthError("");
     } else {
       setAuthError("Invalid username or password. Please try again.");
@@ -74,6 +91,7 @@ export default function GalleryUploadPage() {
 
   const handleLogout = () => {
     setIsAuthenticated(false);
+    localStorage.removeItem(AUTH_STORAGE_KEY);
     setUsernameInput("");
     setPasswordInput("");
     setAuthError("");
@@ -156,27 +174,29 @@ export default function GalleryUploadPage() {
     );
   };
 
-  const fileToDataUrl = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
-
   const handleUploadSubmit = async () => {
     if (pendingFiles.length === 0) return;
 
     setIsUploading(true);
+    const total = pendingFiles.length;
+    setUploadProgress({ current: 0, total, percentage: 0 });
+
     try {
-      const preparedImages = await Promise.all(
-        pendingFiles.map(async (item) => ({
+      const preparedImages: { title: string; category: string; imageDataUrl: string }[] = [];
+
+      for (let i = 0; i < total; i++) {
+        const item = pendingFiles[i];
+        const avifUrl = await fileToAvifDataUrl(item.file);
+        preparedImages.push({
           title: item.title,
           category: item.category,
-          imageDataUrl: await fileToDataUrl(item.file),
-        }))
-      );
+          imageDataUrl: avifUrl,
+        });
+
+        const current = i + 1;
+        const percentage = Math.round((current / total) * 100);
+        setUploadProgress({ current, total, percentage });
+      }
 
       const result = await saveGalleryImages(preparedImages);
 
@@ -185,17 +205,10 @@ export default function GalleryUploadPage() {
 
       await loadImages();
 
-      if (result.prunedCount > 0) {
-        showToast(
-          "info",
-          `Uploaded ${result.addedCount} images. ${result.prunedCount} oldest image(s) automatically removed to keep 1,000 item limit.`
-        );
-      } else {
-        showToast(
-          "success",
-          `Successfully saved ${result.addedCount} image(s) to gallery storage!`
-        );
-      }
+      showToast(
+        "success",
+        `Successfully saved ${result.addedCount} image(s) in AVIF format to gallery storage!`
+      );
     } catch (err) {
       console.error(err);
       showToast("error", "Failed to save images. Please try again.");
@@ -204,11 +217,35 @@ export default function GalleryUploadPage() {
     }
   };
 
-  const handleDeleteItem = async (id: string) => {
+  const handleDeleteSingleItem = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this image?")) return;
     const success = await deleteStoredImage(id);
     if (success) {
       setStoredImages((prev) => prev.filter((img) => img.id !== id));
+      setSelectedIds((prev) => {
+        const updated = new Set(prev);
+        updated.delete(id);
+        return updated;
+      });
       showToast("info", "Image deleted from gallery.");
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    const idsArray = Array.from(selectedIds);
+    if (idsArray.length === 0) return;
+
+    if (!window.confirm(`Are you sure you want to delete ${idsArray.length} selected image(s)?`)) {
+      return;
+    }
+
+    const success = await deleteMultipleStoredImages(idsArray);
+    if (success) {
+      setStoredImages((prev) => prev.filter((img) => !selectedIds.has(img.id)));
+      setSelectedIds(new Set());
+      showToast("info", `Successfully deleted ${idsArray.length} image(s).`);
+    } else {
+      showToast("error", "Failed to delete selected images.");
     }
   };
 
@@ -220,7 +257,57 @@ export default function GalleryUploadPage() {
     ) {
       await clearAllStoredImages();
       setStoredImages([]);
+      setSelectedIds(new Set());
       showToast("info", "All uploaded gallery images cleared.");
+    }
+  };
+
+  // Filtered & Paginated Stored Images
+  const filteredStoredImages = storedImages.filter((img) => {
+    const matchesCat = filterCategory === "All" || img.category === filterCategory;
+    const matchesSearch =
+      searchQuery.trim() === "" ||
+      img.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      img.category.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCat && matchesSearch;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(filteredStoredImages.length / PAGE_SIZE));
+
+  const paginatedStoredImages = filteredStoredImages.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
+
+
+  const toggleSelectImage = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    const allFilteredIds = filteredStoredImages.map((img) => img.id);
+    const isAllSelected = allFilteredIds.every((id) => selectedIds.has(id));
+
+    if (isAllSelected) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        allFilteredIds.forEach((id) => next.delete(id));
+        return next;
+      });
+    } else {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        allFilteredIds.forEach((id) => next.add(id));
+        return next;
+      });
     }
   };
 
@@ -329,6 +416,46 @@ export default function GalleryUploadPage() {
           </div>
         )}
 
+        {/* ULTRA SMOOTH FULL SCREEN UPLOADING LOADER OVERLAY */}
+        {isUploading && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/85 backdrop-blur-lg p-4">
+            <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center shadow-2xl space-y-6 border border-stone-200 animate-in fade-in zoom-in duration-300">
+              <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
+                <div className="absolute inset-0 rounded-full border-4 border-orange-200 animate-ping opacity-75" />
+                <div className="w-16 h-16 bg-gradient-to-tr from-orange-500 to-amber-500 text-white rounded-full flex items-center justify-center shadow-lg animate-spin">
+                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-bold text-stone-900 mb-1" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  Converting & Uploading Images...
+                </h3>
+                <p className="text-xs text-stone-500 leading-relaxed">
+                  Processing file {uploadProgress.current} of {uploadProgress.total} into AVIF format.
+                </p>
+              </div>
+
+              {/* Smooth Progress Bar */}
+              <div className="space-y-2">
+                <div className="w-full bg-stone-100 rounded-full h-3.5 overflow-hidden border border-stone-200/80 p-0.5">
+                  <div
+                    className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all duration-300 shadow-md"
+                    style={{ width: `${uploadProgress.percentage}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-[11px] font-bold text-stone-600">
+                  <span>Progress</span>
+                  <span className="text-orange-600">{uploadProgress.percentage}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* TOAST NOTIFICATION */}
         {toastMessage && (
           <div
@@ -384,7 +511,7 @@ export default function GalleryUploadPage() {
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                 <div>
                   <h3 className="text-lg font-bold text-stone-900">
-                    Gallery Storage Capacity
+                    Gallery Storage Capacity (Up to 2,000 Images)
                   </h3>
                   <p className="text-xs text-stone-500">
                     {storedImages.length} of {MAX_GALLERY_IMAGES} slots used ({capacityPercentage}%)
@@ -477,7 +604,7 @@ export default function GalleryUploadPage() {
                   Drag & Drop images here, or click to browse
                 </h3>
                 <p className="text-xs text-stone-500">
-                  Select image files to add to your project gallery storage.
+                  Images are automatically converted to AVIF format on save.
                 </p>
               </div>
 
@@ -499,7 +626,7 @@ export default function GalleryUploadPage() {
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                           </svg>
-                          Saving Images...
+                          Saving AVIF Images...
                         </>
                       ) : (
                         `Save ${pendingFiles.length} Image(s) Now`
@@ -551,52 +678,196 @@ export default function GalleryUploadPage() {
               )}
             </div>
 
-            {/* STORED IMAGES MANAGING GRID */}
-            <div className="bg-white rounded-3xl border border-stone-200 p-6 md:p-8 shadow-sm">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-stone-900">
-                  2. Existing Stored Gallery Images ({storedImages.length})
-                </h2>
-                <button
-                  onClick={loadImages}
-                  className="text-xs text-stone-600 hover:text-orange-500 font-semibold"
-                >
-                  ↻ Refresh
-                </button>
+            {/* ENHANCED STORED IMAGES MANAGING & MULTI-DELETE GRID */}
+            <div className="bg-white rounded-3xl border border-stone-200 p-6 md:p-8 shadow-sm space-y-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-stone-200 pb-6">
+                <div>
+                  <h2 className="text-xl font-bold text-stone-900">
+                    2. Existing Stored Gallery Images ({storedImages.length})
+                  </h2>
+                  <p className="text-xs text-stone-500 mt-0.5">
+                    Select single or multiple images below to delete them in bulk.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  {/* Select All Checkbox Button */}
+                  {filteredStoredImages.length > 0 && (
+                    <button
+                      onClick={toggleSelectAll}
+                      className="px-4 py-2 border border-stone-300 hover:bg-stone-50 text-stone-700 text-xs font-semibold rounded-full transition-colors flex items-center gap-2"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={
+                          filteredStoredImages.length > 0 &&
+                          filteredStoredImages.every((img) => selectedIds.has(img.id))
+                        }
+                        onChange={toggleSelectAll}
+                        className="rounded accent-orange-500 cursor-pointer"
+                      />
+                      <span>Select All ({filteredStoredImages.length})</span>
+                    </button>
+                  )}
+
+                  {/* Bulk Delete Selected Button */}
+                  {selectedIds.size > 0 && (
+                    <button
+                      onClick={handleDeleteSelected}
+                      className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-full transition-all shadow-md flex items-center gap-1.5 animate-in fade-in zoom-in"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      Delete Selected ({selectedIds.size})
+                    </button>
+                  )}
+
+                  <button
+                    onClick={loadImages}
+                    className="text-xs text-stone-600 hover:text-orange-500 font-semibold px-3 py-2 border border-stone-200 rounded-full"
+                  >
+                    ↻ Refresh
+                  </button>
+                </div>
               </div>
 
-              {storedImages.length === 0 ? (
-                <p className="text-xs text-stone-400 text-center py-8">
-                  No stored images in gallery database.
+              {/* Search Bar (ABOVE Category Filter Chips) */}
+              <div className="space-y-4">
+                <div className="relative w-full max-w-md">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    placeholder="Search stored images by title or category..."
+                    className="w-full bg-stone-50 border border-stone-300 text-stone-800 text-xs rounded-xl pl-9 pr-4 py-2.5 focus:ring-2 focus:ring-orange-500 focus:outline-none shadow-sm"
+                  />
+                  <svg className="w-4 h-4 text-stone-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+
+                {/* Category Filter Chips (BELOW Search Bar) */}
+                <div className="flex gap-1.5 overflow-x-auto scrollbar-none py-1">
+                  {["All", ...CATEGORIES].map((cat) => {
+                    const isActive = filterCategory === cat;
+                    return (
+                      <button
+                        key={cat}
+                        onClick={() => {
+                          setFilterCategory(cat);
+                          setCurrentPage(1);
+                        }}
+                        className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                          isActive
+                            ? "bg-orange-500 text-white shadow-sm"
+                            : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+
+              {/* Grid of Stored Images with Selection Highlights */}
+              {filteredStoredImages.length === 0 ? (
+                <p className="text-xs text-stone-400 text-center py-12">
+                  No images match the selected filter.
                 </p>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                  {storedImages.map((img) => (
-                    <div
-                      key={img.id}
-                      className="group relative rounded-xl overflow-hidden bg-stone-100 border border-stone-200 shadow-sm"
-                    >
-                      <img
-                        src={img.imageDataUrl}
-                        alt={img.title}
-                        className="w-full h-36 object-cover"
-                      />
-                      <div className="p-2 bg-white text-[11px]">
-                        <p className="font-bold text-stone-800 truncate">{img.title}</p>
-                        <p className="text-stone-400 truncate">{img.category}</p>
-                      </div>
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    {paginatedStoredImages.map((img) => {
+                      const isSelected = selectedIds.has(img.id);
+                      return (
+                        <div
+                          key={img.id}
+                          onClick={() => toggleSelectImage(img.id)}
+                          className={`group relative rounded-2xl overflow-hidden bg-stone-100 border-2 cursor-pointer transition-all ${
+                            isSelected
+                              ? "border-orange-500 ring-2 ring-orange-500/20 shadow-md scale-[0.98]"
+                              : "border-stone-200 hover:border-stone-400 shadow-sm"
+                          }`}
+                        >
+                          {/* Checkbox badge */}
+                          <div className="absolute top-2 left-2 z-10">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleSelectImage(img.id)}
+                              onClick={(e) => e.stopPropagation()}
+                              className="w-5 h-5 rounded-md accent-orange-500 cursor-pointer shadow-md"
+                            />
+                          </div>
+
+                          {/* Image Preview */}
+                          <img
+                            src={img.imageDataUrl}
+                            alt={img.title}
+                            loading="lazy"
+                            className="w-full h-36 object-cover"
+                          />
+
+                          {/* Card Info */}
+                          <div className="p-2.5 bg-white text-[11px]">
+                            <p className="font-bold text-stone-800 truncate" title={img.title}>
+                              {img.title}
+                            </p>
+                            <p className="text-orange-600 font-semibold truncate text-[10px]">
+                              {img.category}
+                            </p>
+                          </div>
+
+                          {/* Single Item Delete Button */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteSingleItem(img.id);
+                            }}
+                            className="absolute top-2 right-2 z-10 bg-rose-600 text-white w-7 h-7 rounded-full text-xs font-bold shadow-md hover:bg-rose-700 transition-colors flex items-center justify-center opacity-90 group-hover:opacity-100"
+                            title="Delete this image"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Pagination Bar */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between border-t border-stone-200 pt-4 mt-6">
                       <button
-                        onClick={() => handleDeleteItem(img.id)}
-                        className="absolute top-2 right-2 bg-rose-600 text-white w-7 h-7 rounded-full text-xs font-bold shadow-md hover:bg-rose-700 transition-colors flex items-center justify-center opacity-90 group-hover:opacity-100"
-                        title="Delete image"
+                        disabled={currentPage === 1}
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        className="px-4 py-2 border border-stone-300 text-stone-700 text-xs font-semibold rounded-full disabled:opacity-40 disabled:cursor-not-allowed hover:bg-stone-50 transition-colors"
                       >
-                        ✕
+                        ‹ Previous Page
+                      </button>
+
+                      <span className="text-xs text-stone-600 font-semibold">
+                        Page {currentPage} of {totalPages} ({filteredStoredImages.length} total items)
+                      </span>
+
+                      <button
+                        disabled={currentPage >= totalPages}
+                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        className="px-4 py-2 border border-stone-300 text-stone-700 text-xs font-semibold rounded-full disabled:opacity-40 disabled:cursor-not-allowed hover:bg-stone-50 transition-colors"
+                      >
+                        Next Page ›
                       </button>
                     </div>
-                  ))}
-                </div>
+                  )}
+                </>
               )}
             </div>
+
           </div>
         )}
       </main>

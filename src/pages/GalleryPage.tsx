@@ -17,7 +17,7 @@ export default function GalleryPage() {
   const [activeCategory, setActiveCategory] = useState("All");
   const [allItems, setAllItems] = useState<StoredImage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedImage, setSelectedImage] = useState<StoredImage | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
   const loadGallery = useCallback(async () => {
     setIsLoading(true);
@@ -39,6 +39,37 @@ export default function GalleryPage() {
     activeCategory === "All"
       ? allItems
       : allItems.filter((item) => item.category === activeCategory);
+
+  const selectedImage =
+    selectedIndex !== null && filteredItems[selectedIndex]
+      ? filteredItems[selectedIndex]
+      : null;
+
+  const handlePrev = useCallback(() => {
+    setSelectedIndex((prev) => {
+      if (prev === null || filteredItems.length === 0) return null;
+      return prev > 0 ? prev - 1 : filteredItems.length - 1;
+    });
+  }, [filteredItems.length]);
+
+  const handleNext = useCallback(() => {
+    setSelectedIndex((prev) => {
+      if (prev === null || filteredItems.length === 0) return null;
+      return prev < filteredItems.length - 1 ? prev + 1 : 0;
+    });
+  }, [filteredItems.length]);
+
+  // Keyboard navigation for Lightbox
+  useEffect(() => {
+    if (selectedIndex === null) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") handlePrev();
+      if (e.key === "ArrowRight") handleNext();
+      if (e.key === "Escape") setSelectedIndex(null);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedIndex, handlePrev, handleNext]);
 
   return (
     <>
@@ -87,25 +118,6 @@ export default function GalleryPage() {
                   >
                     Start Your Project
                   </a>
-                  {/* <Link
-                    to="/gallery/upload"
-                    className="inline-flex items-center gap-2 bg-stone-900 hover:bg-stone-800 text-white font-semibold px-6 py-3 rounded-full transition-all text-sm shadow-md"
-                  >
-                    <svg
-                      className="w-4 h-4 text-orange-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M12 4v16m8-8H4"
-                      />
-                    </svg>
-                    Admin Upload
-                  </Link> */}
                 </div>
               </div>
             </div>
@@ -125,7 +137,10 @@ export default function GalleryPage() {
                 return (
                   <button
                     key={cat}
-                    onClick={() => setActiveCategory(cat)}
+                    onClick={() => {
+                      setActiveCategory(cat);
+                      setSelectedIndex(null);
+                    }}
                     className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${
                       isActive
                         ? "bg-orange-500 text-white shadow-sm"
@@ -196,12 +211,6 @@ export default function GalleryPage() {
                     View All Categories ({allItems.length})
                   </button>
                 )}
-                {/* <Link
-                  to="/gallery/upload"
-                  className="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold rounded-full transition-colors inline-flex items-center gap-1.5"
-                >
-                  + Upload to {activeCategory}
-                </Link> */}
               </div>
             </div>
           ) : (
@@ -219,7 +228,7 @@ export default function GalleryPage() {
                   if (!img) return null;
                   return (
                     <figure
-                      onClick={() => setSelectedImage(img)}
+                      onClick={() => setSelectedIndex(index)}
                       className="group relative rounded-xl overflow-hidden bg-stone-100 border border-stone-200/80 cursor-pointer shadow-sm hover:shadow-md transition-all h-64"
                     >
                       <img
@@ -269,35 +278,49 @@ export default function GalleryPage() {
               >
                 Talk to an Expert on WhatsApp
               </a>
-              {/* <Link
-                to="/gallery/upload"
-                className="inline-flex items-center justify-center border border-stone-300 text-stone-700 hover:border-orange-400 hover:text-orange-500 font-semibold px-7 py-3.5 rounded-full transition-all text-sm"
-              >
-                Upload Gallery Images
-              </Link> */}
             </div>
           </div>
         </div>
 
-        {/* Lightbox Modal */}
-        {selectedImage && (
+        {/* Lightbox Modal with Prev / Next & Keyboard Navigation */}
+        {selectedImage && selectedIndex !== null && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/90 backdrop-blur-md transition-all"
-            onClick={() => setSelectedImage(null)}
+            onClick={() => setSelectedIndex(null)}
           >
             <div
-              className="relative max-w-4xl w-full bg-stone-900 rounded-2xl overflow-hidden shadow-2xl border border-stone-800"
+              className="relative max-w-5xl w-full bg-stone-900 rounded-2xl overflow-hidden shadow-2xl border border-stone-800"
               onClick={(e) => e.stopPropagation()}
             >
+              {/* Close Button */}
               <button
-                onClick={() => setSelectedImage(null)}
-                className="absolute top-4 right-4 z-10 w-10 h-10 bg-black/60 hover:bg-black text-white rounded-full flex items-center justify-center transition-colors"
+                onClick={() => setSelectedIndex(null)}
+                className="absolute top-4 right-4 z-20 w-10 h-10 bg-black/60 hover:bg-black text-white rounded-full flex items-center justify-center transition-colors font-bold"
                 aria-label="Close modal"
               >
                 ✕
               </button>
 
-              <div className="max-h-[75vh] flex items-center justify-center bg-black">
+              {/* Previous Button (Left Arrow) */}
+              <button
+                onClick={handlePrev}
+                className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 bg-black/60 hover:bg-orange-500 text-white rounded-full flex items-center justify-center transition-all shadow-lg hover:scale-110"
+                aria-label="Previous image"
+              >
+                ‹
+              </button>
+
+              {/* Next Button (Right Arrow) */}
+              <button
+                onClick={handleNext}
+                className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 bg-black/60 hover:bg-orange-500 text-white rounded-full flex items-center justify-center transition-all shadow-lg hover:scale-110"
+                aria-label="Next image"
+              >
+                ›
+              </button>
+
+              {/* High-Res Image View */}
+              <div className="max-h-[75vh] flex items-center justify-center bg-black relative">
                 <img
                   src={selectedImage.imageDataUrl}
                   alt={selectedImage.title}
@@ -305,11 +328,18 @@ export default function GalleryPage() {
                 />
               </div>
 
-              <div className="p-6 bg-stone-900 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              {/* Image Info & WhatsApp Action */}
+              <div className="p-6 bg-stone-900 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-t border-stone-800">
                 <div>
-                  <span className="text-xs font-bold tracking-widest text-orange-400 uppercase">
-                    {selectedImage.category}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold tracking-widest text-orange-400 uppercase">
+                      {selectedImage.category}
+                    </span>
+                    <span className="text-stone-500 text-xs">•</span>
+                    <span className="text-stone-400 text-xs">
+                      {selectedIndex + 1} of {filteredItems.length}
+                    </span>
+                  </div>
                   <h3 className="text-xl font-bold text-white mt-1">
                     {selectedImage.title}
                   </h3>

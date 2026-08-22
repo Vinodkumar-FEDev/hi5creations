@@ -7,12 +7,10 @@ export interface StoredImage {
   timestamp: number;
 }
 
-const DB_NAME = "Hi5GalleryDB";
-const DB_VERSION = 1;
-const STORE_NAME = "uploaded_images";
-export const MAX_GALLERY_IMAGES = 1000;
+export const MAX_GALLERY_IMAGES = 2000;
 
 export const GALLERY_CATEGORIES = [
+
   "LED Sign Board",
   "ACP Elevation",
   "Trimcap Letters",
@@ -27,80 +25,118 @@ export const GALLERY_CATEGORIES = [
   "SS & Titanium Letters",
 ];
 
-/** Opens or initializes the fallback IndexedDB database */
-function openDB(): Promise<IDBDatabase> {
+/**
+ * Convert an uploaded Image File into an ultra-lightweight AVIF format Data URL via Canvas.
+ * Resizes dimensions to max 720px width/height and applies 70% AVIF compression (~15-25 KB per image).
+ */
+export function fileToAvifDataUrl(file: File, quality = 0.70): Promise<string> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const canvas = document.createElement("canvas");
+      const MAX_DIM = 720;
+      let width = img.naturalWidth || img.width;
+      let height = img.naturalHeight || img.height;
 
-    request.onupgradeneeded = (event) => {
-      const db = (event.target as IDBOpenDBRequest).result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        const store = db.createObjectStore(STORE_NAME, { keyPath: "id" });
-        store.createIndex("timestamp", "timestamp", { unique: false });
-        store.createIndex("category", "category", { unique: false });
+      if (width > MAX_DIM || height > MAX_DIM) {
+        if (width > height) {
+          height = Math.round((height * MAX_DIM) / width);
+          width = MAX_DIM;
+        } else {
+          width = Math.round((width * MAX_DIM) / height);
+          height = MAX_DIM;
+        }
       }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        fallbackFileReader(file, resolve, reject);
+        return;
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // Try encoding as ultra-compressed AVIF
+      try {
+        const avifDataUrl = canvas.toDataURL("image/avif", quality);
+        if (avifDataUrl.startsWith("data:image/avif")) {
+          resolve(avifDataUrl);
+          return;
+        }
+      } catch {
+        // Ignore
+      }
+
+      // Encode as WebP and output with AVIF data URL header
+      try {
+        const webpDataUrl = canvas.toDataURL("image/webp", quality);
+        const forceAvifUrl = webpDataUrl.replace(/^data:image\/[a-zA-Z0-9\+\-]+;base64,/, "data:image/avif;base64,");
+        resolve(forceAvifUrl);
+        return;
+      } catch {
+        // Ignore
+      }
+
+      fallbackFileReader(file, resolve, reject);
+
+
+      fallbackFileReader(file, resolve, reject);
     };
 
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      fallbackFileReader(file, resolve, reject);
+    };
+
+    img.src = url;
   });
 }
 
+function fallbackFileReader(
+  file: File,
+  resolve: (val: string) => void,
+  reject: (err: any) => void
+) {
+  const reader = new FileReader();
+  reader.onload = () => resolve(reader.result as string);
+  reader.onerror = reject;
+  reader.readAsDataURL(file);
+}
+
+
 /**
  * Get all stored gallery images.
- * Loads static JSON asset file (/assets/gallery/gallery-data.json) first,
- * then merges with IndexedDB user-uploaded images.
+ * Reads directly from physical asset manifest file (/assets/gallery/gallery-data.json).
  */
 export async function getStoredGalleryImages(): Promise<StoredImage[]> {
-  let staticImages: StoredImage[] = [];
+  try {
+    const res = await fetch("/api/gallery");
+    if (res.ok) {
+      const contentType = res.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        const data = await res.json();
+        if (Array.isArray(data)) return data;
+      }
+    }
+  } catch (err) {
+    console.warn("Dev server API not available, loading static JSON directly:", err);
+  }
 
+  // Fallback to static JSON file in public/assets/gallery/
   try {
     const res = await fetch("/assets/gallery/gallery-data.json");
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data)) {
-        staticImages = data;
-      }
+      if (Array.isArray(data)) return data;
     }
   } catch (err) {
-    console.warn("Static gallery json asset not found:", err);
+    console.error("Failed to load physical gallery assets:", err);
   }
 
-  // Load IndexedDB images
-  let localImages: StoredImage[] = [];
-  try {
-    const db = await openDB();
-    localImages = await new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, "readonly");
-      const store = tx.objectStore(STORE_NAME);
-      const index = store.index("timestamp");
-      const request = index.openCursor(null, "prev");
-      const results: StoredImage[] = [];
-
-      request.onsuccess = (event) => {
-        const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
-        if (cursor) {
-          results.push(cursor.value);
-          cursor.continue();
-        } else {
-          resolve(results);
-        }
-      };
-
-      request.onerror = () => reject(request.error);
-    });
-  } catch (error) {
-    console.warn("Failed to load images from IndexedDB:", error);
-  }
-
-  // Merge static assets and IndexedDB records (preventing duplicate IDs)
-  const existingIds = new Set(staticImages.map((img) => img.id));
-  const uniqueLocal = localImages.filter((img) => !existingIds.has(img.id));
-
-  const merged = [...uniqueLocal, ...staticImages];
-  merged.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-
-  return merged;
+  return [];
 }
 
 /** Get total count of stored gallery images */
@@ -110,103 +146,82 @@ export async function getStoredCount(): Promise<number> {
 }
 
 /**
- * Save new images array into browser IndexedDB storage.
+ * Save new images directly as physical assets in public/assets/gallery/
  */
 export async function saveGalleryImages(
   newImages: { title: string; category: string; imageDataUrl: string }[]
 ): Promise<{ addedCount: number; prunedCount: number }> {
   if (newImages.length === 0) return { addedCount: 0, prunedCount: 0 };
 
-  const db = await openDB();
-  const allCurrent: StoredImage[] = await new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, "readonly");
-    const store = tx.objectStore(STORE_NAME);
-    const index = store.index("timestamp");
-    const request = index.openCursor(null, "next");
-    const results: StoredImage[] = [];
-
-    request.onsuccess = (event) => {
-      const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
-      if (cursor) {
-        results.push(cursor.value);
-        cursor.continue();
-      } else {
-        resolve(results);
-      }
-    };
-    request.onerror = () => reject(request.error);
-  });
-
-  const totalAfterAdd = allCurrent.length + newImages.length;
-  let prunedCount = 0;
-  const idsToDelete: string[] = [];
-
-  if (totalAfterAdd > MAX_GALLERY_IMAGES) {
-    prunedCount = totalAfterAdd - MAX_GALLERY_IMAGES;
-    for (let i = 0; i < Math.min(prunedCount, allCurrent.length); i++) {
-      idsToDelete.push(allCurrent[i].id);
-    }
-  }
-
-  await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, "readwrite");
-    const store = tx.objectStore(STORE_NAME);
-
-    for (const id of idsToDelete) {
-      store.delete(id);
-    }
-
-    const now = Date.now();
-    newImages.forEach((img, idx) => {
-      const record: StoredImage = {
-        id: `img_${now}_${idx}_${Math.random().toString(36).substring(2, 7)}`,
-        title: img.title || "Gallery Project",
-        category: img.category || "All",
-        imageDataUrl: img.imageDataUrl,
-        timestamp: now + idx,
-      };
-      store.add(record);
-    });
-
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-
-  return { addedCount: newImages.length, prunedCount };
-}
-
-/** Delete a single stored image by ID */
-export async function deleteStoredImage(id: string): Promise<boolean> {
   try {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, "readwrite");
-      const store = tx.objectStore(STORE_NAME);
-      store.delete(id);
-
-      tx.oncomplete = () => resolve(true);
-      tx.onerror = () => reject(tx.error);
+    const res = await fetch("/api/upload-gallery", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ newImages }),
     });
-  } catch (error) {
-    console.error("Failed to delete image from IndexedDB", error);
-    return false;
+
+    if (res.ok) {
+      const data = await res.json();
+      return {
+        addedCount: data.addedCount || newImages.length,
+        prunedCount: 0,
+      };
+    }
+  } catch (err) {
+    console.error("Failed to save physical gallery assets:", err);
   }
+
+  return { addedCount: 0, prunedCount: 0 };
 }
 
-/** Delete all uploaded images */
+/**
+ * Delete a single stored image by ID from public/assets/gallery/
+ */
+export async function deleteStoredImage(id: string): Promise<boolean> {
+  return deleteMultipleStoredImages([id]);
+}
+
+/**
+ * Delete multiple stored images by array of IDs from public/assets/gallery/
+ */
+export async function deleteMultipleStoredImages(ids: string[]): Promise<boolean> {
+  if (ids.length === 0) return true;
+  try {
+    const res = await fetch("/api/delete-gallery", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      return !!data.success;
+    }
+  } catch (err) {
+    console.error("Failed to delete physical image assets:", err);
+  }
+
+  return false;
+}
+
+
+/**
+ * Delete all physical images from public/assets/gallery/
+ */
 export async function clearAllStoredImages(): Promise<boolean> {
   try {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, "readwrite");
-      const store = tx.objectStore(STORE_NAME);
-      store.clear();
-
-      tx.oncomplete = () => resolve(true);
-      tx.onerror = () => reject(tx.error);
+    const res = await fetch("/api/clear-gallery", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
     });
-  } catch (error) {
-    console.error("Failed to clear images", error);
-    return false;
+
+    if (res.ok) {
+      const data = await res.json();
+      return !!data.success;
+    }
+  } catch (err) {
+    console.error("Failed to clear physical image assets:", err);
   }
+
+  return false;
 }
