@@ -56,16 +56,14 @@ export default function FullHeroSlider() {
         return (
           <div
             key={src + idx}
-            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-              isActive ? "opacity-100 z-0" : "opacity-0 z-0"
-            }`}
+            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${isActive ? "opacity-100 z-0" : "opacity-0 z-0"
+              }`}
           >
             <img
               src={src}
               alt="Hi5 Creation Signage Work"
-              className={`w-full h-full object-cover transition-transform duration-10000 ease-linear ${
-                isActive ? "scale-105" : "scale-100"
-              }`}
+              className={`w-full h-full object-cover transition-transform duration-10000 ease-linear ${isActive ? "scale-105" : "scale-100"
+                }`}
             />
             {/* Multi-layered dark gradient overlay for optimal text contrast */}
             <div className="absolute inset-0 bg-gradient-to-r from-stone-950/95 via-stone-950/85 to-stone-950/65" />
@@ -159,9 +157,8 @@ export default function FullHeroSlider() {
             type="button"
             onClick={() => setCurrentIndex(idx)}
             aria-label={`Go to slide ${idx + 1}`}
-            className={`h-1.5 rounded-full transition-all duration-300 ${
-              idx === currentIndex ? "w-6 sm:w-8 bg-orange-500" : "w-1.5 sm:w-2 bg-white/40 hover:bg-white"
-            }`}
+            className={`h-1.5 rounded-full transition-all duration-300 ${idx === currentIndex ? "w-6 sm:w-8 bg-orange-500" : "w-1.5 sm:w-2 bg-white/40 hover:bg-white"
+              }`}
           />
         ))}
       </div>
