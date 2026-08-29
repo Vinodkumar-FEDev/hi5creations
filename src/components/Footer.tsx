@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import Link from "next/link";
 
 export default function Footer() {
   return (
@@ -57,8 +57,8 @@ export default function Footer() {
         <div className="flex flex-col sm:flex-row justify-between items-center pt-8 gap-4">
           <p className="text-stone-600 text-xs">© 2026 Hi 5 Creation. All Rights Reserved.</p>
           <div className="flex gap-6 text-xs text-stone-600">
-            <Link to="/" className="hover:text-stone-400 transition-colors">Home</Link>
-            <Link to="/gallery" className="hover:text-stone-400 transition-colors">Gallery</Link>
+            <Link href="/" className="hover:text-stone-400 transition-colors">Home</Link>
+            <Link href="/gallery" className="hover:text-stone-400 transition-colors">Gallery</Link>
             <a href="https://share.google/DioyICsZPa8S9QXpo" target="_blank" rel="noopener noreferrer" className="hover:text-stone-400 transition-colors">Google Reviews</a>
           </div>
         </div>
