@@ -95,7 +95,7 @@ function writeLocalCategories(data: CategoryItem[]): boolean {
     fs.writeFileSync(LOCAL_CATEGORIES_PATH, JSON.stringify(data, null, 2), "utf-8");
     return true;
   } catch (err) {
-    console.error("Error writing local categories.json:", err);
+    console.warn("Local filesystem write skipped (read-only production serverless environment)");
     return false;
   }
 }
@@ -143,8 +143,14 @@ export async function GET() {
   const session = await getSession();
   const userId = session?.userId || "admin";
 
-  const r2Data = await readR2Categories(userId);
-  if (r2Data) {
+  const configCheck = validateR2Config();
+  if (configCheck.valid) {
+    let r2Data = await readR2Categories(userId);
+    if (!r2Data || r2Data.length === 0) {
+      // Automatically seed default categories & subcategories into R2 Cloud Storage
+      r2Data = DEFAULT_CATEGORIES;
+      await syncR2Categories(userId, DEFAULT_CATEGORIES);
+    }
     return NextResponse.json(r2Data);
   }
 

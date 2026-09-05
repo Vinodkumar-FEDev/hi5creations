@@ -95,9 +95,8 @@ export async function fetchDynamicCategories(forceRefresh = false): Promise<Cate
   } catch (err) {
     console.error("Error fetching dynamic categories:", err);
   }
-  const fallback = GALLERY_CATEGORIES.map((cat) => ({ name: cat, subcategories: [] }));
-  categoriesCache = fallback;
-  return fallback;
+  categoriesCache = DEFAULT_CATEGORY_DATA;
+  return DEFAULT_CATEGORY_DATA;
 }
 
 /**

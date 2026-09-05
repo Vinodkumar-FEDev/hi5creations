@@ -147,28 +147,10 @@ export default function HomeServicesSection() {
                   {s.name}
                 </h3>
 
-                <p className="text-xs text-stone-500 leading-relaxed mb-4 line-clamp-3">
+                <p className="text-xs text-stone-500 leading-relaxed mb-1 line-clamp-3">
                   {s.desc}
                 </p>
               </div>
-
-              {s.subcategories && s.subcategories.length > 0 && (
-                <div className="pt-3 border-t border-stone-100 flex flex-wrap gap-1">
-                  {s.subcategories.slice(0, 3).map((sub) => (
-                    <span
-                      key={sub}
-                      className="text-[10px] bg-stone-100 group-hover:bg-orange-100/60 group-hover:text-orange-700 text-stone-500 font-medium px-2 py-0.5 rounded-md transition-colors"
-                    >
-                      {sub}
-                    </span>
-                  ))}
-                  {s.subcategories.length > 3 && (
-                    <span className="text-[10px] text-stone-400 px-1 py-0.5 font-bold">
-                      +{s.subcategories.length - 3}
-                    </span>
-                  )}
-                </div>
-              )}
             </Link>
           ))}
         </div>
