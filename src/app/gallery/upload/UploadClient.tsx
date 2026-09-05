@@ -1322,7 +1322,7 @@ export default function UploadClient() {
                   </span>
                 </h2>
                 <p className="text-xs text-stone-500">
-                  Add, edit, or delete Categories and Subcategories saved in categories.json file.
+                  Add, edit, or delete Categories and Subcategories saved in Cloudflare R2 cloud storage.
                 </p>
               </div>
             </div>

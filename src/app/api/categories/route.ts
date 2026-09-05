@@ -1,19 +1,9 @@
 import { NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
 import { getSession } from "@/src/lib/auth";
 import { getR2Client, getBucketName, validateR2Config } from "@/src/lib/r2";
 import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 
 export const dynamic = "force-dynamic";
-
-const LOCAL_CATEGORIES_PATH = path.join(
-  process.cwd(),
-  "public",
-  "assets",
-  "gallery",
-  "categories.json"
-);
 
 export interface CategoryItem {
   name: string;
@@ -71,35 +61,6 @@ const DEFAULT_CATEGORIES: CategoryItem[] = [
   },
 ];
 
-function readLocalCategories(): CategoryItem[] {
-  try {
-    if (fs.existsSync(LOCAL_CATEGORIES_PATH)) {
-      const data = fs.readFileSync(LOCAL_CATEGORIES_PATH, "utf-8");
-      const parsed = JSON.parse(data);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
-      }
-    }
-  } catch (err) {
-    console.error("Error reading local categories.json:", err);
-  }
-  return DEFAULT_CATEGORIES;
-}
-
-function writeLocalCategories(data: CategoryItem[]): boolean {
-  try {
-    const dir = path.dirname(LOCAL_CATEGORIES_PATH);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    fs.writeFileSync(LOCAL_CATEGORIES_PATH, JSON.stringify(data, null, 2), "utf-8");
-    return true;
-  } catch (err) {
-    console.warn("Local filesystem write skipped (read-only production serverless environment)");
-    return false;
-  }
-}
-
 async function readR2Categories(userId = "admin"): Promise<CategoryItem[] | null> {
   const configCheck = validateR2Config();
   if (!configCheck.valid) return null;
@@ -115,7 +76,7 @@ async function readR2Categories(userId = "admin"): Promise<CategoryItem[] | null
       if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     }
   } catch {
-    // Ignore error if R2 categories file doesn't exist yet
+    // Return null if manifest does not exist in R2 yet
   }
   return null;
 }
@@ -135,7 +96,7 @@ async function syncR2Categories(userId = "admin", data: CategoryItem[]) {
     });
     await r2.send(cmd);
   } catch (err) {
-    console.error("Error syncing R2 categories.json:", err);
+    console.error("Error syncing R2 categories:", err);
   }
 }
 
@@ -147,15 +108,14 @@ export async function GET() {
   if (configCheck.valid) {
     let r2Data = await readR2Categories(userId);
     if (!r2Data || r2Data.length === 0) {
-      // Automatically seed default categories & subcategories into R2 Cloud Storage
+      // Seed default categories & subcategories directly into R2 Cloud Storage
       r2Data = DEFAULT_CATEGORIES;
       await syncR2Categories(userId, DEFAULT_CATEGORIES);
     }
     return NextResponse.json(r2Data);
   }
 
-  const localData = readLocalCategories();
-  return NextResponse.json(localData);
+  return NextResponse.json(DEFAULT_CATEGORIES);
 }
 
 export async function POST(req: Request) {
@@ -172,7 +132,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Category name is required" }, { status: 400 });
   }
 
-  let categories = (await readR2Categories(userId)) || readLocalCategories();
+  let categories = (await readR2Categories(userId)) || [...DEFAULT_CATEGORIES];
   const cleanCat = categoryName.trim();
 
   if (action === "add_category") {
@@ -197,7 +157,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   }
 
-  writeLocalCategories(categories);
   await syncR2Categories(userId, categories);
 
   return NextResponse.json({ success: true, categories });
@@ -217,7 +176,7 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "Category name is required" }, { status: 400 });
   }
 
-  let categories = (await readR2Categories(userId)) || readLocalCategories();
+  let categories = (await readR2Categories(userId)) || [...DEFAULT_CATEGORIES];
   const cleanCat = categoryName.trim();
 
   if (action === "delete_category") {
@@ -237,7 +196,6 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   }
 
-  writeLocalCategories(categories);
   await syncR2Categories(userId, categories);
 
   return NextResponse.json({ success: true, categories });
