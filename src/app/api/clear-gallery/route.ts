@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { getSession } from "@/src/lib/auth";
+import { validateR2Config, writeR2Manifest } from "@/src/lib/r2";
 import fs from "fs";
 import path from "path";
 
@@ -20,26 +22,46 @@ function readManifest() {
 }
 
 function writeManifest(data: any[]) {
-  if (!fs.existsSync(ASSETS_DIR)) {
-    fs.mkdirSync(ASSETS_DIR, { recursive: true });
+  try {
+    if (!fs.existsSync(ASSETS_DIR)) {
+      fs.mkdirSync(ASSETS_DIR, { recursive: true });
+    }
+    fs.writeFileSync(MANIFEST_PATH, JSON.stringify(data, null, 2), "utf-8");
+  } catch (err) {
+    console.warn("Unable to clear local manifest (read-only filesystem):", err);
   }
-  fs.writeFileSync(MANIFEST_PATH, JSON.stringify(data, null, 2), "utf-8");
 }
 
 export async function POST() {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json(
+        { error: "Unauthorized. Please sign in to clear gallery." },
+        { status: 401 }
+      );
+    }
+
+    const userId = session.userId || "admin";
+    const r2Config = validateR2Config();
+    if (r2Config.valid) {
+      await writeR2Manifest(userId, []);
+    }
+
     const currentImages = readManifest();
     currentImages.forEach((item: any) => {
       if (item.fileName) {
         const p = path.join(ASSETS_DIR, item.fileName);
-        if (fs.existsSync(p)) fs.unlinkSync(p);
+        try {
+          if (fs.existsSync(p)) fs.unlinkSync(p);
+        } catch {}
       }
     });
 
     writeManifest([]);
     return NextResponse.json({ success: true });
-  } catch (err) {
+  } catch (err: any) {
     console.error("Error clearing gallery images:", err);
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return NextResponse.json({ error: err.message || String(err) }, { status: 500 });
   }
 }

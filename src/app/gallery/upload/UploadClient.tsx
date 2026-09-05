@@ -105,6 +105,34 @@ export default function UploadClient() {
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [dynamicCategories, setDynamicCategories] = useState<CategoryData[]>([]);
 
+  // Cloudflare R2 Connection Status State
+  const [r2Status, setR2Status] = useState<{
+    loading: boolean;
+    connected: boolean;
+    missingVars: string[];
+    bucketName?: string;
+  }>({ loading: true, connected: false, missingVars: [] });
+
+  const checkR2Status = async () => {
+    setR2Status((prev) => ({ ...prev, loading: true }));
+    try {
+      const res = await fetch("/api/r2-status");
+      if (res.ok) {
+        const data = await res.json();
+        setR2Status({
+          loading: false,
+          connected: !!data.connected,
+          missingVars: data.missingVars || [],
+          bucketName: data.bucketName || undefined,
+        });
+      } else {
+        setR2Status({ loading: false, connected: false, missingVars: ["SERVER_ERROR"] });
+      }
+    } catch {
+      setR2Status({ loading: false, connected: false, missingVars: ["NETWORK_ERROR"] });
+    }
+  };
+
   // Automatic Watermark & Image Clarity Configuration State
   const [watermarkOpts, setWatermarkOpts] = useState<WatermarkOptions>({
     enabled: true,
@@ -189,6 +217,7 @@ export default function UploadClient() {
     if (isAuthenticated) {
       loadImages();
       loadCategories();
+      checkR2Status();
     }
   }, [isAuthenticated]);
 
@@ -719,6 +748,81 @@ export default function UploadClient() {
       </section>
 
       <div className="max-w-7xl mx-auto px-5 lg:px-8 pt-8 space-y-8">
+        {/* CONTAINER 0: Cloud Connection Status Card */}
+        <section
+          className={`rounded-3xl border p-5 sm:p-6 shadow-xs transition-all ${
+            r2Status.connected
+              ? "bg-emerald-50/80 border-emerald-200"
+              : "bg-amber-50/90 border-amber-300"
+          }`}
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <span
+                className={`w-10 h-10 rounded-2xl flex items-center justify-center text-lg font-black shrink-0 shadow-xs ${
+                  r2Status.connected ? "bg-emerald-500 text-white" : "bg-amber-500 text-white"
+                }`}
+              >
+                {r2Status.connected ? "☁️" : "⚡"}
+              </span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-extrabold text-stone-900 font-display">
+                    {r2Status.connected
+                      ? "Cloudflare R2 Storage Connected"
+                      : "Cloud Connection Setup Required"}
+                  </h3>
+                  <span
+                    className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${
+                      r2Status.connected
+                        ? "bg-emerald-600 text-white"
+                        : "bg-amber-600 text-white"
+                    }`}
+                  >
+                    {r2Status.loading
+                      ? "Testing..."
+                      : r2Status.connected
+                      ? "Active & Secured"
+                      : "Action Needed on Host"}
+                  </span>
+                </div>
+
+                <p className="text-xs text-stone-700 mt-1 leading-relaxed">
+                  {r2Status.connected
+                    ? `Connected to bucket '${r2Status.bucketName}'. Uploaded photos are stored on Cloudflare R2 and synced across all devices.`
+                    : `Your hosted production site requires Cloudflare R2 environment variables to connect to your cloud storage.`}
+                </p>
+
+                {!r2Status.connected && !r2Status.loading && r2Status.missingVars.length > 0 && (
+                  <div className="mt-3 p-3 bg-white/90 rounded-xl border border-amber-200 text-xs text-stone-800 space-y-1.5">
+                    <p className="font-bold text-amber-900">
+                      Add these 5 Environment Variables in your hosting dashboard (Vercel / Netlify / Hostinger):
+                    </p>
+                    <div className="flex flex-wrap gap-1.5 font-mono text-[11px]">
+                      {r2Status.missingVars.map((v) => (
+                        <span
+                          key={v}
+                          className="bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded border border-amber-300"
+                        >
+                          {v}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <button
+              onClick={checkR2Status}
+              disabled={r2Status.loading}
+              className="px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold rounded-xl transition-all shadow-xs self-start sm:self-center shrink-0 flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>{r2Status.loading ? "Verifying..." : "🔄 Test Cloud Connection"}</span>
+            </button>
+          </div>
+        </section>
+
         {/* CONTAINER WATERMARK: Automatic Watermark Settings (Collapsible Card) */}
         <section className="bg-white rounded-3xl border border-stone-200 shadow-sm overflow-hidden transition-all">
           <div
