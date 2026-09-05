@@ -770,14 +770,14 @@ export default function UploadClient() {
                   <h3 className="text-base font-extrabold text-stone-900 font-display">
                     {r2Status.connected
                       ? "Cloudflare R2 Storage Connected"
-                      : "Cloudflare R2 Connection Setup Required for Vercel"}
+                      : "Cloudflare R2 Connection Setup Required for Hosting"}
                   </h3>
                   <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${
                     r2Status.connected
                       ? "bg-emerald-600 text-white"
                       : "bg-amber-600 text-white"
                   }`}>
-                    {r2Status.connected ? "Active & Secured" : "Action Required on Vercel"}
+                    {r2Status.connected ? "Active & Secured" : "Setup Needed on Host"}
                   </span>
                 </div>
 
@@ -788,7 +788,7 @@ export default function UploadClient() {
                 ) : (
                   <div className="mt-2 space-y-3">
                     <p className="text-xs text-stone-800 leading-relaxed font-medium">
-                      On Vercel hosting, Cloudflare R2 environment variables must be configured in your Vercel Dashboard for images, categories, and subcategories to save permanently.
+                      Cloudflare R2 environment variables are missing on your server or hosting provider (Hostinger, GoDaddy, Vercel, cPanel, VPS). Images, categories, and subcategories require active R2 connection to save permanently.
                     </p>
 
                     {r2Status.missingVars.length > 0 && (
@@ -813,13 +813,37 @@ export default function UploadClient() {
                       </div>
                     )}
 
-                    <div className="bg-white/80 border border-amber-200 rounded-xl p-3 text-xs text-stone-700 space-y-1">
-                      <p className="font-bold text-stone-900">How to Fix on Vercel Dashboard:</p>
-                      <ol className="list-decimal list-inside space-y-0.5 text-stone-600 text-[11px]">
-                        <li>Go to <strong>Vercel Dashboard → Your Project → Settings → Environment Variables</strong>.</li>
-                        <li>Add the 5 variables above with values from your local <code>.env.local</code> file.</li>
-                        <li>Go to <strong>Deployments → Redeploy</strong> to apply changes.</li>
-                      </ol>
+                    <div className="bg-white/90 border border-amber-200 rounded-2xl p-4 text-xs text-stone-700 space-y-3 shadow-xs">
+                      <p className="font-bold text-stone-900 text-xs">How to Add Environment Variables on Your Hosting Provider:</p>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="bg-stone-50 border border-stone-200 p-2.5 rounded-xl">
+                          <p className="font-bold text-stone-800 text-[11px] mb-1">🌐 Hostinger / GoDaddy (cPanel)</p>
+                          <ol className="list-decimal list-inside text-[10px] text-stone-600 space-y-1">
+                            <li>Open <strong>cPanel / hPanel → Setup Node.js App</strong> or <strong>Environment Variables</strong>.</li>
+                            <li>Add the 5 variables above with your credentials.</li>
+                            <li>Click <strong>Save &amp; Restart App</strong>.</li>
+                          </ol>
+                        </div>
+
+                        <div className="bg-stone-50 border border-stone-200 p-2.5 rounded-xl">
+                          <p className="font-bold text-stone-800 text-[11px] mb-1">▲ Vercel / Netlify / Render</p>
+                          <ol className="list-decimal list-inside text-[10px] text-stone-600 space-y-1">
+                            <li>Go to <strong>Project Settings → Environment Variables</strong>.</li>
+                            <li>Add the 5 variables above from <code>.env.local</code>.</li>
+                            <li>Click <strong>Redeploy</strong>.</li>
+                          </ol>
+                        </div>
+
+                        <div className="bg-stone-50 border border-stone-200 p-2.5 rounded-xl">
+                          <p className="font-bold text-stone-800 text-[11px] mb-1">🖥️ VPS / Docker / SSH Server</p>
+                          <ol className="list-decimal list-inside text-[10px] text-stone-600 space-y-1">
+                            <li>Edit <code>.env.production</code> or <code>.env</code> on server.</li>
+                            <li>Add the 5 keys and values.</li>
+                            <li>Restart via <code>pm2 restart all</code> or <code>docker-compose restart</code>.</li>
+                          </ol>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}

@@ -128,8 +128,8 @@ export async function POST(req: Request) {
   if (!configCheck.valid) {
     return NextResponse.json(
       {
-        error: "Cloudflare R2 storage is not connected on Vercel.",
-        details: "Categories and subcategories require active R2 environment variables to persist on Vercel. Please set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, and R2_BUCKET_NAME in Vercel Project Settings.",
+        error: "Cloudflare R2 storage is not connected on your hosting server.",
+        details: "Categories and subcategories require active R2 environment variables to persist on your hosting provider (Hostinger, GoDaddy, Vercel, cPanel/VPS). Please set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, and R2_BUCKET_NAME in your environment settings.",
         missingVars: configCheck.missingVars,
       },
       { status: 400 }
@@ -184,8 +184,8 @@ export async function DELETE(req: Request) {
   if (!configCheck.valid) {
     return NextResponse.json(
       {
-        error: "Cloudflare R2 storage is not connected on Vercel.",
-        details: "Deleting categories requires Cloudflare R2 connection. Please configure environment variables on Vercel.",
+        error: "Cloudflare R2 storage is not connected on your hosting server.",
+        details: "Deleting categories requires Cloudflare R2 connection. Please configure R2 environment variables in your hosting environment settings (Hostinger, GoDaddy, Vercel, cPanel/VPS).",
         missingVars: configCheck.missingVars,
       },
       { status: 400 }
