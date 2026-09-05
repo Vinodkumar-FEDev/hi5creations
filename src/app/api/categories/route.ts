@@ -124,6 +124,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const configCheck = validateR2Config();
+  if (!configCheck.valid) {
+    return NextResponse.json(
+      {
+        error: "Cloudflare R2 storage is not connected on Vercel.",
+        details: "Categories and subcategories require active R2 environment variables to persist on Vercel. Please set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, and R2_BUCKET_NAME in Vercel Project Settings.",
+        missingVars: configCheck.missingVars,
+      },
+      { status: 400 }
+    );
+  }
+
   const userId = session.userId || "admin";
   const body = await req.json();
   const { action, categoryName, subcategoryName } = body;
@@ -166,6 +178,18 @@ export async function DELETE(req: Request) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const configCheck = validateR2Config();
+  if (!configCheck.valid) {
+    return NextResponse.json(
+      {
+        error: "Cloudflare R2 storage is not connected on Vercel.",
+        details: "Deleting categories requires Cloudflare R2 connection. Please configure environment variables on Vercel.",
+        missingVars: configCheck.missingVars,
+      },
+      { status: 400 }
+    );
   }
 
   const userId = session.userId || "admin";

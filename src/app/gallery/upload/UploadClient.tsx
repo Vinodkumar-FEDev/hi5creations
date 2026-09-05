@@ -280,12 +280,13 @@ export default function UploadClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "add_category", categoryName: name }),
       });
-      if (res.ok) {
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
         setNewCatInput("");
         showToast("success", `Category "${name}" added successfully!`);
         await loadCategories();
       } else {
-        showToast("error", "Failed to add category.");
+        showToast("error", data.error || "Failed to add category. Please verify R2 connection on Vercel.");
       }
     } catch (err) {
       showToast("error", "Error connecting to server.");
@@ -303,11 +304,12 @@ export default function UploadClient() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "delete_category", categoryName }),
         });
-        if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
           showToast("info", `Category "${categoryName}" deleted.`);
           await loadCategories();
         } else {
-          showToast("error", "Failed to delete category.");
+          showToast("error", data.error || "Failed to delete category.");
         }
       } catch (err) {
         showToast("error", "Error deleting category.");
@@ -335,12 +337,13 @@ export default function UploadClient() {
           subcategoryName: subName,
         }),
       });
-      if (res.ok) {
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
         setSubCatInputs((prev) => ({ ...prev, [categoryName]: "" }));
         showToast("success", `Subcategory "${subName}" added under ${categoryName}!`);
         await loadCategories();
       } else {
-        showToast("error", "Failed to add subcategory.");
+        showToast("error", data.error || "Failed to add subcategory. Please verify R2 connection.");
       }
     } catch (err) {
       showToast("error", "Error adding subcategory.");
@@ -364,11 +367,12 @@ export default function UploadClient() {
           subcategoryName,
         }),
       });
-      if (res.ok) {
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
         showToast("info", `Subcategory "${subcategoryName}" deleted.`);
         await loadCategories();
       } else {
-        showToast("error", "Failed to delete subcategory.");
+        showToast("error", data.error || "Failed to delete subcategory.");
       }
     } catch (err) {
       showToast("error", "Error deleting subcategory.");
@@ -748,40 +752,89 @@ export default function UploadClient() {
       </section>
 
       <div className="max-w-7xl mx-auto px-5 lg:px-8 pt-8 space-y-8">
-        {/* CONTAINER 0: Cloud Connection Status Card (Only displayed when connected) */}
-        {r2Status.connected && (
-          <section className="rounded-3xl border p-5 sm:p-6 shadow-xs transition-all bg-emerald-50/80 border-emerald-200">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-start gap-3">
-                <span className="w-10 h-10 rounded-2xl flex items-center justify-center text-lg font-black shrink-0 shadow-xs bg-emerald-500 text-white">
-                  ☁️
-                </span>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-base font-extrabold text-stone-900 font-display">
-                      Cloudflare R2 Storage Connected
-                    </h3>
-                    <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-600 text-white">
-                      Active &amp; Secured
-                    </span>
-                  </div>
-
-                  <p className="text-xs text-stone-700 mt-1 leading-relaxed">
-                    Connected to bucket &apos;{r2Status.bucketName}&apos;. Uploaded photos are stored on Cloudflare R2 and synced across all devices.
-                  </p>
+        {/* CONTAINER 0: Cloud Connection Status Card (Connected or Setup Required) */}
+        <section className={`rounded-3xl border p-5 sm:p-6 shadow-xs transition-all ${
+          r2Status.connected
+            ? "bg-emerald-50/80 border-emerald-200"
+            : "bg-amber-50/90 border-amber-300"
+        }`}>
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <span className={`w-10 h-10 rounded-2xl flex items-center justify-center text-lg font-black shrink-0 shadow-xs ${
+                r2Status.connected ? "bg-emerald-500 text-white" : "bg-amber-500 text-white"
+              }`}>
+                {r2Status.connected ? "☁️" : "⚠️"}
+              </span>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-base font-extrabold text-stone-900 font-display">
+                    {r2Status.connected
+                      ? "Cloudflare R2 Storage Connected"
+                      : "Cloudflare R2 Connection Setup Required for Vercel"}
+                  </h3>
+                  <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${
+                    r2Status.connected
+                      ? "bg-emerald-600 text-white"
+                      : "bg-amber-600 text-white"
+                  }`}>
+                    {r2Status.connected ? "Active & Secured" : "Action Required on Vercel"}
+                  </span>
                 </div>
-              </div>
 
-              <button
-                onClick={checkR2Status}
-                disabled={r2Status.loading}
-                className="px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold rounded-xl transition-all shadow-xs self-start sm:self-center shrink-0 flex items-center gap-1.5 cursor-pointer"
-              >
-                <span>{r2Status.loading ? "Verifying..." : "🔄 Refresh Connection"}</span>
-              </button>
+                {r2Status.connected ? (
+                  <p className="text-xs text-stone-700 mt-1 leading-relaxed">
+                    Connected to bucket &apos;{r2Status.bucketName}&apos;. Uploaded photos, categories, and subcategories are stored on Cloudflare R2 and synced across all devices.
+                  </p>
+                ) : (
+                  <div className="mt-2 space-y-3">
+                    <p className="text-xs text-stone-800 leading-relaxed font-medium">
+                      On Vercel hosting, Cloudflare R2 environment variables must be configured in your Vercel Dashboard for images, categories, and subcategories to save permanently.
+                    </p>
+
+                    {r2Status.missingVars.length > 0 && (
+                      <div className="bg-amber-100/70 border border-amber-300 rounded-xl p-3 text-xs">
+                        <span className="font-bold text-amber-900 block mb-1">
+                          Missing Environment Variables ({r2Status.missingVars.length}):
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {["R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET_NAME", "SESSION_SECRET"].map((varName) => (
+                            <span
+                              key={varName}
+                              className={`px-2 py-0.5 rounded font-mono text-[11px] font-bold ${
+                                r2Status.missingVars.includes(varName)
+                                  ? "bg-red-200 text-red-900 border border-red-300"
+                                  : "bg-emerald-100 text-emerald-900 border border-emerald-300"
+                              }`}
+                            >
+                              {r2Status.missingVars.includes(varName) ? `❌ ${varName}` : `✓ ${varName}`}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="bg-white/80 border border-amber-200 rounded-xl p-3 text-xs text-stone-700 space-y-1">
+                      <p className="font-bold text-stone-900">How to Fix on Vercel Dashboard:</p>
+                      <ol className="list-decimal list-inside space-y-0.5 text-stone-600 text-[11px]">
+                        <li>Go to <strong>Vercel Dashboard → Your Project → Settings → Environment Variables</strong>.</li>
+                        <li>Add the 5 variables above with values from your local <code>.env.local</code> file.</li>
+                        <li>Go to <strong>Deployments → Redeploy</strong> to apply changes.</li>
+                      </ol>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </section>
-        )}
+
+            <button
+              onClick={checkR2Status}
+              disabled={r2Status.loading}
+              className="px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold rounded-xl transition-all shadow-xs self-start sm:self-center shrink-0 flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>{r2Status.loading ? "Verifying..." : "🔄 Refresh Connection"}</span>
+            </button>
+          </div>
+        </section>
 
         {/* CONTAINER WATERMARK: Automatic Watermark Settings (Collapsible Card) */}
         <section className="bg-white rounded-3xl border border-stone-200 shadow-sm overflow-hidden transition-all">

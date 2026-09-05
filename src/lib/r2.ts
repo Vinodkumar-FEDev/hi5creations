@@ -1,14 +1,19 @@
 import "server-only";
 import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 
+export function cleanEnvVar(val: string | undefined): string {
+  if (!val) return "";
+  return val.trim().replace(/^["']|["']$/g, "");
+}
+
 /**
  * Validates that all required Cloudflare R2 environment variables are populated with actual credentials.
  */
 export function validateR2Config(): { valid: boolean; missingVars: string[] } {
-  const accountId = (process.env.R2_ACCOUNT_ID || "").trim();
-  const accessKeyId = (process.env.R2_ACCESS_KEY_ID || "").trim();
-  const secretAccessKey = (process.env.R2_SECRET_ACCESS_KEY || "").trim();
-  const bucketName = (process.env.R2_BUCKET_NAME || "").trim();
+  const accountId = cleanEnvVar(process.env.R2_ACCOUNT_ID);
+  const accessKeyId = cleanEnvVar(process.env.R2_ACCESS_KEY_ID);
+  const secretAccessKey = cleanEnvVar(process.env.R2_SECRET_ACCESS_KEY);
+  const bucketName = cleanEnvVar(process.env.R2_BUCKET_NAME);
 
   const missingVars: string[] = [];
   if (!accountId || accountId.includes("your_") || accountId === "") missingVars.push("R2_ACCOUNT_ID");
@@ -23,16 +28,16 @@ export function validateR2Config(): { valid: boolean; missingVars: string[] } {
 }
 
 export function getBucketName(): string {
-  return (process.env.R2_BUCKET_NAME || "").trim();
+  return cleanEnvVar(process.env.R2_BUCKET_NAME);
 }
 
 /**
  * Dynamically constructs the server-only Cloudflare R2 S3 Client using active process environment variables.
  */
 export function getR2Client(): S3Client {
-  const accountId = (process.env.R2_ACCOUNT_ID || "").trim();
-  const accessKeyId = (process.env.R2_ACCESS_KEY_ID || "").trim();
-  const secretAccessKey = (process.env.R2_SECRET_ACCESS_KEY || "").trim();
+  const accountId = cleanEnvVar(process.env.R2_ACCOUNT_ID);
+  const accessKeyId = cleanEnvVar(process.env.R2_ACCESS_KEY_ID);
+  const secretAccessKey = cleanEnvVar(process.env.R2_SECRET_ACCESS_KEY);
 
   return new S3Client({
     region: "auto",
