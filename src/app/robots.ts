@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/gallery/upload", "/api/"],
+        disallow: ["/gallery/upload", "/login", "/api/"],
       },
     ],
     sitemap: "https://hi5creations.com/sitemap.xml",

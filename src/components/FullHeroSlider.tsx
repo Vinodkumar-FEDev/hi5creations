@@ -61,13 +61,13 @@ export default function FullHeroSlider() {
           >
             <img
               src={src}
-              alt="Hi5 Creation Signage Work"
+              alt={`Hi5 Creation Custom LED Sign Boards & Storefront Facade Cladding Coimbatore - Project ${idx + 1}`}
               className={`w-full h-full object-cover transition-transform duration-10000 ease-linear ${isActive ? "scale-105" : "scale-100"
                 }`}
             />
             {/* Multi-layered dark gradient overlay for optimal text contrast */}
             <div className="absolute inset-0 bg-gradient-to-r from-stone-950/95 via-stone-950/85 to-stone-950/65" />
-            <div className="absolute inset-0 bg-stone-950/40" />
+            <div className="absolute inset-0 bg-stone-950/10" />
           </div>
         );
       })}

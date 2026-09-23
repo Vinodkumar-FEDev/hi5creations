@@ -119,6 +119,17 @@ export default function Navbar() {
             </a>
 
             <a
+              href="/#faq"
+              className={`transition-colors ${
+                isTransparent
+                  ? "text-white/90 hover:text-orange-400"
+                  : "text-stone-600 hover:text-orange-500"
+              }`}
+            >
+              FAQs
+            </a>
+
+            <a
               href={WHATSAPP_URL}
               target="_blank"
               rel="noopener noreferrer"
@@ -198,6 +209,9 @@ export default function Navbar() {
           </Link>
           <a href="/#services" className="text-stone-200 text-sm font-medium">
             Services
+          </a>
+          <a href="/#faq" className="text-stone-200 text-sm font-medium">
+            FAQs
           </a>
         </div>
       )}

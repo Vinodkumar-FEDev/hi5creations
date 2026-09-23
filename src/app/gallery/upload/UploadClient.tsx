@@ -105,10 +105,11 @@ export default function UploadClient() {
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [dynamicCategories, setDynamicCategories] = useState<CategoryData[]>([]);
 
-  // Cloudflare R2 Connection Status State
+  // Cloud Storage (AWS S3 or Cloudflare R2) Connection Status State
   const [r2Status, setR2Status] = useState<{
     loading: boolean;
     connected: boolean;
+    provider?: string;
     missingVars: string[];
     bucketName?: string;
   }>({ loading: true, connected: false, missingVars: [] });
@@ -122,6 +123,7 @@ export default function UploadClient() {
         setR2Status({
           loading: false,
           connected: !!data.connected,
+          provider: data.provider || "Cloud Storage",
           missingVars: data.missingVars || [],
           bucketName: data.bucketName || undefined,
         });
@@ -196,7 +198,7 @@ export default function UploadClient() {
           setIsAuthenticated(true);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const loadCategories = async () => {
@@ -252,7 +254,7 @@ export default function UploadClient() {
     setActionLoading({ loading: true, message: "Signing out..." });
     try {
       await fetch("/api/auth/logout", { method: "POST" });
-    } catch {}
+    } catch { }
     setIsAuthenticated(false);
     setUsernameInput("");
     setPasswordInput("");
@@ -698,7 +700,7 @@ export default function UploadClient() {
     <div className="pt-16 min-h-screen bg-[#faf9f7] pb-24 relative">
       {/* Global Action Loading Modal Overlay */}
       {actionLoading.loading && (
-        <div className="fixed inset-0 z-50 bg-stone-950/40 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-stone-950/10 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl border border-stone-200 p-8 shadow-2xl text-center max-w-xs w-full animate-fade-up">
             <LoadingSpinner size="lg" text={actionLoading.message || "Processing request..."} />
           </div>
@@ -709,13 +711,12 @@ export default function UploadClient() {
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 animate-bounce">
           <div
-            className={`px-5 py-3 rounded-2xl shadow-xl text-xs font-bold text-white flex items-center gap-2 ${
-              toastMessage.type === "success"
-                ? "bg-emerald-600"
-                : toastMessage.type === "error"
+            className={`px-5 py-3 rounded-2xl shadow-xl text-xs font-bold text-white flex items-center gap-2 ${toastMessage.type === "success"
+              ? "bg-emerald-600"
+              : toastMessage.type === "error"
                 ? "bg-red-600"
                 : "bg-stone-800"
-            }`}
+              }`}
           >
             <span>{toastMessage.text}</span>
           </div>
@@ -753,42 +754,39 @@ export default function UploadClient() {
 
       <div className="max-w-7xl mx-auto px-5 lg:px-8 pt-8 space-y-8">
         {/* CONTAINER 0: Cloud Connection Status Card (Connected or Setup Required) */}
-        <section className={`rounded-3xl border p-5 sm:p-6 shadow-xs transition-all ${
-          r2Status.connected
-            ? "bg-emerald-50/80 border-emerald-200"
-            : "bg-amber-50/90 border-amber-300"
-        }`}>
+        <section className={`rounded-3xl border p-5 sm:p-6 shadow-xs transition-all ${r2Status.connected
+          ? "bg-emerald-50/80 border-emerald-200"
+          : "bg-amber-50/90 border-amber-300"
+          }`}>
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
             <div className="flex items-start gap-3">
-              <span className={`w-10 h-10 rounded-2xl flex items-center justify-center text-lg font-black shrink-0 shadow-xs ${
-                r2Status.connected ? "bg-emerald-500 text-white" : "bg-amber-500 text-white"
-              }`}>
+              <span className={`w-10 h-10 rounded-2xl flex items-center justify-center text-lg font-black shrink-0 shadow-xs ${r2Status.connected ? "bg-emerald-500 text-white" : "bg-amber-500 text-white"
+                }`}>
                 {r2Status.connected ? "☁️" : "⚠️"}
               </span>
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-base font-extrabold text-stone-900 font-display">
                     {r2Status.connected
-                      ? "Cloudflare R2 Storage Connected"
-                      : "Cloudflare R2 Connection Setup Required for Hosting"}
+                      ? `${r2Status.provider || "Cloud Storage"} Connected`
+                      : "Cloud Storage Setup (AWS S3 or Cloudflare R2)"}
                   </h3>
-                  <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${
-                    r2Status.connected
-                      ? "bg-emerald-600 text-white"
-                      : "bg-amber-600 text-white"
-                  }`}>
+                  <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${r2Status.connected
+                    ? "bg-emerald-600 text-white"
+                    : "bg-amber-600 text-white"
+                    }`}>
                     {r2Status.connected ? "Active & Secured" : "Setup Needed on Host"}
                   </span>
                 </div>
 
                 {r2Status.connected ? (
                   <p className="text-xs text-stone-700 mt-1 leading-relaxed">
-                    Connected to bucket &apos;{r2Status.bucketName}&apos;. Uploaded photos, categories, and subcategories are stored on Cloudflare R2 and synced across all devices.
+                    Connected to {r2Status.provider || "cloud"} bucket &apos;{r2Status.bucketName}&apos;. Uploaded photos, categories, and subcategories are stored securely in the cloud and synced across all devices.
                   </p>
                 ) : (
                   <div className="mt-2 space-y-3">
                     <p className="text-xs text-stone-800 leading-relaxed font-medium">
-                      Cloudflare R2 environment variables are missing on your server or hosting provider (Hostinger, GoDaddy, Vercel, cPanel, VPS). Images, categories, and subcategories require active R2 connection to save permanently.
+                      Cloud storage environment variables are missing on your server. You can configure either <strong>AWS S3</strong> (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, AWS_BUCKET_NAME) or <strong>Cloudflare R2</strong> (R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME) in your hosting provider settings.
                     </p>
 
                     {r2Status.missingVars.length > 0 && (
@@ -800,11 +798,10 @@ export default function UploadClient() {
                           {["R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET_NAME", "SESSION_SECRET"].map((varName) => (
                             <span
                               key={varName}
-                              className={`px-2 py-0.5 rounded font-mono text-[11px] font-bold ${
-                                r2Status.missingVars.includes(varName)
-                                  ? "bg-red-200 text-red-900 border border-red-300"
-                                  : "bg-emerald-100 text-emerald-900 border border-emerald-300"
-                              }`}
+                              className={`px-2 py-0.5 rounded font-mono text-[11px] font-bold ${r2Status.missingVars.includes(varName)
+                                ? "bg-red-200 text-red-900 border border-red-300"
+                                : "bg-emerald-100 text-emerald-900 border border-emerald-300"
+                                }`}
                             >
                               {r2Status.missingVars.includes(varName) ? `❌ ${varName}` : `✓ ${varName}`}
                             </span>
@@ -815,7 +812,7 @@ export default function UploadClient() {
 
                     <div className="bg-white/90 border border-amber-200 rounded-2xl p-4 text-xs text-stone-700 space-y-3 shadow-xs">
                       <p className="font-bold text-stone-900 text-xs">How to Add Environment Variables on Your Hosting Provider:</p>
-                      
+
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         <div className="bg-stone-50 border border-stone-200 p-2.5 rounded-xl">
                           <p className="font-bold text-stone-800 text-[11px] mb-1">🌐 Hostinger / GoDaddy (cPanel)</p>
@@ -874,11 +871,10 @@ export default function UploadClient() {
                 <h2 className="text-sm sm:text-base md:text-lg font-bold text-stone-900 font-display flex flex-wrap items-center gap-1.5 sm:gap-2">
                   <span>Automatic Image Watermark Settings</span>
                   <span
-                    className={`text-[9px] sm:text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
-                      watermarkOpts.enabled !== false
-                        ? "bg-emerald-100 text-emerald-700 border border-emerald-300"
-                        : "bg-stone-100 text-stone-500 border border-stone-300"
-                    }`}
+                    className={`text-[9px] sm:text-[10px] font-extrabold px-2 py-0.5 rounded-full ${watermarkOpts.enabled !== false
+                      ? "bg-emerald-100 text-emerald-700 border border-emerald-300"
+                      : "bg-stone-100 text-stone-500 border border-stone-300"
+                      }`}
                   >
                     {watermarkOpts.enabled !== false ? "✓ WATERMARK ACTIVE" : "OFF"}
                   </span>
@@ -951,11 +947,10 @@ export default function UploadClient() {
                                   position: st.id as any,
                                 }))
                               }
-                              className={`p-3.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
-                                watermarkOpts.style === st.id || watermarkOpts.position === st.id
-                                  ? "border-orange-500 bg-orange-50/60 text-stone-900 shadow-xs ring-1 ring-orange-500"
-                                  : "border-stone-200 bg-white text-stone-600 hover:bg-stone-50"
-                              }`}
+                              className={`p-3.5 rounded-xl border text-left flex flex-col justify-between transition-all ${watermarkOpts.style === st.id || watermarkOpts.position === st.id
+                                ? "border-orange-500 bg-orange-50/60 text-stone-900 shadow-xs ring-1 ring-orange-500"
+                                : "border-stone-200 bg-white text-stone-600 hover:bg-stone-50"
+                                }`}
                             >
                               <div className="flex items-center gap-2 mb-1">
                                 <span className="text-lg">{st.icon}</span>
@@ -1085,8 +1080,8 @@ export default function UploadClient() {
                             {(watermarkOpts.maxDimension ?? 0) === 0
                               ? "100% ORIGINAL RESOLUTION"
                               : (watermarkOpts.maxDimension ?? 0) === 2400
-                              ? "ULTRA HD (2400px)"
-                              : "HD (1600px)"}
+                                ? "ULTRA HD (2400px)"
+                                : "HD (1600px)"}
                           </span>
                         </div>
 
@@ -1106,11 +1101,10 @@ export default function UploadClient() {
                                   quality: res.id === 0 ? 0.98 : res.id === 2400 ? 0.95 : 0.90,
                                 }))
                               }
-                              className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
-                                (watermarkOpts.maxDimension ?? 0) === res.id
-                                  ? "border-orange-500 bg-orange-50/60 text-stone-900 shadow-xs ring-1 ring-orange-500"
-                                  : "border-stone-200 bg-white text-stone-600 hover:bg-stone-50"
-                              }`}
+                              className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${(watermarkOpts.maxDimension ?? 0) === res.id
+                                ? "border-orange-500 bg-orange-50/60 text-stone-900 shadow-xs ring-1 ring-orange-500"
+                                : "border-stone-200 bg-white text-stone-600 hover:bg-stone-50"
+                                }`}
                             >
                               <span className="text-xs font-bold block">{res.label}</span>
                               <span className="text-[10px] text-stone-400 block mt-0.5">{res.sub}</span>
@@ -1183,11 +1177,10 @@ export default function UploadClient() {
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-2xl p-6 sm:p-10 text-center cursor-pointer transition-all ${
-                  isDragging
-                    ? "border-orange-500 bg-orange-50/50 scale-[0.99]"
-                    : "border-stone-300 hover:border-orange-400 bg-stone-50/50"
-                }`}
+                className={`border-2 border-dashed rounded-2xl p-6 sm:p-10 text-center cursor-pointer transition-all ${isDragging
+                  ? "border-orange-500 bg-orange-50/50 scale-[0.99]"
+                  : "border-stone-300 hover:border-orange-400 bg-stone-50/50"
+                  }`}
               >
                 <input
                   type="file"
@@ -1674,11 +1667,10 @@ export default function UploadClient() {
                     return (
                       <div
                         key={img.id}
-                        className={`group relative rounded-2xl overflow-hidden border bg-stone-100 flex flex-col transition-all ${
-                          isSelected
-                            ? "border-orange-500 ring-2 ring-orange-500/30"
-                            : "border-stone-200 hover:border-stone-300"
-                        }`}
+                        className={`group relative rounded-2xl overflow-hidden border bg-stone-100 flex flex-col transition-all ${isSelected
+                          ? "border-orange-500 ring-2 ring-orange-500/30"
+                          : "border-stone-200 hover:border-stone-300"
+                          }`}
                       >
                         <div className="relative aspect-square overflow-hidden bg-stone-200">
                           <img

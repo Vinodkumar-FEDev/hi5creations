@@ -1,5 +1,8 @@
 User-agent: *
 Allow: /
+Disallow: /gallery/upload
+Disallow: /login
+Disallow: /api/
 
-# Sitemap Location for Google & Bing Crawlers
-Sitemap: /sitemap.xml
+# Canonical XML Sitemap for Google, Bing & Other Search Crawlers
+Sitemap: https://hi5creations.com/sitemap.xml

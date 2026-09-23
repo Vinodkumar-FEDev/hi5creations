@@ -19,6 +19,18 @@ const nextConfig = {
         protocol: 'https',
         hostname: '*.cloudflarestorage.com',
       },
+      {
+        protocol: 'https',
+        hostname: '*.s3.amazonaws.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 's3.*.amazonaws.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.s3.*.amazonaws.com',
+      },
     ],
   },
 };

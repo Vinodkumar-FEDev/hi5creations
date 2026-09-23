@@ -94,7 +94,7 @@ export default function HomeGallerySection() {
               >
                 <img
                   src={img.imageDataUrl}
-                  alt={`${img.title} — Hi5 Creation ${img.category}`}
+                  alt={`${img.title} — ${img.category} by Hi5 Creation Coimbatore`}
                   loading="lazy"
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />

@@ -29,9 +29,19 @@ export default function Footer() {
           <div>
             <h3 className="text-xs font-semibold text-stone-400 uppercase tracking-widest mb-5">Services</h3>
             <ul className="space-y-2.5 text-sm text-stone-400">
-              {["LED Sign Boards", "ACP Sign Boards", "Acrylic Signage", "Metal Letters", "Pylon & Totem", "LED Displays", "In-Shop Branding"].map((s) => (
-                <li key={s}>
-                  <a href="#services" className="hover:text-orange-400 transition-colors">{s}</a>
+              {[
+                { name: "LED Sign Boards", href: "/gallery?category=LED+Sign+Board" },
+                { name: "ACP Elevation & Cladding", href: "/gallery?category=ACP+Elevation" },
+                { name: "Acrylic 3D Letter Signs", href: "/gallery?category=Acrylic+%26+ACP+Board" },
+                { name: "SS & Titanium Letters", href: "/gallery?category=SS+%26+Titanium+Letters" },
+                { name: "Totem & Pylon Signs", href: "/gallery?category=Totem+Pylon+Board" },
+                { name: "LED Video Walls & Tickers", href: "/gallery?category=Scrolling+LED+%26+Videowall" },
+                { name: "In-Shop Retail Branding", href: "/gallery?category=Inshop+Branding" },
+              ].map((s) => (
+                <li key={s.name}>
+                  <Link href={s.href} className="hover:text-orange-400 transition-colors">
+                    {s.name}
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -56,9 +66,10 @@ export default function Footer() {
 
         <div className="flex flex-col sm:flex-row justify-between items-center pt-8 gap-4">
           <p className="text-stone-600 text-xs">© 2026 Hi 5 Creation. All Rights Reserved.</p>
-          <div className="flex gap-6 text-xs text-stone-600">
+          <div className="flex flex-wrap gap-6 text-xs text-stone-600">
             <Link href="/" className="hover:text-stone-400 transition-colors">Home</Link>
             <Link href="/gallery" className="hover:text-stone-400 transition-colors">Gallery</Link>
+            <Link href="/#faq" className="hover:text-stone-400 transition-colors">FAQs</Link>
             <a href="https://share.google/DioyICsZPa8S9QXpo" target="_blank" rel="noopener noreferrer" className="hover:text-stone-400 transition-colors">Google Reviews</a>
           </div>
         </div>

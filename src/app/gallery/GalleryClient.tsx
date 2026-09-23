@@ -367,7 +367,7 @@ export default function GalleryClient() {
                   >
                     <img
                       src={img.imageDataUrl}
-                      alt={`${img.title} — Hi5 Creation ${img.category}`}
+                      alt={`${img.title} — ${img.category} by Hi5 Creation Coimbatore`}
                       width={400}
                       height={300}
                       loading="lazy"

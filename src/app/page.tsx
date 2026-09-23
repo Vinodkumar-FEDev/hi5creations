@@ -3,18 +3,68 @@ import Link from "next/link";
 import HomeGallerySection from "@/src/components/HomeGallerySection";
 import HomeServicesSection from "@/src/components/HomeServicesSection";
 import FullHeroSlider from "@/src/components/FullHeroSlider";
+import HomeFaqSection from "@/src/components/HomeFaqSection";
+import { FAQ_ITEMS } from "@/src/data/faq";
 
 export const metadata: Metadata = {
-  title: "Hi5 Creation — Premier LED & ACP Sign Board Manufacturers in Coimbatore",
+  title: {
+    absolute: "Hi5 Creation — Premier LED & ACP Sign Board Manufacturers in Coimbatore",
+  },
   description:
-    "Leading LED sign board manufacturer, ACP elevation cladding, acrylic 3D letters, totem signs, and custom storefront branding in Coimbatore. High quality & durable signage.",
+    "Hi5 Creation is Coimbatore's premier manufacturer of Shop Sign Boards, 3D Lettering Signage, Pylon Signage, Acrylic & Neon LED Boards, Aluminium Channel Letters, and Commercial Storefront Branding across South India.",
+  keywords: [
+    "Hi5Creation",
+    "Hi5 Creation",
+    "Shop Sign Board",
+    "3D Lettering Signage",
+    "3D Signage",
+    "Pylon Signage Design",
+    "Pylon Signage",
+    "Retail Digital Signage",
+    "Retail Signage",
+    "Bank Signage",
+    "Bank Sign Board",
+    "Restaurant Led Board",
+    "Restaurant Signage",
+    "Real Estate Sign Board",
+    "Real Estate Signage",
+    "Hotel Led Board Design",
+    "Hotel Sign Board",
+    "Led Sign Board",
+    "LED Sign Board",
+    "Hospital Wayfinding Signage",
+    "Hospital Signage",
+    "Office Sign Board Design",
+    "Office Sign Board",
+    "Acrylic LED Sign Board",
+    "Acrylic LED Signage",
+    "Neon Led Signage",
+    "Neon LED Signage",
+    "Aluminium Channel Letters",
+    "Aluminum Channel Letters",
+    "Glow Signage",
+    "Glow Sign Board",
+    "Lollipop & Pylon Signage",
+    "wayfinding signages",
+    "Wayfinding Signages",
+    "Directional Signages",
+    "Custom Braille Signs",
+    "Braille Signages",
+    "Outdoor Signage Design",
+    "Outdoor Signages",
+    "safety signage",
+    "Safety Signages",
+    "indoor sign board",
+    "Indoor Sign Board",
+    "Indoor Signages",
+  ],
   alternates: {
     canonical: "https://hi5creations.com",
   },
   openGraph: {
     title: "Hi5 Creation — Premier Signage & LED Board Manufacturers in Coimbatore",
     description:
-      "Custom LED sign boards, ACP cladding, acrylic signage, 3D metal letters & visual branding solutions in Coimbatore.",
+      "Custom Shop Sign Boards, 3D Lettering Signage, Pylon Signs, Acrylic & Neon LED Boards, Aluminium Channel Letters & visual branding in Coimbatore.",
     url: "https://hi5creations.com",
     siteName: "Hi5 Creation",
     locale: "en_IN",
@@ -25,6 +75,12 @@ export const metadata: Metadata = {
         width: 1200,
         height: 630,
         alt: "Hi5 Creation Storefront Signage Coimbatore",
+      },
+      {
+        url: "https://hi5creations.com/assets/logo.png",
+        width: 512,
+        height: 512,
+        alt: "Hi5 Creation Brand Logo",
       },
     ],
   },
@@ -91,13 +147,80 @@ const CLIENTS = [
   "Lifestyle Retail", "Zara", "Apollo", "Reliance Trends",
 ];
 
+const SIGNAGE_KEYWORD_TAGS = [
+  "Shop Sign Board",
+  "3D Lettering Signage",
+  "3D Signage",
+  "Pylon Signage Design",
+  "Pylon Signage",
+  "Retail Digital Signage",
+  "Retail Signage",
+  "Bank Signage",
+  "Bank Sign Board",
+  "Restaurant Led Board",
+  "Restaurant Signage",
+  "Real Estate Sign Board",
+  "Real Estate Signage",
+  "Hotel Led Board Design",
+  "Hotel Sign Board",
+  "Led Sign Board",
+  "Hospital Wayfinding Signage",
+  "Hospital Signage",
+  "Office Sign Board Design",
+  "Office Sign Board",
+  "Acrylic LED Sign Board",
+  "Acrylic LED Signage",
+  "Neon Led Signage",
+  "Neon LED Signage",
+  "Aluminium Channel Letters",
+  "Aluminum Channel Letters",
+  "Glow Signage",
+  "Glow Sign Board",
+  "Lollipop & Pylon Signage",
+  "Wayfinding Signages",
+  "Directional Signages",
+  "Custom Braille Signs",
+  "Braille Signages",
+  "Outdoor Signage Design",
+  "Outdoor Signages",
+  "Safety Signages",
+  "Indoor Sign Board",
+  "Indoor Signages",
+];
+
 const INDUSTRIES = [
-  { name: "Corporate", desc: "Office signage, reception branding, wayfinding and exterior identity." },
-  { name: "Banking & Finance", desc: "Professional signage and branch visibility solutions." },
-  { name: "Retail & Real Estate", desc: "Storefront signs, property branding and promotional displays." },
-  { name: "Healthcare", desc: "Clinic, hospital and pharmacy signage." },
-  { name: "Education", desc: "Institutional signage, directional systems and campus branding." },
-  { name: "Government", desc: "Functional, durable and professional signage solutions." },
+  {
+    name: "Retail & Shops",
+    desc: "Custom Shop Sign Boards, Retail Signage, Retail Digital Signage, and storefront Glow Sign Boards.",
+  },
+  {
+    name: "Offices & Corporate",
+    desc: "Office Sign Board Design, Office Sign Boards, 3D Lettering Signage, and Aluminium Channel Letters.",
+  },
+  {
+    name: "Restaurants & Dining",
+    desc: "Restaurant Led Boards, Restaurant Signage, Neon LED Signage, and luminous facade displays.",
+  },
+  {
+    name: "Hotels & Hospitality",
+    desc: "Hotel Led Board Design, Hotel Sign Boards, exterior ACP elevation, and lobby 3D Signage.",
+  },
+  {
+    name: "Banking & Finance",
+    desc: "Bank Signage, Bank Sign Boards, ATM glow boxes, and secure branch identity solutions.",
+  },
+  {
+    name: "Hospitals & Healthcare",
+    desc: "Hospital Signage, Hospital Wayfinding Signage, Directional Signages, Custom Braille Signs, and Safety Signages.",
+  },
+  {
+    name: "Real Estate & Commercial",
+    desc: "Real Estate Sign Boards, Real Estate Signage, Pylon Signage Design, Outdoor Signages, and site displays.",
+  },
+  {
+    name: "Indoor & Wayfinding",
+    desc: "Indoor Sign Boards, Indoor Signages, Lollipop & Pylon Signage, and custom Acrylic LED Sign Boards.",
+  },
 ];
 
 const WHY = [
@@ -126,8 +249,25 @@ const TESTIMONIALS = [
 ];
 
 export default function HomePage() {
+  const jsonLdFaq = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: FAQ_ITEMS.map((item) => ({
+      "@type": "Question",
+      name: item.q,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: item.a,
+      },
+    })),
+  };
+
   return (
     <main className="">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdFaq) }}
+      />
       {/* HERO SECTION - Full-Bleed Dark Background Slider matching reference design */}
       <FullHeroSlider />
 
@@ -139,7 +279,7 @@ export default function HomePage() {
               <div className="rounded-2xl overflow-hidden aspect-square bg-stone-100">
                 <img
                   src="https://images.unsplash.com/photo-1502739423516-a7da6332f56f?w=800&h=800&fit=crop&auto=format"
-                  alt="Professional studio signage — Hi 5 Creation fabrication and installation"
+                  alt="Hi5 Creation LED sign board manufacturing and ACP cladding workshop in Coimbatore"
                   className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
                 />
               </div>
@@ -213,23 +353,53 @@ export default function HomePage() {
               Built for Every Business That Needs to Be Seen.
             </h2>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {INDUSTRIES.map((ind) => (
-              <div key={ind.name} className="border border-stone-200 rounded-xl p-6 bg-white hover:border-orange-300 hover:shadow-sm transition-all group">
-                <div className="w-8 h-0.5 bg-orange-400 mb-4 group-hover:w-12 transition-all duration-300" />
-                <h3 className="text-base font-bold text-stone-900 mb-2 font-display">
-                  {ind.name}
-                </h3>
-                <p className="text-stone-500 text-sm leading-relaxed">{ind.desc}</p>
+              <div key={ind.name} className="border border-stone-200 rounded-xl p-5 bg-white hover:border-orange-300 hover:shadow-sm transition-all group flex flex-col justify-between">
+                <div>
+                  <div className="w-8 h-0.5 bg-orange-400 mb-3 group-hover:w-12 transition-all duration-300" />
+                  <h3 className="text-sm font-bold text-stone-900 mb-1.5 font-display">
+                    {ind.name}
+                  </h3>
+                  <p className="text-stone-500 text-xs leading-relaxed">{ind.desc}</p>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* WHY HI 5 CREATION (Neon Orange Outlined Styling - 90% Reduced Box Shadow) */}
+      {/* SPECIALIZED SIGNAGE SOLUTIONS KEYWORD CLOUD (High SEO Density & User Search Intent) */}
+      <section className="py-16 bg-white border-b border-stone-200/80">
+        <div className="max-w-7xl mx-auto px-5 lg:px-8">
+          <div className="text-center max-w-3xl mx-auto mb-10">
+            <p className="text-xs font-bold tracking-[0.2em] text-orange-500 uppercase mb-2">
+              POPULAR SIGNAGE SEARCHES &amp; CAPABILITIES
+            </p>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-stone-900 font-display">
+              Commercial Sign Boards &amp; Lettering Solutions Manufactured by Hi5 Creation
+            </h2>
+            <p className="text-stone-500 text-xs sm:text-sm mt-2">
+              Browse our complete range of specialized signages for storefronts, retail chains, hospitals, offices, hotels, and industrial complexes.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap justify-center gap-2 sm:gap-2.5">
+            {SIGNAGE_KEYWORD_TAGS.map((tag) => (
+              <Link
+                key={tag}
+                href={`/gallery?search=${encodeURIComponent(tag)}`}
+                className="px-3.5 py-1.5 rounded-full border border-stone-200 bg-stone-50/80 hover:bg-orange-50 hover:border-orange-400 hover:text-orange-600 text-stone-700 text-xs font-semibold transition-all hover:scale-105"
+              >
+                {tag}
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* WHY HI 5 CREATION */}
       <section className="py-24 lg:py-36 bg-[#0c0a09] text-white relative overflow-hidden border-y border-stone-800/80">
-        {/* Subtle Ambient Background Glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-orange-600/02 rounded-full blur-[140px] pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-5 lg:px-8 relative z-10">
@@ -310,6 +480,64 @@ export default function HomePage() {
             >
               View All Google Reviews ↗
             </a>
+          </div>
+        </div>
+      </section>
+
+      {/* SEO FAQ SECTION (Triggers Schema.org FAQ Rich Snippets) */}
+      <HomeFaqSection />
+
+      {/* LOCAL SERVICE AREAS (Coimbatore & South India Regional SEO) */}
+      <section className="py-20 bg-stone-100/60 border-t border-stone-200">
+        <div className="max-w-7xl mx-auto px-5 lg:px-8">
+          <div className="max-w-3xl mb-12">
+            <p className="text-xs font-bold tracking-[0.2em] text-orange-500 uppercase mb-3">
+              LOCAL SERVICE COVERAGE
+            </p>
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-stone-900 leading-tight tracking-tight font-display mb-3">
+              Serving Coimbatore &amp; Industrial Centers Across South India
+            </h2>
+            <p className="text-stone-600 text-sm leading-relaxed">
+              We provide fast on-site site surveys, custom engineering, and reliable installation throughout the city and surrounding commercial hubs:
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs">
+              <h3 className="font-bold text-stone-900 text-sm mb-2 font-display text-orange-600">
+                Coimbatore South &amp; HQ
+              </h3>
+              <p className="text-stone-500 text-xs leading-relaxed">
+                Kuniyamuthur, Sundarapuram, Kovaipudur, Ukkadam, Podanur, Eachanari, Malumichampatti.
+              </p>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs">
+              <h3 className="font-bold text-stone-900 text-sm mb-2 font-display text-orange-600">
+                Central &amp; Retail Hubs
+              </h3>
+              <p className="text-stone-500 text-xs leading-relaxed">
+                Gandhipuram, RS Puram, Cross Cut Road, Saibaba Colony, Ram Nagar, Town Hall.
+              </p>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs">
+              <h3 className="font-bold text-stone-900 text-sm mb-2 font-display text-orange-600">
+                IT Corridors &amp; East
+              </h3>
+              <p className="text-stone-500 text-xs leading-relaxed">
+                Peelamedu, Avinashi Road, Saravanampatti, Singanallur, TIDEL Park, Kalapatti, Hopes.
+              </p>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs">
+              <h3 className="font-bold text-stone-900 text-sm mb-2 font-display text-orange-600">
+                Regional Hubs &amp; South India
+              </h3>
+              <p className="text-stone-500 text-xs leading-relaxed">
+                Tiruppur, Pollachi, Erode, Salem, Palakkad, Udumalpet, and across Tamil Nadu &amp; Kerala.
+              </p>
+            </div>
           </div>
         </div>
       </section>
