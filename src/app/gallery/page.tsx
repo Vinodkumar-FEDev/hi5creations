@@ -51,13 +51,13 @@ export const metadata: Metadata = {
     "Signage Project Gallery Coimbatore",
   ],
   alternates: {
-    canonical: "https://hi5creations.com/gallery",
+    canonical: "https://hi5creation.in/gallery",
   },
   openGraph: {
     title: "Signage & LED Board Project Gallery — Hi5 Creation Coimbatore",
     description:
       "Browse our completed LED sign boards, ACP cladding, acrylic signage, and custom business branding projects.",
-    url: "https://hi5creations.com/gallery",
+    url: "https://hi5creation.in/gallery",
     siteName: "Hi5 Creation",
     locale: "en_IN",
     type: "website",
@@ -81,13 +81,13 @@ export default function GalleryPage() {
         "@type": "ListItem",
         position: 1,
         name: "Home",
-        item: "https://hi5creations.com",
+        item: "https://hi5creation.in",
       },
       {
         "@type": "ListItem",
         position: 2,
         name: "Project Gallery",
-        item: "https://hi5creations.com/gallery",
+        item: "https://hi5creation.in/gallery",
       },
     ],
   };
@@ -97,7 +97,7 @@ export default function GalleryPage() {
     "@type": "ImageGallery",
     name: "Hi5 Creation Signage Project Gallery",
     description: "Portfolio of LED sign boards, ACP cladding, acrylic letters and store front branding in Coimbatore.",
-    url: "https://hi5creations.com/gallery",
+    url: "https://hi5creation.in/gallery",
   };
 
   return (

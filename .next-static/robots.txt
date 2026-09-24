@@ -1,8 +1,7 @@
-User-agent: *
+User-Agent: *
 Allow: /
 Disallow: /gallery/upload
 Disallow: /login
 Disallow: /api/
 
-# Canonical XML Sitemap for Google, Bing & Other Search Crawlers
 Sitemap: https://hi5creation.in/sitemap.xml

@@ -11,7 +11,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://hi5creations.com"),
+  metadataBase: new URL("https://hi5creation.in"),
   title: {
     default: "Hi5 Creation — Premier LED & ACP Sign Board Manufacturers in Coimbatore",
     template: "%s | Hi5 Creation Coimbatore",
@@ -68,18 +68,18 @@ export const metadata: Metadata = {
     "Sign board makers Kuniyamuthur",
     "Sign board shop near me",
   ],
-  authors: [{ name: "Hi5 Creation", url: "https://hi5creations.com" }],
+  authors: [{ name: "Hi5 Creation", url: "https://hi5creation.in" }],
   creator: "Hi5 Creation",
   publisher: "Hi5 Creation",
   category: "Business & Industrial Signage",
   alternates: {
-    canonical: "https://hi5creations.com",
+    canonical: "https://hi5creation.in",
   },
   openGraph: {
     title: "Hi5 Creation — Premier Signage & LED Board Manufacturers in Coimbatore",
     description:
       "Custom Shop Sign Boards, 3D Lettering Signage, Pylon Signs, Acrylic & Neon LED Boards, Aluminium Channel Letters & commercial visual branding across Coimbatore & South India.",
-    url: "https://hi5creations.com",
+    url: "https://hi5creation.in",
     siteName: "Hi5 Creation",
     locale: "en_IN",
     type: "website",
@@ -91,7 +91,7 @@ export const metadata: Metadata = {
         alt: "Hi5 Creation Modern Illuminated LED Signage Storefront Coimbatore",
       },
       {
-        url: "https://hi5creations.com/assets/logo.png",
+        url: "https://hi5creation.in/assets/logo.png",
         width: 512,
         height: 512,
         alt: "Hi5 Creation Official Brand Logo",
@@ -142,7 +142,7 @@ export default function RootLayout({
   const jsonLdLocalBusiness = {
     "@context": "https://schema.org",
     "@type": ["LocalBusiness", "ProfessionalService", "Store"],
-    "@id": "https://hi5creations.com/#organization",
+    "@id": "https://hi5creation.in/#organization",
     name: "Hi5 Creation",
     alternateName: [
       "Hi 5 Creation",
@@ -150,10 +150,10 @@ export default function RootLayout({
       "Hi 5 Creation Signage Studio",
       "Hi-5 Creation Coimbatore",
     ],
-    url: "https://hi5creations.com",
-    logo: "https://hi5creations.com/assets/logo.png",
+    url: "https://hi5creation.in",
+    logo: "https://hi5creation.in/assets/logo.png",
     image: [
-      "https://hi5creations.com/assets/logo.png",
+      "https://hi5creation.in/assets/logo.png",
       "https://images.unsplash.com/photo-1765448806017-cc2c746a0f35?w=1200&h=630&fit=crop&auto=format",
     ],
     description:
@@ -307,12 +307,12 @@ export default function RootLayout({
   const jsonLdWebSite = {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    "@id": "https://hi5creations.com/#website",
-    url: "https://hi5creations.com",
+    "@id": "https://hi5creation.in/#website",
+    url: "https://hi5creation.in",
     name: "Hi5 Creation",
     alternateName: ["Hi 5 Creation", "Hi5 Creations"],
     publisher: {
-      "@id": "https://hi5creations.com/#organization",
+      "@id": "https://hi5creation.in/#organization",
     },
   };
 

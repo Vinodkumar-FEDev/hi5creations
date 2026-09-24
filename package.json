@@ -5,18 +5,17 @@
   "type": "module",
   "scripts": {
     "dev": "next dev -p 8443",
-    "build": "next build",
+    "build": "node scripts/build-static.mjs",
+    "zip": "node scripts/make-zip.mjs",
+    "build:server": "next build",
     "start": "next start -p 8443",
     "format": "oxfmt"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1117.0",
-    "@aws-sdk/s3-request-presigner": "^3.1117.0",
     "next": "^15.1.7",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-virtuoso": "^4.18.12",
-    "server-only": "^0.0.1"
+    "react-virtuoso": "^4.18.12"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.0.0",

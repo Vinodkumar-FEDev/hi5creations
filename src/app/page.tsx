@@ -59,13 +59,13 @@ export const metadata: Metadata = {
     "Indoor Signages",
   ],
   alternates: {
-    canonical: "https://hi5creations.com",
+    canonical: "https://hi5creation.in",
   },
   openGraph: {
     title: "Hi5 Creation — Premier Signage & LED Board Manufacturers in Coimbatore",
     description:
       "Custom Shop Sign Boards, 3D Lettering Signage, Pylon Signs, Acrylic & Neon LED Boards, Aluminium Channel Letters & visual branding in Coimbatore.",
-    url: "https://hi5creations.com",
+    url: "https://hi5creation.in",
     siteName: "Hi5 Creation",
     locale: "en_IN",
     type: "website",
@@ -77,7 +77,7 @@ export const metadata: Metadata = {
         alt: "Hi5 Creation Storefront Signage Coimbatore",
       },
       {
-        url: "https://hi5creations.com/assets/logo.png",
+        url: "https://hi5creation.in/assets/logo.png",
         width: 512,
         height: 512,
         alt: "Hi5 Creation Brand Logo",

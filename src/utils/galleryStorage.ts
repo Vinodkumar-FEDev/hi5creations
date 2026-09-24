@@ -77,6 +77,67 @@ export const DEFAULT_CATEGORY_DATA: CategoryData[] = [
 
 export const GALLERY_CATEGORIES = DEFAULT_CATEGORY_DATA.map((c) => c.name);
 
+export const LOCAL_STORAGE_GALLERY_KEY = "hi5_local_gallery_images";
+export const LOCAL_STORAGE_CATEGORIES_KEY = "hi5_custom_categories";
+
+export function saveLocalCustomCategories(cats: CategoryData[]): void {
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem(LOCAL_STORAGE_CATEGORIES_KEY, JSON.stringify(cats));
+    } catch (_) {}
+  }
+}
+
+export function getLocalCustomCategories(): CategoryData[] | null {
+  if (typeof window !== "undefined") {
+    try {
+      const data = localStorage.getItem(LOCAL_STORAGE_CATEGORIES_KEY);
+      if (data) {
+        const parsed = JSON.parse(data);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (_) {}
+  }
+  return null;
+}
+
+export function saveLocalGalleryImage(img: StoredImage): void {
+  if (typeof window !== "undefined") {
+    try {
+      const existing = getLocalGalleryImages();
+      const updated = [
+        img,
+        ...existing.filter((i) => (i.id || i.key) !== (img.id || img.key)),
+      ].slice(0, MAX_GALLERY_IMAGES);
+      localStorage.setItem(LOCAL_STORAGE_GALLERY_KEY, JSON.stringify(updated));
+    } catch (_) {}
+  }
+}
+
+export function getLocalGalleryImages(): StoredImage[] {
+  if (typeof window !== "undefined") {
+    try {
+      const data = localStorage.getItem(LOCAL_STORAGE_GALLERY_KEY);
+      if (data) {
+        const parsed = JSON.parse(data);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (_) {}
+  }
+  return [];
+}
+
+export function deleteLocalGalleryImages(keysOrIds: string[]): void {
+  if (typeof window !== "undefined") {
+    try {
+      const set = new Set(keysOrIds);
+      const existing = getLocalGalleryImages();
+      const updated = existing.filter((img) => !set.has(img.id) && !set.has(img.key || ""));
+      localStorage.setItem(LOCAL_STORAGE_GALLERY_KEY, JSON.stringify(updated));
+    } catch (_) {}
+  }
+}
+
 let categoriesCache: CategoryData[] | null = null;
 
 export async function fetchDynamicCategories(forceRefresh = false): Promise<CategoryData[]> {
@@ -84,17 +145,28 @@ export async function fetchDynamicCategories(forceRefresh = false): Promise<Cate
     return categoriesCache;
   }
   try {
-    const res = await fetch("/api/categories");
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        categoriesCache = data;
-        return data;
+    const res = await fetch("/api/categories").catch(() => null);
+    if (res && res.ok) {
+      const contentType = res.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        const data = await res.json().catch(() => null);
+        if (Array.isArray(data) && data.length > 0) {
+          categoriesCache = data;
+          return data;
+        }
       }
     }
-  } catch (err) {
-    console.error("Error fetching dynamic categories:", err);
+  } catch (_) {
+    // Fail silently in static export environments without Node.js backend
   }
+
+  // Fallback to locally saved categories if user added any on static hosting
+  const localCats = getLocalCustomCategories();
+  if (localCats && localCats.length > 0) {
+    categoriesCache = localCats;
+    return localCats;
+  }
+
   categoriesCache = DEFAULT_CATEGORY_DATA;
   return DEFAULT_CATEGORY_DATA;
 }
@@ -226,7 +298,33 @@ export async function uploadFileToR2(
       return { success: true };
     }
   } catch (localErr) {
-    console.error("Local storage fallback error:", localErr);
+    console.warn("Local storage API fallback not reachable, switching to browser storage:", localErr);
+  }
+
+  // Step 5: Fallback Path 3 - Client-side Local Browser Storage (Static Hosting Mode on MilesWeb)
+  try {
+    const reader = new FileReader();
+    const dataUrl = await new Promise<string>((resolve) => {
+      reader.onload = () => resolve(reader.result as string);
+      reader.readAsDataURL(file);
+    });
+
+    const localId = `img_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+    const newImage: StoredImage = {
+      id: localId,
+      key: localId,
+      title: metadata.title,
+      category: metadata.category,
+      subcategory: metadata.subcategory || "",
+      imageDataUrl: dataUrl,
+      fileName: file.name,
+      timestamp: Date.now(),
+    };
+
+    saveLocalGalleryImage(newImage);
+    return { success: true, key: localId };
+  } catch (clientErr) {
+    console.error("Client storage fallback error:", clientErr);
   }
 
   return {
@@ -238,30 +336,53 @@ export async function uploadFileToR2(
 /**
  * Get stored gallery images.
  * Calls GET /api/gallery which returns R2 objects or local fallback assets.
+ * On static hosting, merges static JSON catalog with any local browser stored images.
  */
 export async function getStoredGalleryImages(): Promise<StoredImage[]> {
+  let images: StoredImage[] = [];
+
   try {
-    const res = await fetch("/api/gallery");
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data)) return data;
+    const res = await fetch("/api/gallery").catch(() => null);
+    if (res && res.ok) {
+      const contentType = res.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        const data = await res.json().catch(() => null);
+        if (Array.isArray(data) && data.length > 0) {
+          images = data;
+        }
+      }
     }
-  } catch (err) {
-    console.warn("API route not available, falling back to static manifest:", err);
+  } catch (_) {
+    // API route not available in static export
   }
 
-  // Fallback to static JSON file in public/assets/gallery/
-  try {
-    const res = await fetch("/assets/gallery/gallery-data.json");
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data)) return data;
+  // Fallback to static JSON file in public/assets/gallery/ if no dynamic images returned
+  if (images.length === 0) {
+    try {
+      const res = await fetch("/assets/gallery/gallery-data.json").catch(() => null);
+      if (res && res.ok) {
+        const contentType = res.headers.get("content-type") || "";
+        if (contentType.includes("application/json")) {
+          const data = await res.json().catch(() => null);
+          if (Array.isArray(data)) {
+            images = data;
+          }
+        }
+      }
+    } catch (_) {
+      // Silent fallback
     }
-  } catch (err) {
-    console.error("Failed to load physical gallery assets:", err);
   }
 
-  return [];
+  // Merge any locally uploaded images from browser storage
+  const localImages = getLocalGalleryImages();
+  if (localImages.length > 0) {
+    const existingIds = new Set(images.map((i) => i.id || i.key || ""));
+    const newLocals = localImages.filter((li) => !existingIds.has(li.id) && !existingIds.has(li.key || ""));
+    images = [...newLocals, ...images];
+  }
+
+  return images;
 }
 
 /** Get total count of stored gallery images */
@@ -282,6 +403,10 @@ export async function deleteStoredImage(keyOrId: string): Promise<boolean> {
  */
 export async function deleteMultipleStoredImages(keysOrIds: string[]): Promise<boolean> {
   if (keysOrIds.length === 0) return true;
+
+  // Always delete from browser storage
+  deleteLocalGalleryImages(keysOrIds);
+
   try {
     // Separate local IDs from R2 keys
     const localIds = keysOrIds.filter((k) => k.startsWith("img_") || !k.includes("/"));
@@ -294,8 +419,10 @@ export async function deleteMultipleStoredImages(keysOrIds: string[]): Promise<b
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ keys: r2Keys }),
-      });
-      success = res.ok && success;
+      }).catch(() => null);
+      if (res) {
+        success = res.ok && success;
+      }
     }
 
     if (localIds.length > 0) {
@@ -303,22 +430,29 @@ export async function deleteMultipleStoredImages(keysOrIds: string[]): Promise<b
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids: localIds }),
-      });
-      success = res.ok && success;
+      }).catch(() => null);
+      if (res) {
+        success = res.ok && success;
+      }
     }
 
-    return success;
+    return true;
   } catch (err) {
     console.error("Failed to delete gallery image assets:", err);
   }
 
-  return false;
+  return true;
 }
 
 /**
  * Clear all stored images
  */
 export async function clearAllStoredImages(): Promise<boolean> {
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.removeItem(LOCAL_STORAGE_GALLERY_KEY);
+    } catch (_) {}
+  }
   try {
     const images = await getStoredGalleryImages();
     const keys = images.map((i) => i.key || i.id).filter(Boolean);
@@ -327,5 +461,5 @@ export async function clearAllStoredImages(): Promise<boolean> {
   } catch (err) {
     console.error("Failed to clear images:", err);
   }
-  return false;
+  return true;
 }

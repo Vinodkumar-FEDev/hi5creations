@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
 
+export const dynamic = "force-static";
+
 const CATEGORIES = [
   "LED Sign Board",
   "ACP Elevation",
@@ -16,7 +18,7 @@ const CATEGORIES = [
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = "https://hi5creations.com";
+  const baseUrl = "https://hi5creation.in";
   const now = new Date();
 
   const staticRoutes: MetadataRoute.Sitemap = [

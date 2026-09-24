@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
 
+export const dynamic = "force-static";
+
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
@@ -9,6 +11,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/gallery/upload", "/login", "/api/"],
       },
     ],
-    sitemap: "https://hi5creations.com/sitemap.xml",
+    sitemap: "https://hi5creation.in/sitemap.xml",
   };
 }
