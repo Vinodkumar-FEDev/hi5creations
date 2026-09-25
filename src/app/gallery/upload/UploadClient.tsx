@@ -69,17 +69,17 @@ function WatermarkPreviewCanvas({ options }: { options: WatermarkOptions }) {
     ctx.font = "14px sans-serif";
     ctx.fillText("3D Acrylic LED Illuminated Board", 300, 220);
 
-    // Draw automatic watermark according to options
+    // Draw automatic watermark using official Hi-5 Creation logo
     if (options.enabled !== false) {
-      if (options.logoUrl) {
-        const logoImg = new Image();
-        logoImg.onload = () => {
-          drawWatermarkOnCanvas(ctx, 600, 400, options, logoImg);
-        };
-        logoImg.src = options.logoUrl;
-      } else {
+      const logoImg = new Image();
+      logoImg.crossOrigin = "anonymous";
+      logoImg.onload = () => {
+        drawWatermarkOnCanvas(ctx, 600, 400, options, logoImg);
+      };
+      logoImg.onerror = () => {
         drawWatermarkOnCanvas(ctx, 600, 400, options);
-      }
+      };
+      logoImg.src = options.logoUrl || "/assets/logo.png";
     }
   }, [options]);
 
@@ -106,14 +106,22 @@ export default function UploadClient() {
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [dynamicCategories, setDynamicCategories] = useState<CategoryData[]>([]);
 
-  // Cloud Storage (AWS S3 or Cloudflare R2) Connection Status State
+  // Cloud Storage (AWS S3, Cloudflare R2, or Local) Connection Status State
   const [r2Status, setR2Status] = useState<{
     loading: boolean;
     connected: boolean;
-    provider?: string;
+    provider: string;
+    providerType: "s3" | "r2" | "local";
     missingVars: string[];
     bucketName?: string;
-  }>({ loading: true, connected: false, missingVars: [] });
+    region?: string;
+  }>({
+    loading: true,
+    connected: false,
+    provider: "Checking Storage...",
+    providerType: "local",
+    missingVars: [],
+  });
 
   const checkR2Status = async () => {
     setR2Status((prev) => ({ ...prev, loading: true }));
@@ -122,25 +130,61 @@ export default function UploadClient() {
       const contentType = res.headers.get("content-type") || "";
       if (res.ok && contentType.includes("application/json")) {
         const data = await res.json();
+        const pType: "s3" | "r2" | "local" =
+          data.providerType === "s3" || data.provider?.toLowerCase().includes("s3")
+            ? "s3"
+            : data.providerType === "r2" || data.provider?.toLowerCase().includes("r2")
+            ? "r2"
+            : "local";
+
         setR2Status({
           loading: false,
           connected: !!data.connected,
-          provider: data.provider || "Cloud Storage",
+          provider: data.provider || (pType === "s3" ? "AWS S3 Cloud Storage" : pType === "r2" ? "Cloudflare R2 Storage" : "Local Storage"),
+          providerType: pType,
           missingVars: data.missingVars || [],
-          bucketName: data.bucketName || undefined,
+          bucketName: data.bucketName || (pType === "s3" ? "hi5creation" : undefined),
+          region: data.region || (pType === "s3" ? "eu-north-1" : undefined),
         });
         return;
       }
     } catch (_) { }
 
-    // Static hosting mode (fallback to active local browser storage)
-    setR2Status({
-      loading: false,
-      connected: true,
-      provider: "Browser & Static Storage",
-      missingVars: [],
-      bucketName: "hi5-local-storage",
-    });
+    // Fallback: Check environment configuration injected at build/runtime
+    const envProvider = process.env.NEXT_PUBLIC_STORAGE_PROVIDER;
+    const awsBucket = process.env.NEXT_PUBLIC_AWS_BUCKET_NAME;
+    const awsRegion = process.env.NEXT_PUBLIC_AWS_REGION || "eu-north-1";
+    const r2Bucket = process.env.NEXT_PUBLIC_R2_BUCKET_NAME;
+
+    if (envProvider === "AWS S3" || awsBucket) {
+      setR2Status({
+        loading: false,
+        connected: true,
+        provider: "AWS S3 Cloud Storage",
+        providerType: "s3",
+        missingVars: [],
+        bucketName: awsBucket || "hi5creation",
+        region: awsRegion,
+      });
+    } else if (envProvider === "Cloudflare R2" || r2Bucket) {
+      setR2Status({
+        loading: false,
+        connected: true,
+        provider: "Cloudflare R2 Storage",
+        providerType: "r2",
+        missingVars: [],
+        bucketName: r2Bucket || "hi5creations",
+      });
+    } else {
+      setR2Status({
+        loading: false,
+        connected: true,
+        provider: "Local Browser & Static Storage",
+        providerType: "local",
+        missingVars: [],
+        bucketName: "hi5-local-storage",
+      });
+    }
   };
 
   // Automatic Watermark & Image Clarity Configuration State
@@ -149,6 +193,7 @@ export default function UploadClient() {
     phone: "+91 63792 39878",
     instagram: "#hi5_Creation",
     brandText: "Hi-5 CREATION",
+    logoUrl: "/assets/logo.png",
     position: "corners",
     style: "corners",
     opacity: 0.9,
@@ -233,6 +278,8 @@ export default function UploadClient() {
 
   const loadImages = async () => {
     const images = await getStoredGalleryImages();
+    // Always sort latest images on top (newest first)
+    images.sort((a, b) => (Number(b.timestamp) || 0) - (Number(a.timestamp) || 0));
     setStoredImages(images);
     setSelectedIds(new Set());
   };
@@ -348,7 +395,8 @@ export default function UploadClient() {
     // Static Hosting / LocalStorage fallback
     const currentCats = await fetchDynamicCategories(true);
     if (!currentCats.some((c) => c.name.toLowerCase() === name.toLowerCase())) {
-      const updated = [...currentCats, { name, subcategories: [] }];
+      // Prepend new category so latest appears on top
+      const updated = [{ name, subcategories: [] }, ...currentCats];
       saveLocalCustomCategories(updated);
       setDynamicCategories(updated);
       setNewCatInput("");
@@ -686,16 +734,18 @@ export default function UploadClient() {
 
   const totalSubcatCount = dynamicCategories.reduce((acc, c) => acc + c.subcategories.length, 0);
 
-  // Filtered list of stored images
-  const filteredStoredImages = storedImages.filter((img) => {
-    const matchesCategory = filterCategory === "All" || img.category === filterCategory;
-    const matchesQuery =
-      searchQuery.trim() === "" ||
-      img.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      img.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (img.subcategory && img.subcategory.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesCategory && matchesQuery;
-  });
+  // Filtered list of stored images (Always newest / latest on top)
+  const filteredStoredImages = [...storedImages]
+    .sort((a, b) => (Number(b.timestamp) || 0) - (Number(a.timestamp) || 0))
+    .filter((img) => {
+      const matchesCategory = filterCategory === "All" || img.category === filterCategory;
+      const matchesQuery =
+        searchQuery.trim() === "" ||
+        img.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        img.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (img.subcategory && img.subcategory.toLowerCase().includes(searchQuery.toLowerCase()));
+      return matchesCategory && matchesQuery;
+    });
 
   const totalPages = Math.ceil(filteredStoredImages.length / PAGE_SIZE) || 1;
   const paginatedImages = filteredStoredImages.slice(
@@ -739,9 +789,13 @@ export default function UploadClient() {
     return (
       <div className="pt-24 min-h-screen bg-[#faf9f7] flex items-center justify-center p-4">
         <div className="bg-white rounded-3xl border border-stone-200 p-8 sm:p-10 max-w-md w-full shadow-xl">
-          <div className="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center mb-6 text-white font-black text-lg">
-            H5
-          </div>
+          <Link href="/" className="inline-block mb-6" aria-label="HI 5 CREATION Home">
+            <img
+              src="/assets/logo.svg"
+              alt="HI 5 CREATION"
+              className="h-14 w-auto object-contain transition-transform hover:scale-105"
+            />
+          </Link>
           <h2 className="text-2xl font-extrabold text-stone-900 mb-1 font-display">
             Admin Authentication
           </h2>
@@ -826,13 +880,15 @@ export default function UploadClient() {
       {/* Top Header */}
       <section className="bg-white border-b border-stone-200 py-8">
         <div className="max-w-7xl mx-auto px-5 lg:px-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 text-xs font-bold text-orange-500 uppercase tracking-widest mb-1">
-              <span>ADMIN DASHBOARD</span>
+          <div className="flex items-center gap-4">
+            <div>
+              <div className="flex items-center gap-2 text-xs font-bold text-orange-500 uppercase tracking-widest mb-1">
+                <span>ADMIN DASHBOARD</span>
+              </div>
+              <h1 className="text-2xl font-extrabold text-stone-900 font-display">
+                Signage Gallery &amp; Upload Manager
+              </h1>
             </div>
-            <h1 className="text-2xl font-extrabold text-stone-900 font-display">
-              Gallery &amp; R2 Image Management
-            </h1>
           </div>
 
           <div className="flex items-center gap-3">
@@ -853,109 +909,124 @@ export default function UploadClient() {
       </section>
 
       <div className="max-w-7xl mx-auto px-5 lg:px-8 pt-8 space-y-8">
-        {/* CONTAINER 0: Cloud Connection Status Card (Connected or Setup Required) */}
-        <section className={`rounded-3xl border p-5 sm:p-6 shadow-xs transition-all ${r2Status.connected
-          ? "bg-emerald-50/80 border-emerald-200"
-          : "bg-amber-50/90 border-amber-300"
-          }`}>
+        {/* CONTAINER 0: Cloud Connection Status Card (S3, R2, or Local) */}
+        <section className={`rounded-3xl border p-5 sm:p-6 shadow-xs transition-all ${
+          r2Status.providerType === "s3"
+            ? "bg-gradient-to-r from-emerald-50/95 via-teal-50/80 to-emerald-50/90 border-emerald-300"
+            : r2Status.providerType === "r2"
+            ? "bg-gradient-to-r from-orange-50/95 via-amber-50/80 to-orange-50/90 border-orange-300"
+            : "bg-stone-50/90 border-stone-200"
+        }`}>
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <span className={`w-10 h-10 rounded-2xl flex items-center justify-center text-lg font-black shrink-0 shadow-xs ${r2Status.connected ? "bg-emerald-500 text-white" : "bg-amber-500 text-white"
-                }`}>
-                {r2Status.connected ? "☁️" : "⚠️"}
+            <div className="flex items-start gap-3.5">
+              <span className={`w-11 h-11 rounded-2xl flex items-center justify-center text-xl font-black shrink-0 shadow-xs ${
+                r2Status.providerType === "s3"
+                  ? "bg-emerald-600 text-white shadow-emerald-500/20"
+                  : r2Status.providerType === "r2"
+                  ? "bg-orange-500 text-white shadow-orange-500/20"
+                  : "bg-stone-700 text-white"
+              }`}>
+                {r2Status.providerType === "s3" ? "☁️" : r2Status.providerType === "r2" ? "⚡" : "💾"}
               </span>
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-base font-extrabold text-stone-900 font-display">
-                    {r2Status.connected
-                      ? `${r2Status.provider || "Cloud Storage"} Connected`
-                      : "Cloud Storage Setup (AWS S3 or Cloudflare R2)"}
+                    {r2Status.providerType === "s3"
+                      ? "AWS S3 Cloud Storage Connected"
+                      : r2Status.providerType === "r2"
+                      ? "Cloudflare R2 Cloud Storage Connected"
+                      : "Local Browser & Static Storage Connected"}
                   </h3>
-                  <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${r2Status.connected
-                    ? "bg-emerald-600 text-white"
-                    : "bg-amber-600 text-white"
-                    }`}>
-                    {r2Status.connected ? "Active & Secured" : "Setup Needed on Host"}
+                  <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${
+                    r2Status.providerType === "s3"
+                      ? "bg-emerald-600 text-white"
+                      : r2Status.providerType === "r2"
+                      ? "bg-orange-600 text-white"
+                      : "bg-stone-700 text-white"
+                  }`}>
+                    {r2Status.providerType === "s3"
+                      ? "Active & Secured (AWS S3)"
+                      : r2Status.providerType === "r2"
+                      ? "Active & Secured (Cloudflare R2)"
+                      : "Active (Local Storage)"}
                   </span>
                 </div>
 
-                {r2Status.connected ? (
-                  <p className="text-xs text-stone-700 mt-1 leading-relaxed">
-                    Connected to {r2Status.provider || "cloud"} bucket &apos;{r2Status.bucketName}&apos;. Uploaded photos, categories, and subcategories are stored securely in the cloud and synced across all devices.
-                  </p>
-                ) : (
-                  <div className="mt-2 space-y-3">
-                    <p className="text-xs text-stone-800 leading-relaxed font-medium">
-                      Cloud storage environment variables are missing on your server. You can configure either <strong>AWS S3</strong> (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, AWS_BUCKET_NAME) or <strong>Cloudflare R2</strong> (R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME) in your hosting provider settings.
-                    </p>
+                <p className="text-xs text-stone-700 mt-1.5 leading-relaxed">
+                  {r2Status.providerType === "s3" ? (
+                    <>
+                      Connected to Amazon S3 bucket <strong className="font-mono text-emerald-950 bg-emerald-100/70 px-1.5 py-0.5 rounded">&apos;{r2Status.bucketName || "hi5creation"}&apos;</strong> in region <strong className="font-mono text-emerald-950 bg-emerald-100/70 px-1.5 py-0.5 rounded">&apos;{r2Status.region || "eu-north-1"}&apos;</strong>. Uploaded photos, categories, and subcategories are stored securely in AWS S3 and synced across all devices.
+                    </>
+                  ) : r2Status.providerType === "r2" ? (
+                    <>
+                      Connected to Cloudflare R2 bucket <strong className="font-mono text-orange-950 bg-orange-100/70 px-1.5 py-0.5 rounded">&apos;{r2Status.bucketName || "hi5creations"}&apos;</strong>. Uploaded photos, categories, and subcategories are stored securely in Cloudflare R2 cloud and synced across all devices.
+                    </>
+                  ) : (
+                    <>
+                      Connected to local browser &amp; static storage bucket <strong className="font-mono text-stone-900 bg-stone-200/80 px-1.5 py-0.5 rounded">&apos;{r2Status.bucketName || "hi5-local-storage"}&apos;</strong>. Uploaded photos, categories, and subcategories are stored on this device.
+                    </>
+                  )}
+                </p>
 
-                    {r2Status.missingVars.length > 0 && (
-                      <div className="bg-amber-100/70 border border-amber-300 rounded-xl p-3 text-xs">
-                        <span className="font-bold text-amber-900 block mb-1">
-                          Missing Environment Variables ({r2Status.missingVars.length}):
-                        </span>
-                        <div className="flex flex-wrap gap-1.5">
-                          {["R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET_NAME", "SESSION_SECRET"].map((varName) => (
-                            <span
-                              key={varName}
-                              className={`px-2 py-0.5 rounded font-mono text-[11px] font-bold ${r2Status.missingVars.includes(varName)
-                                ? "bg-red-200 text-red-900 border border-red-300"
-                                : "bg-emerald-100 text-emerald-900 border border-emerald-300"
-                                }`}
-                            >
-                              {r2Status.missingVars.includes(varName) ? `❌ ${varName}` : `✓ ${varName}`}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
+                {/* Storage Provider Status Indicator Badges */}
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <div className={`px-2.5 py-1 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-all ${
+                    r2Status.providerType === "s3"
+                      ? "bg-emerald-100/90 text-emerald-900 border-emerald-300 shadow-2xs"
+                      : "bg-white/80 text-stone-400 border-stone-200"
+                  }`}>
+                    <span>{r2Status.providerType === "s3" ? "✅" : "⚪"}</span>
+                    <span>AWS S3 (Amazon Web Services)</span>
+                    {r2Status.providerType === "s3" && (
+                      <span className="text-[10px] bg-emerald-600 text-white px-1.5 py-0.2 rounded font-mono font-bold">
+                        Connected
+                      </span>
                     )}
-
-                    <div className="bg-white/90 border border-amber-200 rounded-2xl p-4 text-xs text-stone-700 space-y-3 shadow-xs">
-                      <p className="font-bold text-stone-900 text-xs">How to Add Environment Variables on Your Hosting Provider:</p>
-
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <div className="bg-stone-50 border border-stone-200 p-2.5 rounded-xl">
-                          <p className="font-bold text-stone-800 text-[11px] mb-1">🌐 Hostinger / GoDaddy (cPanel)</p>
-                          <ol className="list-decimal list-inside text-[10px] text-stone-600 space-y-1">
-                            <li>Open <strong>cPanel / hPanel → Setup Node.js App</strong> or <strong>Environment Variables</strong>.</li>
-                            <li>Add the 5 variables above with your credentials.</li>
-                            <li>Click <strong>Save &amp; Restart App</strong>.</li>
-                          </ol>
-                        </div>
-
-                        <div className="bg-stone-50 border border-stone-200 p-2.5 rounded-xl">
-                          <p className="font-bold text-stone-800 text-[11px] mb-1">▲ Vercel / Netlify / Render</p>
-                          <ol className="list-decimal list-inside text-[10px] text-stone-600 space-y-1">
-                            <li>Go to <strong>Project Settings → Environment Variables</strong>.</li>
-                            <li>Add the 5 variables above from <code>.env.local</code>.</li>
-                            <li>Click <strong>Redeploy</strong>.</li>
-                          </ol>
-                        </div>
-
-                        <div className="bg-stone-50 border border-stone-200 p-2.5 rounded-xl">
-                          <p className="font-bold text-stone-800 text-[11px] mb-1">🖥️ VPS / Docker / SSH Server</p>
-                          <ol className="list-decimal list-inside text-[10px] text-stone-600 space-y-1">
-                            <li>Edit <code>.env.production</code> or <code>.env</code> on server.</li>
-                            <li>Add the 5 keys and values.</li>
-                            <li>Restart via <code>pm2 restart all</code> or <code>docker-compose restart</code>.</li>
-                          </ol>
-                        </div>
-                      </div>
-                    </div>
                   </div>
-                )}
+
+                  <div className={`px-2.5 py-1 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-all ${
+                    r2Status.providerType === "r2"
+                      ? "bg-orange-100/90 text-orange-900 border-orange-300 shadow-2xs"
+                      : "bg-white/80 text-stone-400 border-stone-200"
+                  }`}>
+                    <span>{r2Status.providerType === "r2" ? "✅" : "⚪"}</span>
+                    <span>Cloudflare R2</span>
+                    {r2Status.providerType === "r2" && (
+                      <span className="text-[10px] bg-orange-600 text-white px-1.5 py-0.2 rounded font-mono font-bold">
+                        Connected
+                      </span>
+                    )}
+                  </div>
+
+                  <div className={`px-2.5 py-1 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-all ${
+                    r2Status.providerType === "local"
+                      ? "bg-stone-200 text-stone-900 border-stone-300 shadow-2xs"
+                      : "bg-white/80 text-stone-400 border-stone-200"
+                  }`}>
+                    <span>{r2Status.providerType === "local" ? "✅" : "⚪"}</span>
+                    <span>Local Storage</span>
+                    {r2Status.providerType === "local" && (
+                      <span className="text-[10px] bg-stone-700 text-white px-1.5 py-0.2 rounded font-mono font-bold">
+                        Connected
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 
             <button
-              onClick={checkR2Status}
+              onClick={() => checkR2Status()}
               disabled={r2Status.loading}
-              className="px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold rounded-xl transition-all shadow-xs self-start sm:self-center shrink-0 flex items-center gap-1.5 cursor-pointer"
+              className="text-xs font-bold px-3 py-1.5 rounded-xl border border-stone-300 bg-white hover:bg-stone-50 text-stone-700 transition-colors flex items-center gap-1.5 self-start sm:self-auto shrink-0 shadow-2xs"
+              title="Refresh connection status"
             >
-              <span>{r2Status.loading ? "Verifying..." : "🔄 Refresh Connection"}</span>
+              <span>{r2Status.loading ? "⏳" : "🔄"}</span>
+              <span>{r2Status.loading ? "Checking..." : "Recheck Status"}</span>
             </button>
           </div>
         </section>
+
 
         {/* CONTAINER WATERMARK: Automatic Watermark Settings (Collapsible Card) */}
         <section className="bg-white rounded-3xl border border-stone-200 shadow-sm overflow-hidden transition-all">
@@ -1111,35 +1182,18 @@ export default function UploadClient() {
 
                         <div>
                           <label className="block text-[11px] font-bold text-stone-700 uppercase mb-1">
-                            Custom Logo Image Replacement (Optional)
+                            Official Brand Watermark Logo
                           </label>
-                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) => {
-                                if (e.target.files && e.target.files[0]) {
-                                  const reader = new FileReader();
-                                  reader.onload = (ev) => {
-                                    setWatermarkOpts((prev) => ({
-                                      ...prev,
-                                      logoUrl: ev.target?.result as string,
-                                    }));
-                                  };
-                                  reader.readAsDataURL(e.target.files[0]);
-                                }
-                              }}
-                              className="w-full text-xs text-stone-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-orange-50 file:text-orange-600 hover:file:bg-orange-100 cursor-pointer"
-                            />
-                            {watermarkOpts.logoUrl && (
-                              <button
-                                type="button"
-                                onClick={() => setWatermarkOpts((prev) => ({ ...prev, logoUrl: undefined }))}
-                                className="text-[10px] text-red-600 font-bold bg-red-50 hover:bg-red-100 px-2 py-1.5 rounded-lg flex-shrink-0"
-                              >
-                                Reset Logo
-                              </button>
-                            )}
+                          <div className="flex items-center gap-3 p-3 bg-stone-50 border border-stone-200 rounded-xl">
+                            <div className="w-12 h-10 bg-white border border-stone-200 rounded-lg p-1 flex items-center justify-center shadow-xs shrink-0">
+                              <img src="/assets/logo.svg" alt="HI 5 CREATION Official Logo" className="max-h-full max-w-full object-contain" />
+                            </div>
+                            <div>
+                              <span className="text-xs font-bold text-stone-900 block">Official Hi-5 Creation Logo</span>
+                              <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
+                                ✓ Permanently integrated — automatically applied to all uploads
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -1709,6 +1763,21 @@ export default function UploadClient() {
                         <option key={c.name} value={c.name}>{c.name}</option>
                       ))}
                     </select>
+
+                    {(searchQuery || filterCategory !== "All") && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery("");
+                          setFilterCategory("All");
+                          setCurrentPage(1);
+                        }}
+                        className="px-3 py-2 bg-stone-100 hover:bg-orange-500 hover:text-white text-stone-600 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
+                        title="Reset search and filters"
+                      >
+                        ✕ Reset
+                      </button>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-3">

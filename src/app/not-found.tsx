@@ -4,6 +4,15 @@ export default function NotFound() {
   return (
     <div className="min-h-screen bg-[#faf9f7] flex items-center justify-center px-4 pt-24 pb-16">
       <div className="max-w-md w-full bg-white rounded-3xl border border-stone-200 p-8 text-center shadow-lg">
+        <div className="flex justify-center mb-6">
+          <Link href="/" className="inline-block hover:opacity-90 transition-opacity">
+            <img
+              src="/assets/logo.svg"
+              alt="Hi-5 Creation"
+              className="h-14 w-auto object-contain"
+            />
+          </Link>
+        </div>
         <h2 className="text-3xl font-extrabold text-stone-900 mb-2 font-display">
           Page Not Found
         </h2>

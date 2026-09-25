@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import { VirtuosoGrid } from "react-virtuoso";
 import LoadingSpinner from "@/src/components/LoadingSpinner";
 import {
@@ -32,9 +33,11 @@ const GridItemWrapper: React.FC<any> = ({ children, ...props }) => (
 );
 
 export default function GalleryClient() {
+  const searchParams = useSearchParams();
   const [isMounted, setIsMounted] = useState(false);
   const [activeCategory, setActiveCategory] = useState("All");
   const [activeSubCategory, setActiveSubCategory] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
   const [allItems, setAllItems] = useState<StoredImage[]>([]);
   const [categoriesData, setCategoriesData] = useState<CategoryData[]>(DEFAULT_CATEGORY_DATA);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,18 +45,24 @@ export default function GalleryClient() {
 
   useEffect(() => {
     setIsMounted(true);
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const catParam = params.get("category");
-      const subParam = params.get("subcategory");
-      if (catParam) {
-        setActiveCategory(catParam);
-      }
-      if (subParam) {
-        setActiveSubCategory(subParam);
-      }
+    const catParam = searchParams?.get("category");
+    const subParam = searchParams?.get("subcategory");
+
+    if (catParam) {
+      setActiveCategory(catParam);
     }
-  }, []);
+    if (subParam) {
+      setActiveSubCategory(subParam);
+    }
+    if (catParam || subParam) {
+      setTimeout(() => {
+        const target = document.getElementById("gallery-grid");
+        if (target) {
+          target.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }, 300);
+    }
+  }, [searchParams]);
 
   const loadGalleryData = useCallback(async () => {
     setIsLoading(true);
@@ -114,14 +123,19 @@ export default function GalleryClient() {
     }
 
     const catObj = categoriesData.find(
-      (c) => c.name.toLowerCase() === activeCategory.toLowerCase()
+      (c) =>
+        c.name.toLowerCase() === activeCategory.toLowerCase() ||
+        (activeCategory.toLowerCase().includes("building") && c.name.toLowerCase().includes("building")) ||
+        (activeCategory.toLowerCase().includes("vinyl") && c.name.toLowerCase().includes("vinyl")) ||
+        (activeCategory.toLowerCase().includes("neon") && c.name.toLowerCase().includes("neon")) ||
+        (activeCategory.toLowerCase().includes("glow") && c.name.toLowerCase().includes("glow"))
     );
     const jsonSubs = catObj ? catObj.subcategories : [];
 
     const imageSubs = Array.from(
       new Set(
         allItems
-          .filter((i) => i.category === activeCategory)
+          .filter((i) => i.category.toLowerCase() === activeCategory.toLowerCase())
           .map((i) => i.subcategory)
           .filter((s): s is string => Boolean(s && s.trim()))
       )
@@ -132,14 +146,39 @@ export default function GalleryClient() {
   }, [categoriesData, allItems, activeCategory]);
 
   const filteredItems = useMemo(() => {
-    return allItems.filter((item) => {
-      const matchesCategory =
-        activeCategory === "All" || item.category === activeCategory;
-      const matchesSubcategory =
-        activeSubCategory === "All" || item.subcategory === activeSubCategory;
-      return matchesCategory && matchesSubcategory;
-    });
-  }, [allItems, activeCategory, activeSubCategory]);
+    const q = searchQuery.trim().toLowerCase();
+
+    return [...allItems]
+      .sort((a, b) => (Number(b.timestamp) || 0) - (Number(a.timestamp) || 0))
+      .filter((item) => {
+        const itemCat = (item.category || "").trim().toLowerCase();
+        const targetCat = activeCategory.trim().toLowerCase();
+
+        const matchesCategory =
+          activeCategory === "All" ||
+          itemCat === targetCat ||
+          itemCat.includes(targetCat) ||
+          targetCat.includes(itemCat);
+
+        const itemSub = (item.subcategory || "").trim().toLowerCase();
+        const targetSub = activeSubCategory.trim().toLowerCase();
+
+        const matchesSubcategory =
+          activeSubCategory === "All" ||
+          itemSub === targetSub ||
+          itemSub.includes(targetSub) ||
+          targetSub.includes(itemSub);
+
+        const itemTitle = (item.title || "").trim().toLowerCase();
+        const matchesSearch =
+          !q ||
+          itemTitle.includes(q) ||
+          itemCat.includes(q) ||
+          itemSub.includes(q);
+
+        return matchesCategory && matchesSubcategory && matchesSearch;
+      });
+  }, [allItems, activeCategory, activeSubCategory, searchQuery]);
 
   const selectedImage =
     selectedIndex !== null && filteredItems[selectedIndex]
@@ -205,11 +244,87 @@ export default function GalleryClient() {
         </div>
       </section>
 
-      {/* Category & Subcategory Filter Bar */}
-      <div className="sticky top-16 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200 shadow-sm space-y-1">
-        <div className="max-w-7xl mx-auto px-5 lg:px-8">
-          {/* Main Category Bar */}
-          <div className="flex gap-2 py-3 overflow-x-auto no-scrollbar">
+      {/* Category, Subcategory & Global Search Sticky Bar */}
+      <div id="gallery-grid" className="sticky top-16 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200 shadow-xs space-y-2 py-3">
+        <div className="max-w-7xl mx-auto px-5 lg:px-8 space-y-3">
+          {/* Row 1: Global Search Bar + Reset Button + Live Result Count */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2 flex-1 max-w-lg">
+              <div className="relative flex-1">
+                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400 text-sm">
+                  🔍
+                </span>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setSelectedIndex(null);
+                  }}
+                  placeholder="Search projects by name, signage type..."
+                  className="w-full pl-9 pr-9 py-2 bg-stone-50 border border-stone-200 hover:border-stone-300 focus:border-orange-500 focus:bg-white rounded-full text-xs font-medium text-stone-800 focus:outline-none focus:ring-2 focus:ring-orange-500/20 transition-all shadow-2xs"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-stone-400 hover:text-stone-700 text-xs font-bold cursor-pointer"
+                    title="Clear search"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {/* Reset button near search input */}
+              {(() => {
+                const hasFilters = activeCategory !== "All" || activeSubCategory !== "All" || searchQuery.trim() !== "";
+                return (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveCategory("All");
+                      setActiveSubCategory("All");
+                      setSearchQuery("");
+                      setSelectedIndex(null);
+                    }}
+                    disabled={!hasFilters}
+                    className={`px-3.5 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 select-none ${
+                      hasFilters
+                        ? "bg-orange-500 hover:bg-orange-600 text-white shadow-xs cursor-pointer active:scale-95"
+                        : "bg-stone-100 text-stone-400 border border-stone-200/80 cursor-not-allowed opacity-60"
+                    }`}
+                    title={hasFilters ? "Reset all filters and search" : "No filters active"}
+                  >
+                    <svg
+                      className={`w-3.5 h-3.5 ${hasFilters ? "text-white" : "text-stone-400"}`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2.2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                      />
+                    </svg>
+                    <span>Reset</span>
+                  </button>
+                );
+              })()}
+            </div>
+
+            <div className="flex items-center gap-2 text-xs text-stone-500 font-medium shrink-0">
+              <span>Showing</span>
+              <span className="font-bold text-stone-900 bg-stone-100 px-2 py-0.5 rounded-full font-mono text-[11px]">
+                {filteredItems.length}
+              </span>
+              <span>of {allItems.length} images</span>
+            </div>
+          </div>
+
+          {/* Row 2: Main Category Bar */}
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pt-1">
             {categoriesList.map((cat) => {
               const isActive = activeCategory === cat;
               const count =
@@ -224,7 +339,7 @@ export default function GalleryClient() {
                     setActiveSubCategory("All");
                     setSelectedIndex(null);
                   }}
-                  className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${isActive
+                  className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${isActive
                     ? "bg-orange-500 text-white shadow-sm"
                     : "text-stone-600 hover:text-orange-500 border border-stone-200 hover:border-orange-300 bg-white"
                     }`}
@@ -245,14 +360,16 @@ export default function GalleryClient() {
             })}
           </div>
 
-          {/* Sub-Category Pill Bar */}
+          {/* Row 3: Sub-Category Pill Bar */}
           {availableSubCategories.length > 1 && (
-            <div className="flex items-center gap-2 pb-3 overflow-x-auto no-scrollbar pt-1 border-t border-stone-100">
+            <div className="flex items-center gap-2 pb-1 overflow-x-auto no-scrollbar pt-1.5 border-t border-stone-100">
               <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider flex-shrink-0">
                 Subcategory:
               </span>
               {availableSubCategories.map((subcat) => {
-                const isSubActive = activeSubCategory === subcat;
+                const isSubActive =
+                  activeSubCategory.trim().toLowerCase() ===
+                  subcat.trim().toLowerCase();
                 return (
                   <button
                     key={subcat}
@@ -260,10 +377,11 @@ export default function GalleryClient() {
                       setActiveSubCategory(subcat);
                       setSelectedIndex(null);
                     }}
-                    className={`flex-shrink-0 px-3 py-1 rounded-full text-[11px] font-medium transition-all ${isSubActive
-                      ? "bg-stone-900 text-white"
-                      : "bg-stone-100 text-stone-600 hover:bg-stone-200"
-                      }`}
+                    className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                      isSubActive
+                        ? "bg-stone-900 text-white shadow-xs ring-2 ring-stone-900/25"
+                        : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+                    }`}
                   >
                     {subcat}
                   </button>
@@ -325,26 +443,30 @@ export default function GalleryClient() {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth="1.5"
-                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                 />
               </svg>
             </div>
             <h3 className="text-xl font-bold text-stone-800 mb-2">
-              No Images Found in Category
+              No Projects Found
             </h3>
             <p className="text-stone-500 text-sm mb-6">
-              No project images found matching Category: &quot;{activeCategory}&quot;
-              {activeSubCategory !== "All" && ` / Subcategory: "${activeSubCategory}"`}.
+              {searchQuery ? (
+                <>No projects found matching name &quot;<span className="font-semibold text-stone-800">{searchQuery}</span>&quot;{activeCategory !== "All" && ` in Category "${activeCategory}"`}.</>
+              ) : (
+                <>No project images found matching Category: &quot;{activeCategory}&quot;{activeSubCategory !== "All" && ` / Subcategory: "${activeSubCategory}"`}.</>
+              )}
             </p>
             <div className="flex flex-wrap justify-center gap-3">
               <button
                 onClick={() => {
+                  setSearchQuery("");
                   setActiveCategory("All");
                   setActiveSubCategory("All");
                 }}
-                className="px-5 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold rounded-full transition-colors"
+                className="px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-full transition-colors shadow-sm cursor-pointer"
               >
-                View All Categories ({allItems.length})
+                Clear Search &amp; View All ({allItems.length})
               </button>
             </div>
           </div>
@@ -374,24 +496,15 @@ export default function GalleryClient() {
                       decoding="async"
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
-                    {/* Automatic Brand Watermark Badge (Grid Overlay) */}
 
-                    <div className="absolute inset-0 bg-gradient-to-t from-stone-900/90 via-stone-900/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    <figcaption className="absolute bottom-0 left-0 right-0 p-4 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
-                      <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                        <span className="inline-block text-[10px] font-bold tracking-widest text-orange-300 uppercase">
-                          {img.category}
-                        </span>
-                        {img.subcategory && (
-                          <span className="text-[10px] text-stone-300 bg-black/40 px-1.5 py-0.2 rounded">
-                            • {img.subcategory}
-                          </span>
-                        )}
-                      </div>
-                      <h2 className="text-white text-sm font-semibold leading-tight line-clamp-1">
-                        {img.title}
-                      </h2>
-                    </figcaption>
+                    {/* Hover Overlay without image title/name */}
+                    <div className="absolute inset-0 bg-stone-950/25 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
+                      <span className="w-10 h-10 rounded-full bg-black/60 backdrop-blur-xs text-white flex items-center justify-center text-sm shadow-md transform scale-90 group-hover:scale-100 transition-transform">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
+                        </svg>
+                      </span>
+                    </div>
                   </figure>
                 );
               }}

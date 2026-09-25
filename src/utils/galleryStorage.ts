@@ -26,6 +26,85 @@ export const MAX_GALLERY_IMAGES = 2000;
 
 export const DEFAULT_CATEGORY_DATA: CategoryData[] = [
   {
+    name: "Vinyl Sign Boards",
+    subcategories: [
+      "2D Design Boards",
+      "3D Design Boards",
+      "Backlit Boards",
+      "Bakery Boards",
+      "Boutique Boards",
+      "Brass Letters",
+      "Dot LED Boards",
+      "Dot Matrix Letters",
+      "Flex Works",
+      "Iron Letters",
+      "Metal Coated Sheet Letters",
+      "Shop Sign Boards",
+      "Stainless Steel Letters",
+      "Titanium Gold Letters",
+      "Vinyl Sticker Boards",
+    ],
+  },
+  {
+    name: "Building Signage",
+    subcategories: [
+      "ACP Cladding",
+      "ACP Elevation Works",
+      "Building Identity Signage",
+      "Architectural Facades",
+    ],
+  },
+  {
+    name: "Neon & LED Boards",
+    subcategories: [
+      "3D LED Letters",
+      "Acrylic LED Letters",
+      "Backlit LED Letters",
+      "Commercial LED Displays",
+      "Custom Neon Art",
+      "Digital Window Signs",
+      "Edge-Lit LED Panels",
+      "Frontlit LED Boards",
+      "Full Color Video Walls",
+      "LED Sign Boards",
+      "Matrix LED Displays",
+      "Neon Flex Signs",
+      "Open & Welcome Signs",
+      "P10 Scrolling Displays",
+      "Pharmacy Cross LED",
+      "Pixel LED Installations",
+      "Programmable LED Tickers",
+      "RGB Dynamic Displays",
+      "Shop Name Boards",
+      "Warm White Neon Signs",
+    ],
+  },
+  {
+    name: "Acrylic Signage",
+    subcategories: [
+      "Acrylic 3D Letters",
+      "Acrylic LED Name Boards",
+      "Multi-Colour Acrylic Letters",
+      "Acrylic Shop Displays",
+      "Laser-Cut Acrylic Logos",
+      "Frosted Acrylic Panels",
+      "Stand-Off Acrylic Plaques",
+      "Clear Acrylic Display Signs",
+    ],
+  },
+  {
+    name: "Lighting & Glow",
+    subcategories: [
+      "Glow Sign Boards",
+      "Crystal LED Boards",
+      "Pylon & Totem Boards",
+      "Highway Boards",
+      "Outlet Name Boards",
+      "Circular Lollipop Signs",
+      "Ultra-Slim Fabric Lightboxes",
+    ],
+  },
+  {
     name: "LED Sign Board",
     subcategories: ["3D Acrylic LED", "Single Color Scrolling", "RGB Pixel LED", "Neon Flex", "Backlit Box"],
   },
@@ -138,12 +217,17 @@ export function deleteLocalGalleryImages(keysOrIds: string[]): void {
   }
 }
 
+const S3_BUCKET_NAME = process.env.NEXT_PUBLIC_AWS_BUCKET_NAME || "hi5creation";
+const S3_REGION = process.env.NEXT_PUBLIC_AWS_REGION || "eu-north-1";
+const S3_PUBLIC_BASE = `https://${S3_BUCKET_NAME}.s3.${S3_REGION}.amazonaws.com`;
+
 let categoriesCache: CategoryData[] | null = null;
 
 export async function fetchDynamicCategories(forceRefresh = false): Promise<CategoryData[]> {
   if (categoriesCache && !forceRefresh) {
     return categoriesCache;
   }
+  // 1. Primary: PHP / Server API
   try {
     const res = await fetch("/api/categories").catch(() => null);
     if (res && res.ok) {
@@ -156,11 +240,21 @@ export async function fetchDynamicCategories(forceRefresh = false): Promise<Cate
         }
       }
     }
-  } catch (_) {
-    // Fail silently in static export environments without Node.js backend
-  }
+  } catch (_) {}
 
-  // Fallback to locally saved categories if user added any on static hosting
+  // 2. Plain JS: Direct AWS S3 fetch
+  try {
+    const s3Res = await fetch(`${S3_PUBLIC_BASE}/users/admin/categories.json?t=${Date.now()}`).catch(() => null);
+    if (s3Res && s3Res.ok) {
+      const s3Data = await s3Res.json().catch(() => null);
+      if (Array.isArray(s3Data) && s3Data.length > 0) {
+        categoriesCache = s3Data;
+        return s3Data;
+      }
+    }
+  } catch (_) {}
+
+  // 3. Fallback to locally saved categories if user added any on static hosting
   const localCats = getLocalCustomCategories();
   if (localCats && localCats.length > 0) {
     categoriesCache = localCats;
@@ -201,7 +295,30 @@ export async function uploadFileToR2(
   const file = await fileToOptimizedFile(rawFile, watermarkOptions || DEFAULT_WATERMARK_OPTIONS);
   const cleanContentType = file.type || "image/webp";
 
-  // Step 2: Primary Path - Direct Presigned R2 PUT URL
+  // Step 2: Primary Path - Direct Server Upload to S3 (/api/upload-direct)
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("title", metadata.title);
+    formData.append("category", metadata.category);
+    formData.append("subcategory", metadata.subcategory || "");
+
+    const directRes = await fetch("/api/upload-direct", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (directRes.ok) {
+      const data = await directRes.json().catch(() => ({}));
+      if (data.success && data.key) {
+        return { success: true, key: data.key };
+      }
+    }
+  } catch (directErr) {
+    console.warn("Direct S3 upload error, trying presigned PUT URL:", directErr);
+  }
+
+  // Step 3: Secondary Path - Direct Presigned S3 PUT URL (/api/upload-url)
   try {
     const urlRes = await fetch("/api/upload-url", {
       method: "POST",
@@ -240,35 +357,13 @@ export async function uploadFileToR2(
             }).catch(() => {});
             return { success: true, key };
           }
-        } catch (directUploadErr) {
-          console.warn("Direct R2 presigned PUT failed. Attempting fallback server upload...", directUploadErr);
+        } catch (presignedErr) {
+          console.warn("Presigned S3 PUT failed:", presignedErr);
         }
       }
     }
   } catch (err) {
-    console.warn("Error requesting R2 upload URL:", err);
-  }
-
-  // Step 3: Fallback Path 1 - Server Direct R2 Upload (/api/upload-direct)
-  try {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("title", metadata.title);
-    formData.append("category", metadata.category);
-    formData.append("subcategory", metadata.subcategory || "");
-
-    const fallbackRes = await fetch("/api/upload-direct", {
-      method: "POST",
-      body: formData,
-    });
-
-    const fallbackData = await fallbackRes.json().catch(() => ({}));
-
-    if (fallbackRes.ok && fallbackData.success) {
-      return { success: true, key: fallbackData.key };
-    }
-  } catch (fallbackErr) {
-    console.warn("Server R2 upload error, attempting local storage fallback:", fallbackErr);
+    console.warn("Error requesting S3 upload URL:", err);
   }
 
   // Step 4: Fallback Path 2 - Local Physical Assets (/api/upload-gallery) if R2 is unconfigured
@@ -356,7 +451,20 @@ export async function getStoredGalleryImages(): Promise<StoredImage[]> {
     // API route not available in static export
   }
 
-  // Fallback to static JSON file in public/assets/gallery/ if no dynamic images returned
+  // 2. Plain JS: Direct fetch from AWS S3 cloud manifest
+  if (images.length === 0) {
+    try {
+      const s3Res = await fetch(`${S3_PUBLIC_BASE}/users/admin/gallery-manifest.json?t=${Date.now()}`).catch(() => null);
+      if (s3Res && s3Res.ok) {
+        const s3Data = await s3Res.json().catch(() => null);
+        if (Array.isArray(s3Data) && s3Data.length > 0) {
+          images = s3Data;
+        }
+      }
+    } catch (_) {}
+  }
+
+  // 3. Fallback to static JSON file in public/assets/gallery/ if no dynamic images returned
   if (images.length === 0) {
     try {
       const res = await fetch("/assets/gallery/gallery-data.json").catch(() => null);
@@ -381,6 +489,9 @@ export async function getStoredGalleryImages(): Promise<StoredImage[]> {
     const newLocals = localImages.filter((li) => !existingIds.has(li.id) && !existingIds.has(li.key || ""));
     images = [...newLocals, ...images];
   }
+
+  // Always show latest images on top (newest first)
+  images.sort((a, b) => (Number(b.timestamp) || 0) - (Number(a.timestamp) || 0));
 
   return images;
 }
@@ -408,17 +519,17 @@ export async function deleteMultipleStoredImages(keysOrIds: string[]): Promise<b
   deleteLocalGalleryImages(keysOrIds);
 
   try {
-    // Separate local IDs from R2 keys
-    const localIds = keysOrIds.filter((k) => k.startsWith("img_") || !k.includes("/"));
-    const r2Keys = keysOrIds.filter((k) => k.startsWith("users/"));
+    // Separate local IDs from cloud S3 keys
+    const cloudKeys = keysOrIds.filter((k) => k.includes("/") || k.startsWith("users/"));
+    const localIds = keysOrIds.filter((k) => k.startsWith("img_") && !k.includes("/"));
 
     let success = true;
 
-    if (r2Keys.length > 0) {
+    if (cloudKeys.length > 0) {
       const res = await fetch("/api/images", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ keys: r2Keys }),
+        body: JSON.stringify({ keys: cloudKeys }),
       }).catch(() => null);
       if (res) {
         success = res.ok && success;

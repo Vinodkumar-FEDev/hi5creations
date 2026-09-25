@@ -77,7 +77,7 @@ export const metadata: Metadata = {
         alt: "Hi5 Creation Storefront Signage Coimbatore",
       },
       {
-        url: "https://hi5creation.in/assets/logo.png",
+        url: "https://hi5creation.in/assets/logo (1).svg",
         width: 512,
         height: 512,
         alt: "Hi5 Creation Brand Logo",
@@ -224,10 +224,12 @@ const INDUSTRIES = [
 ];
 
 const WHY = [
-  { n: "01", title: "4+ Years of Experience", desc: "Proven track record delivering signage and branding solutions across industries." },
-  { n: "02", title: "200+ Clients", desc: "Projects completed for businesses from local stores to national brands." },
-  { n: "03", title: "99% Satisfaction", desc: "Focused on quality, transparent communication and customer care." },
-  { n: "04", title: "End-to-End Execution", desc: "From concept and design through fabrication, installation and aftercare." },
+  { n: "01", title: "7+ Years of Experience", desc: "Proven track record delivering signage and branding solutions across industries." },
+  { n: "02", title: "850+ Clients", desc: "Projects completed for businesses from local stores to national brands." },
+  { n: "03", title: "2+ States", desc: "Trusted signage solutions across states." },
+  { n: "04", title: "50+ Cities", desc: "Bringing brands to life across cities and beyond." },
+  { n: "05", title: "99% Satisfaction", desc: "Focused on quality, transparent communication and customer care." },
+  { n: "06", title: "End-to-End Execution", desc: "From concept and design through fabrication, installation and aftercare." },
 ];
 
 const TESTIMONIALS = [
@@ -284,7 +286,7 @@ export default function HomePage() {
                 />
               </div>
               <div className="absolute -bottom-6 -right-6 bg-orange-500 rounded-2xl p-6 shadow-xl">
-                <div className="text-3xl font-extrabold text-white font-display">4+</div>
+                <div className="text-3xl font-extrabold text-white font-display">7+</div>
                 <div className="text-orange-100 text-xs font-medium mt-1">Years in Business</div>
               </div>
             </div>
@@ -322,6 +324,106 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* OUR SIGNAGE PRODUCTS */}
+      <section className="pt-20 pb-10 lg:pt-28 lg:pb-14 bg-[#faf9f7] border-t border-stone-200/80">
+        <div className="max-w-7xl mx-auto px-5 lg:px-8">
+          {/* Section Header */}
+          <div className="max-w-3xl mb-12 sm:mb-16">
+            <p className="text-xs font-bold tracking-[0.2em] text-orange-500 uppercase mb-3">
+              OUR SIGNAGE PRODUCTS
+            </p>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-stone-900 leading-tight tracking-tight font-display mb-4">
+              From Exterior Identity to Interior Signage
+            </h2>
+            <p className="text-stone-500 text-sm sm:text-base leading-relaxed">
+              Explore the range of signage products we design and create for commercial spaces — from large-scale exterior branding to detailed interior signs, wayfinding and illuminated displays.
+            </p>
+          </div>
+
+          {/* Product Category Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12 sm:mb-14">
+            {/* Exterior Products Card */}
+            <div className="bg-white rounded-3xl border border-stone-200/90 overflow-hidden shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between group">
+              <div>
+                <div className="relative w-full aspect-[16/10] bg-stone-900 overflow-hidden">
+                  <img
+                    src="/assets/exterior-products.png"
+                    alt="Exterior Products — Large-scale signage and building identity"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                    loading="lazy"
+                  />
+                </div>
+
+                <div className="p-6 sm:p-7 sm:pb-5">
+                  <h3 className="text-2xl sm:text-[26px] font-extrabold text-stone-900 font-display mb-3 tracking-tight">
+                    Exterior Products
+                  </h3>
+                  <p className="text-stone-500 text-sm sm:text-base leading-relaxed mb-6 font-normal">
+                    Large-scale signage, building identity, illuminated letters, directional systems and outdoor displays.
+                  </p>
+                </div>
+              </div>
+
+              <div className="px-6 pb-6 sm:px-7 sm:pb-7 pt-0">
+                <Link
+                  href="/products?tab=exterior"
+                  className="inline-flex items-center gap-1.5 text-orange-500 hover:text-orange-600 font-bold text-sm sm:text-base transition-colors group/link"
+                >
+                  <span>View Products</span>
+                  <span className="transition-transform duration-200 group-hover/link:translate-x-1">&rarr;</span>
+                </Link>
+              </div>
+            </div>
+
+            {/* Interior Products Card */}
+            <div className="bg-white rounded-3xl border border-stone-200/90 overflow-hidden shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between group">
+              <div>
+                <div className="relative w-full aspect-[16/10] bg-stone-900 overflow-hidden">
+                  <img
+                    src="/assets/interior-products.png"
+                    alt="Interior Products — Indoor signage, name boards and wayfinding"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                    loading="lazy"
+                  />
+                </div>
+
+                <div className="p-6 sm:p-7 sm:pb-5">
+                  <h3 className="text-2xl sm:text-[26px] font-extrabold text-stone-900 font-display mb-3 tracking-tight">
+                    Interior Products
+                  </h3>
+                  <p className="text-stone-500 text-sm sm:text-base leading-relaxed mb-6 font-normal">
+                    Indoor signage, name boards, LED letters, wayfinding, promotional displays and visual branding.
+                  </p>
+                </div>
+              </div>
+
+              <div className="px-6 pb-6 sm:px-7 sm:pb-7 pt-0">
+                <Link
+                  href="/products?tab=interior"
+                  className="inline-flex items-center gap-1.5 text-orange-500 hover:text-orange-600 font-bold text-sm sm:text-base transition-colors group/link"
+                >
+                  <span>View Products</span>
+                  <span className="transition-transform duration-200 group-hover/link:translate-x-1">&rarr;</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Explore CTA */}
+          <div className="text-center">
+            <p className="text-stone-600 text-xs sm:text-sm mb-4">
+              See the complete range of signage products available from Hi 5 Creation.
+            </p>
+            <Link
+              href="/products"
+              className="inline-flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold px-8 py-3.5 rounded-xl text-sm transition-all hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
+            >
+              Explore All Products &rarr;
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* SERVICES - Dynamic "What We Do" Categories */}
       <HomeServicesSection />
 
@@ -329,9 +431,9 @@ export default function HomePage() {
       <HomeGallerySection />
 
       {/* CLIENTS MARQUEE */}
-      <section className="py-16 bg-stone-950 overflow-hidden">
+      <section className="py-14 bg-stone-950 overflow-hidden">
         <div className="max-w-7xl mx-auto px-5 lg:px-8 mb-8">
-          <p className="text-xs font-bold tracking-[0.2em] text-stone-500 uppercase text-center">TRUSTED BY BUSINESSES</p>
+          <p className="text-s font-bold tracking-[0.2em] text-stone-500 uppercase text-center">TRUSTED BY BUSINESSES</p>
         </div>
         <div className="relative flex">
           <div className="flex gap-12 animate-marquee whitespace-nowrap">
@@ -369,37 +471,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* SPECIALIZED SIGNAGE SOLUTIONS KEYWORD CLOUD (High SEO Density & User Search Intent) */}
-      <section className="py-16 bg-white border-b border-stone-200/80">
-        <div className="max-w-7xl mx-auto px-5 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-10">
-            <p className="text-xs font-bold tracking-[0.2em] text-orange-500 uppercase mb-2">
-              POPULAR SIGNAGE SEARCHES &amp; CAPABILITIES
-            </p>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-stone-900 font-display">
-              Commercial Sign Boards &amp; Lettering Solutions Manufactured by Hi5 Creation
-            </h2>
-            <p className="text-stone-500 text-xs sm:text-sm mt-2">
-              Browse our complete range of specialized signages for storefronts, retail chains, hospitals, offices, hotels, and industrial complexes.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap justify-center gap-2 sm:gap-2.5">
-            {SIGNAGE_KEYWORD_TAGS.map((tag) => (
-              <Link
-                key={tag}
-                href={`/gallery?search=${encodeURIComponent(tag)}`}
-                className="px-3.5 py-1.5 rounded-full border border-stone-200 bg-stone-50/80 hover:bg-orange-50 hover:border-orange-400 hover:text-orange-600 text-stone-700 text-xs font-semibold transition-all hover:scale-105"
-              >
-                {tag}
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* WHY HI 5 CREATION */}
-      <section className="py-24 lg:py-36 bg-[#0c0a09] text-white relative overflow-hidden border-y border-stone-800/80">
+      <section className="py-18 lg:py-20 bg-[#0c0a09] text-white relative overflow-hidden border-y border-stone-800/80">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-orange-600/02 rounded-full blur-[140px] pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-5 lg:px-8 relative z-10">
@@ -418,7 +492,7 @@ export default function HomePage() {
             </h2>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {WHY.map((w) => (
               <div
                 key={w.n}
@@ -480,64 +554,6 @@ export default function HomePage() {
             >
               View All Google Reviews ↗
             </a>
-          </div>
-        </div>
-      </section>
-
-      {/* SEO FAQ SECTION (Triggers Schema.org FAQ Rich Snippets) */}
-      <HomeFaqSection />
-
-      {/* LOCAL SERVICE AREAS (Coimbatore & South India Regional SEO) */}
-      <section className="py-20 bg-stone-100/60 border-t border-stone-200">
-        <div className="max-w-7xl mx-auto px-5 lg:px-8">
-          <div className="max-w-3xl mb-12">
-            <p className="text-xs font-bold tracking-[0.2em] text-orange-500 uppercase mb-3">
-              LOCAL SERVICE COVERAGE
-            </p>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-stone-900 leading-tight tracking-tight font-display mb-3">
-              Serving Coimbatore &amp; Industrial Centers Across South India
-            </h2>
-            <p className="text-stone-600 text-sm leading-relaxed">
-              We provide fast on-site site surveys, custom engineering, and reliable installation throughout the city and surrounding commercial hubs:
-            </p>
-          </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs">
-              <h3 className="font-bold text-stone-900 text-sm mb-2 font-display text-orange-600">
-                Coimbatore South &amp; HQ
-              </h3>
-              <p className="text-stone-500 text-xs leading-relaxed">
-                Kuniyamuthur, Sundarapuram, Kovaipudur, Ukkadam, Podanur, Eachanari, Malumichampatti.
-              </p>
-            </div>
-
-            <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs">
-              <h3 className="font-bold text-stone-900 text-sm mb-2 font-display text-orange-600">
-                Central &amp; Retail Hubs
-              </h3>
-              <p className="text-stone-500 text-xs leading-relaxed">
-                Gandhipuram, RS Puram, Cross Cut Road, Saibaba Colony, Ram Nagar, Town Hall.
-              </p>
-            </div>
-
-            <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs">
-              <h3 className="font-bold text-stone-900 text-sm mb-2 font-display text-orange-600">
-                IT Corridors &amp; East
-              </h3>
-              <p className="text-stone-500 text-xs leading-relaxed">
-                Peelamedu, Avinashi Road, Saravanampatti, Singanallur, TIDEL Park, Kalapatti, Hopes.
-              </p>
-            </div>
-
-            <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs">
-              <h3 className="font-bold text-stone-900 text-sm mb-2 font-display text-orange-600">
-                Regional Hubs &amp; South India
-              </h3>
-              <p className="text-stone-500 text-xs leading-relaxed">
-                Tiruppur, Pollachi, Erode, Salem, Palakkad, Udumalpet, and across Tamil Nadu &amp; Kerala.
-              </p>
-            </div>
           </div>
         </div>
       </section>
@@ -619,6 +635,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* SEO FAQ SECTION (Triggers Schema.org FAQ Rich Snippets) */}
+      <HomeFaqSection />
 
       {/* GOOGLE REVIEWS CTA */}
       <section className="py-20 bg-orange-500">

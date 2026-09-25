@@ -21,7 +21,7 @@ This website exists to:
 * Make it extremely easy to contact them through WhatsApp
 * Provide a professional online presence for a successful local business
 
-The company has been successfully operating for **4+ years**, has completed work for **200+ clients**, and has a **99% customer satisfaction rate**.
+The company has been successfully operating for **7+ years**, has completed work for **200+ clients**, and has a **99% customer satisfaction rate**.
 
 ---
 
@@ -246,7 +246,7 @@ The hero should feel like a **premium signage studio portfolio**, not a stock-ph
 
 Under or around the hero content, add a minimal trust strip:
 
-**4+ Years**
+**7+ Years**
 Experience
 
 **200+**
@@ -542,7 +542,7 @@ Heading:
 
 Use four concise points:
 
-### 01 — 4+ Years of Experience
+### 01 — 7+ Years of Experience
 
 Proven experience delivering signage and branding solutions.
 
@@ -1051,7 +1051,7 @@ Kuniyamuthur, Coimbatore – 641 008.
 
 ### Experience
 
-4+ Years
+7+ Years
 
 ### Clients
 

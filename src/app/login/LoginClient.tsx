@@ -41,9 +41,21 @@ export default function LoginClient() {
     <div className="min-h-screen bg-[#faf9f7] pt-24 pb-16 flex items-center justify-center px-4">
       <div className="max-w-md w-full bg-white rounded-3xl border border-stone-200 p-8 shadow-xl">
         <div className="text-center mb-8">
-          <div className="w-14 h-14 bg-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4 text-white font-black text-xl shadow-md">
-            H5
-          </div>
+          <Link href="/" className="inline-flex items-center justify-center gap-3 mb-4 group" aria-label="HI 5 CREATION Home">
+            <img
+              src="/assets/logo.svg"
+              alt="HI 5 CREATION"
+              className="h-14 w-auto object-contain transition-transform group-hover:scale-105"
+            />
+            <div className="flex flex-col text-left justify-center">
+              <span className="font-black tracking-tight text-xl uppercase leading-none font-display text-stone-900 group-hover:text-orange-600 transition-colors">
+                HI 5 CREATION
+              </span>
+              <span className="font-playball text-sm sm:text-base text-orange-500 leading-none mt-1.5 tracking-normal font-normal">
+                Signage That Speaks!
+              </span>
+            </div>
+          </Link>
           <h1 className="text-2xl font-extrabold text-stone-900 tracking-tight font-display">
             Admin Portal Login
           </h1>

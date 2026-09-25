@@ -7,19 +7,21 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12 pb-12 border-b border-stone-800">
           {/* Brand */}
           <div className="md:col-span-1">
-            <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-9 h-9 bg-orange-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                <span className="text-white font-black text-sm">H5</span>
-              </div>
-              <div>
-                <div className="font-extrabold text-white text-sm tracking-wide" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+            <Link href="/" className="inline-flex items-center gap-3 mb-4 group" aria-label="HI 5 CREATION Home">
+              <img
+                src="/assets/logo.svg"
+                alt="HI 5 CREATION"
+                className="h-12 w-auto object-contain brightness-105 transition-transform group-hover:scale-105"
+              />
+              <div className="flex flex-col text-left justify-center">
+                <span className="font-black tracking-tight text-lg sm:text-xl uppercase leading-none font-display text-white group-hover:text-orange-400 transition-colors">
                   HI 5 CREATION
-                </div>
-                <div className="text-orange-400 text-[10px] font-medium tracking-widest mt-0.5">
-                  INNOVATION! INNOVATION!
-                </div>
+                </span>
+                <span className="font-playball text-sm sm:text-base text-orange-500 leading-none mt-1.5 tracking-normal font-normal">
+                  Signage That Speaks!
+                </span>
               </div>
-            </div>
+            </Link>
             <p className="text-stone-400 text-sm leading-relaxed max-w-xs">
               Custom LED signage, branding and visual solutions designed to make businesses stand out.
             </p>

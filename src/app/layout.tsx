@@ -91,7 +91,7 @@ export const metadata: Metadata = {
         alt: "Hi5 Creation Modern Illuminated LED Signage Storefront Coimbatore",
       },
       {
-        url: "https://hi5creation.in/assets/logo.png",
+        url: "https://hi5creation.in/assets/logo (1).svg",
         width: 512,
         height: 512,
         alt: "Hi5 Creation Official Brand Logo",
@@ -119,11 +119,11 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   icons: {
     icon: [
-      { url: "/favicon.ico", sizes: "32x32" },
+      { url: "/assets/logo (2).svg", type: "image/svg+xml" },
       { url: "/icon.svg", type: "image/svg+xml" },
     ],
     apple: [
-      { url: "/apple-touch-icon.png", sizes: "192x192", type: "image/png" },
+      { url: "/assets/logo (2).svg", type: "image/svg+xml" },
     ],
   },
   other: {
@@ -151,9 +151,9 @@ export default function RootLayout({
       "Hi-5 Creation Coimbatore",
     ],
     url: "https://hi5creation.in",
-    logo: "https://hi5creation.in/assets/logo.png",
+    logo: "https://hi5creation.in/assets/logo (1).svg",
     image: [
-      "https://hi5creation.in/assets/logo.png",
+      "https://hi5creation.in/assets/logo (1).svg",
       "https://images.unsplash.com/photo-1765448806017-cc2c746a0f35?w=1200&h=630&fit=crop&auto=format",
     ],
     description:

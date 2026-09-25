@@ -30,35 +30,30 @@ export default function Navbar() {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isTransparent
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isTransparent
           ? "bg-transparent text-white border-transparent"
           : "bg-white/95 backdrop-blur-md shadow-sm border-b border-stone-100 text-stone-900"
-      }`}
+        }`}
     >
       <div className="max-w-7xl mx-auto px-5 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-18">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 bg-orange-500 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-orange-600 transition-colors shadow-sm">
-              <span className="text-white font-black text-sm leading-none">H5</span>
-            </div>
-            <div>
-              <div
-                className={`font-extrabold text-sm tracking-wide leading-none transition-colors ${
-                  isTransparent ? "text-white" : "text-stone-900"
-                }`}
-                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+          <Link href="/" className="flex items-center gap-2.5 sm:gap-3 group py-1" aria-label="HI 5 CREATION Home">
+            <img
+              src="/assets/logo.svg"
+              alt="HI 5 CREATION"
+              className="h-10 sm:h-12 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
+            />
+            <div className="flex flex-col text-left justify-center">
+              <span
+                className={`font-black tracking-tight text-base sm:text-lg uppercase leading-none font-display transition-colors ${isTransparent ? "text-white group-hover:text-orange-400" : "text-stone-950 group-hover:text-orange-600"
+                  }`}
               >
                 HI 5 CREATION
-              </div>
-              <div
-                className={`text-[10px] font-medium tracking-widest leading-tight mt-0.5 transition-colors ${
-                  isTransparent ? "text-orange-400" : "text-orange-500"
-                }`}
-              >
-                INNOVATION! INNOVATION!
-              </div>
+              </span>
+              <span className="font-playball text-[13px] sm:text-[14px] text-orange-500 leading-none mt-1 tracking-normal font-normal">
+                Signage That Speaks!
+              </span>
             </div>
           </Link>
 
@@ -66,14 +61,13 @@ export default function Navbar() {
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
             <a
               href="tel:+916379239878"
-              className={`flex items-center gap-1.5 transition-colors font-bold text-sm ${
-                isTransparent
+              className={`flex items-center gap-1.5 transition-colors font-bold text-sm ${isTransparent
                   ? "text-white/90 hover:text-orange-400"
                   : "text-stone-800 hover:text-orange-500"
-              }`}
+                }`}
             >
               <svg className="w-3.5 h-3.5 fill-current text-orange-500" viewBox="0 0 24 24">
-                <path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+                <path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
               </svg>
               +91 63792 39878
             </a>
@@ -82,11 +76,10 @@ export default function Navbar() {
               href={GOOGLE_REVIEWS_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className={`flex items-center gap-1.5 transition-colors ${
-                isTransparent
+              className={`flex items-center gap-1.5 transition-colors ${isTransparent
                   ? "text-white/90 hover:text-orange-400"
                   : "text-stone-600 hover:text-orange-500"
-              }`}
+                }`}
             >
               <svg className="w-3.5 h-3.5 fill-amber-400" viewBox="0 0 20 20">
                 <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -96,35 +89,34 @@ export default function Navbar() {
 
             <Link
               href="/gallery"
-              className={`transition-colors ${
-                pathname === "/gallery"
+              className={`transition-colors ${pathname === "/gallery"
                   ? "text-orange-500 font-bold"
                   : isTransparent
-                  ? "text-white/90 hover:text-orange-400"
-                  : "text-stone-600 hover:text-orange-500"
-              }`}
+                    ? "text-white/90 hover:text-orange-400"
+                    : "text-stone-600 hover:text-orange-500"
+                }`}
             >
               Gallery
             </Link>
 
-            <a
-              href="/#services"
-              className={`transition-colors ${
-                isTransparent
-                  ? "text-white/90 hover:text-orange-400"
-                  : "text-stone-600 hover:text-orange-500"
-              }`}
+            <Link
+              href="/products"
+              className={`transition-colors ${pathname === "/products"
+                  ? "text-orange-500 font-bold"
+                  : isTransparent
+                    ? "text-white/90 hover:text-orange-400"
+                    : "text-stone-600 hover:text-orange-500"
+                }`}
             >
-              Services
-            </a>
+              Products
+            </Link>
 
             <a
               href="/#faq"
-              className={`transition-colors ${
-                isTransparent
+              className={`transition-colors ${isTransparent
                   ? "text-white/90 hover:text-orange-400"
                   : "text-stone-600 hover:text-orange-500"
-              }`}
+                }`}
             >
               FAQs
             </a>
@@ -149,7 +141,7 @@ export default function Navbar() {
               className="text-xs font-extrabold text-orange-500 bg-orange-50 px-2.5 py-1 rounded-full border border-orange-200 flex items-center gap-1"
             >
               <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
-                <path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+                <path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
               </svg>
               Call
             </a>
@@ -189,7 +181,7 @@ export default function Navbar() {
             className="flex items-center gap-2 text-orange-400 font-extrabold text-sm"
           >
             <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-              <path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+              <path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
             </svg>
             +91 63792 39878
           </a>
@@ -207,9 +199,9 @@ export default function Navbar() {
           <Link href="/gallery" className="text-stone-200 text-sm font-medium">
             Gallery
           </Link>
-          <a href="/#services" className="text-stone-200 text-sm font-medium">
-            Services
-          </a>
+          <Link href="/products" className="text-stone-200 text-sm font-medium">
+            Products
+          </Link>
           <a href="/#faq" className="text-stone-200 text-sm font-medium">
             FAQs
           </a>

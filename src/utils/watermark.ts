@@ -16,6 +16,7 @@ export const DEFAULT_WATERMARK_OPTIONS: WatermarkOptions = {
   phone: "+91 63792 39878",
   instagram: "#hi5_Creation",
   brandText: "Hi-5 CREATION",
+  logoUrl: "/assets/logo.png",
   position: "corners",
   style: "corners",
   opacity: 0.9,
@@ -63,7 +64,7 @@ function drawHi5OfficialLogo(
   customLogoImg?: HTMLImageElement
 ) {
   if (customLogoImg) {
-    const w = Math.round(180 * scale);
+    const w = Math.round(200 * scale);
     const h = Math.round((customLogoImg.height / customLogoImg.width) * w);
     ctx.drawImage(customLogoImg, rx - w, ry - h, w, h);
     return;
@@ -286,16 +287,17 @@ export function applyWatermarkToImageFile(
       // Draw base image
       ctx.drawImage(img, 0, 0, width, height);
 
-      // Load custom logo image if logoUrl provided
+      // Load official logo image (defaults to /assets/logo.png)
+      const targetLogoUrl = opts.logoUrl || "/assets/logo.png";
       let logoImg: HTMLImageElement | undefined = undefined;
-      if (opts.logoUrl) {
+      if (targetLogoUrl) {
         try {
           logoImg = await new Promise<HTMLImageElement>((resLogo, rejLogo) => {
             const lImg = new Image();
             lImg.crossOrigin = "anonymous";
             lImg.onload = () => resLogo(lImg);
             lImg.onerror = () => rejLogo();
-            lImg.src = opts.logoUrl!;
+            lImg.src = targetLogoUrl;
           });
         } catch {}
       }

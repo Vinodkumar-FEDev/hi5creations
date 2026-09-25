@@ -72,6 +72,9 @@ export const metadata: Metadata = {
   },
 };
 
+import React, { Suspense } from "react";
+import LoadingSpinner from "@/src/components/LoadingSpinner";
+
 export default function GalleryPage() {
   const jsonLdBreadcrumb = {
     "@context": "https://schema.org",
@@ -110,7 +113,15 @@ export default function GalleryPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdGallery) }}
       />
-      <GalleryClient />
+      <Suspense
+        fallback={
+          <div className="pt-24 min-h-[60vh] flex items-center justify-center bg-[#faf9f7]">
+            <LoadingSpinner size="lg" text="Loading Project Gallery..." />
+          </div>
+        }
+      >
+        <GalleryClient />
+      </Suspense>
     </>
   );
 }

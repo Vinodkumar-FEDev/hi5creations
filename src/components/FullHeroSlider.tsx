@@ -26,9 +26,7 @@ export default function FullHeroSlider() {
           const loadedUrls = stored
             .map((i) => i.imageDataUrl || i.url)
             .filter((u): u is string => Boolean(u));
-          if (loadedUrls.length > 0) {
-            setBgImages([...loadedUrls, ...DEFAULT_BACKGROUND_SLIDES].slice(0, 8));
-          }
+
         }
       } catch (err) {
         console.error("Error loading hero background slider:", err);
@@ -132,7 +130,7 @@ export default function FullHeroSlider() {
           {/* Bottom Stats Strip (Grid on Mobile, Flex on Desktop) */}
           <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:gap-12 pt-6 sm:pt-8 border-t border-white/15">
             <div>
-              <div className="text-2xl sm:text-3xl font-black text-white font-display">6+</div>
+              <div className="text-2xl sm:text-3xl font-black text-white font-display">7+</div>
               <div className="text-[10px] sm:text-xs text-stone-400 font-medium mt-0.5">Years Experience</div>
             </div>
 
@@ -145,12 +143,22 @@ export default function FullHeroSlider() {
               <div className="text-2xl sm:text-3xl font-black text-white font-display">99%</div>
               <div className="text-[10px] sm:text-xs text-stone-400 font-medium mt-0.5">Satisfaction</div>
             </div>
+
+            <div>
+              <div className="text-2xl sm:text-3xl font-black text-white font-display">2+</div>
+              <div className="text-[10px] sm:text-xs text-stone-400 font-medium mt-0.5">State's Presence</div>
+            </div>
+
+            <div>
+              <div className="text-2xl sm:text-3xl font-black text-white font-display">50+</div>
+              <div className="text-[10px] sm:text-xs text-stone-400 font-medium mt-0.5">Cities Covered</div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Slide Navigation Dots */}
-      <div className="absolute bottom-4 right-4 sm:bottom-6 sm:left-8 z-20 flex items-center gap-2">
+      <div className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
         {bgImages.map((_, idx) => (
           <button
             key={idx}

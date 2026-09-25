@@ -1,7 +1,0 @@
-User-Agent: *
-Allow: /
-Disallow: /gallery/upload
-Disallow: /login
-Disallow: /api/
-
-Sitemap: https://hi5creation.in/sitemap.xml

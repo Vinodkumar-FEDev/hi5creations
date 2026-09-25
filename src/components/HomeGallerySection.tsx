@@ -99,14 +99,13 @@ export default function HomeGallerySection() {
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
                 {/* Automatic Brand Watermark Overlay */}
-                <div className="absolute top-3 right-3 z-10 pointer-events-none opacity-85 group-hover:opacity-100 transition-opacity">
-                  <div className="bg-stone-950/85 backdrop-blur-xs border border-orange-500/50 text-white px-2 py-0.5 rounded-lg flex items-center gap-1 shadow-sm">
-                    <span className="w-3 h-3 rounded-full bg-orange-500 text-white text-[8px] font-black flex items-center justify-center">
-                      H5
-                    </span>
-                    <span className="text-[9px] font-extrabold tracking-wider uppercase text-stone-100">
-                      Hi5 Creation
-                    </span>
+                <div className="absolute top-3 right-3 z-10 pointer-events-none opacity-90 group-hover:opacity-100 transition-opacity">
+                  <div className="bg-stone-950/85 backdrop-blur-xs border border-orange-500/40 px-2 py-1 rounded-lg flex items-center shadow-sm">
+                    <img
+                      src="/assets/logo.svg"
+                      alt="Hi5 Creation"
+                      className="h-4 w-auto object-contain brightness-110"
+                    />
                   </div>
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-t from-stone-950/85 via-stone-900/30 to-transparent opacity-80 group-hover:opacity-95 transition-opacity" />

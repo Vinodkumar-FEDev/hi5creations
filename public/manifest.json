@@ -3,19 +3,14 @@
   "name": "Hi5 Creation — Signage & LED Boards Coimbatore",
   "icons": [
     {
-      "src": "/favicon.ico",
-      "sizes": "32x32",
-      "type": "image/x-icon"
+      "src": "/assets/logo (2).svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
     },
     {
       "src": "/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml"
-    },
-    {
-      "src": "/apple-touch-icon.png",
-      "sizes": "192x192",
-      "type": "image/png"
     }
   ],
   "start_url": "/",
