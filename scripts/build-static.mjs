@@ -4,6 +4,12 @@ import { execSync } from "node:child_process";
 
 const rootDir = process.cwd();
 
+if (process.env.VERCEL) {
+  console.log("⚡ Vercel environment detected. Running native next build...");
+  execSync("npx next build", { stdio: "inherit", cwd: rootDir });
+  process.exit(0);
+}
+
 console.log("🚀 Preparing static export build for cPanel public_html hosting...");
 
 try {

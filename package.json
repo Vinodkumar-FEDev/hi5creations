@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "next dev -p 8443",
-    "build": "node scripts/build-static.mjs",
+    "build": "next build",
+    "build:static": "node scripts/build-static.mjs",
     "zip": "node scripts/make-zip.mjs",
     "build:server": "next build",
     "start": "next start -p 8443",
