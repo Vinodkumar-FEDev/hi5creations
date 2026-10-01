@@ -280,8 +280,8 @@ export default function HomePage() {
             <div className="relative">
               <div className="rounded-2xl overflow-hidden aspect-square bg-stone-100">
                 <img
-                  src="https://images.unsplash.com/photo-1502739423516-a7da6332f56f?w=800&h=800&fit=crop&auto=format"
-                  alt="Hi5 Creation LED sign board manufacturing and ACP cladding workshop in Coimbatore"
+                  src="/assets/beforeAfter.png"
+                  alt="Hi5 Creation signage and branding before and after transformation"
                   className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
                 />
               </div>
