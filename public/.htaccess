@@ -2,14 +2,23 @@
   RewriteEngine On
   RewriteBase /
 
-  # Protect sensitive environment and config files
+  # Protect sensitive environment and config files (Apache 2.2 and 2.4 compatible)
   <FilesMatch "^\.env">
-    Order allow,deny
-    Deny from all
+    <IfModule mod_authz_core.c>
+      Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+      Order allow,deny
+      Deny from all
+    </IfModule>
   </FilesMatch>
 
-  # Redirect HTTP to HTTPS automatically
+  # Prevent rewriting of static Next.js assets, public assets, and fonts
+  RewriteRule ^(_next|assets|fonts)/ - [L]
+
+  # Safe HTTPS redirect (handles direct SSL and Cloudflare / proxy SSL)
   RewriteCond %{HTTPS} off
+  RewriteCond %{HTTP:X-Forwarded-Proto} !https
   RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
   # Route API requests to PHP API handler
@@ -22,13 +31,13 @@
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
 
-  # Clean URLs: map /page to /page.html if it exists
-  RewriteCond %{DOCUMENT_ROOT}/$1.html -f
-  RewriteRule ^(.*)$ $1.html [L]
-
   # Clean URLs: map /page to /page/index.html if it exists
   RewriteCond %{DOCUMENT_ROOT}/$1/index.html -f
   RewriteRule ^(.*)$ $1/index.html [L]
+
+  # Clean URLs: map /page to /page.html if it exists
+  RewriteCond %{DOCUMENT_ROOT}/$1.html -f
+  RewriteRule ^(.*)$ $1.html [L]
 </IfModule>
 
 # 404 fallback page

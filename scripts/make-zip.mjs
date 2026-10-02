@@ -17,12 +17,15 @@ if (fs.existsSync(zipFile)) {
 
 console.log("📦 Creating milesweb-deploy.zip from out/ folder...");
 
-const command = `powershell -NoProfile -Command "Get-ChildItem -Path '${outDir.replace(/'/g, "''")}' -Force | Compress-Archive -DestinationPath '${zipFile.replace(/'/g, "''")}' -Force"`;
-
-execSync(command, {
-  stdio: "inherit",
-  cwd: rootDir,
-});
+const isWindows = process.platform === "win32";
+try {
+  execSync(`tar -a -cf "${zipFile}" -C "${outDir}" .`, { stdio: "inherit", cwd: rootDir });
+} catch (_) {
+  const command = isWindows
+    ? `powershell -NoProfile -Command "Get-ChildItem -Path '${outDir.replace(/'/g, "''")}' -Force | Compress-Archive -DestinationPath '${zipFile.replace(/'/g, "''")}' -Force"`
+    : `cd "${outDir}" && zip -r -9 "${zipFile}" . -x "*.DS_Store"`;
+  execSync(command, { stdio: "inherit", cwd: rootDir });
+}
 
 if (fs.existsSync(zipFile)) {
   const stats = fs.statSync(zipFile);

@@ -170,6 +170,13 @@ function get_json_body() {
 
 // Helper: Send JSON Response
 function send_json($data, $code = 200) {
+    if ($code === 200) {
+        header("HTTP/1.1 200 OK");
+        header("Status: 200 OK");
+    } else {
+        header("HTTP/1.1 {$code}");
+        header("Status: {$code}");
+    }
     http_response_code($code);
     echo json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;
