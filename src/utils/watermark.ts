@@ -7,6 +7,7 @@ export interface WatermarkOptions {
   position?: "corners" | "tiled";
   style?: "corners" | "tiled";
   opacity?: number;
+  whiteBackground?: boolean; // Solid white background card for corners (default true)
   maxDimension?: number; // 0 for Original Native Resolution (no downscaling)
   quality?: number; // 0.95 for maximum crisp clarity
 }
@@ -19,10 +20,57 @@ export const DEFAULT_WATERMARK_OPTIONS: WatermarkOptions = {
   logoUrl: "/assets/logo.png",
   position: "corners",
   style: "corners",
-  opacity: 0.9,
+  opacity: 0.95,
+  whiteBackground: true,
   maxDimension: 0, // Original native resolution preserve
   quality: 0.95, // 95% High fidelity quality preservation
 };
+
+/**
+ * Draws a crisp solid white card with subtle drop shadow and refined border.
+ */
+function drawWhiteCard(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+  scale: number
+): void {
+  ctx.save();
+  // 1. Soft realistic drop shadow
+  ctx.shadowColor = "rgba(0, 0, 0, 0.22)";
+  ctx.shadowBlur = Math.round(10 * scale);
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = Math.round(3 * scale);
+
+  ctx.beginPath();
+  if (typeof ctx.roundRect === "function") {
+    ctx.roundRect(x, y, w, h, r);
+  } else {
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+  ctx.fillStyle = "#ffffff";
+  ctx.fill();
+
+  // 2. Crisp subtle outer border
+  ctx.shadowColor = "transparent";
+  ctx.strokeStyle = "rgba(203, 213, 225, 0.95)"; // Slate-300 clean crisp border
+  ctx.lineWidth = Math.max(1, 1.2 * scale);
+  ctx.stroke();
+
+  ctx.restore();
+}
 
 /** Draw Vector Green Phone Icon */
 function drawPhoneIcon(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
@@ -61,21 +109,56 @@ function drawHi5OfficialLogo(
   ry: number,
   scale: number,
   brandText = "Hi-5 CREATION",
-  customLogoImg?: HTMLImageElement
+  customLogoImg?: HTMLImageElement,
+  whiteBackground = true
 ) {
   if (customLogoImg) {
-    const w = Math.round(200 * scale);
-    const h = Math.round((customLogoImg.height / customLogoImg.width) * w);
-    ctx.drawImage(customLogoImg, rx - w, ry - h, w, h);
+    const w = Math.round(180 * scale);
+    const h = Math.round(
+      ((customLogoImg.naturalHeight || customLogoImg.height) /
+        (customLogoImg.naturalWidth || customLogoImg.width)) *
+        w
+    );
+
+    if (whiteBackground) {
+      const padX = Math.round(14 * scale);
+      const padY = Math.round(12 * scale);
+      const boxW = Math.round(w + padX * 2);
+      const boxH = Math.round(h + padY * 2);
+      const boxX = rx - boxW;
+      const boxY = ry - boxH;
+      const radius = Math.round(8 * scale);
+
+      drawWhiteCard(ctx, boxX, boxY, boxW, boxH, radius, scale);
+      ctx.drawImage(customLogoImg, boxX + padX, boxY + padY, w, h);
+    } else {
+      ctx.drawImage(customLogoImg, rx - w, ry - h, w, h);
+    }
     return;
   }
 
-  ctx.save();
+  // Fallback vector logo
   const logoW = Math.round(180 * scale);
   const logoH = Math.round(75 * scale);
-  const lx = rx - logoW;
-  const ly = ry - logoH;
 
+  let lx = rx - logoW;
+  let ly = ry - logoH;
+
+  if (whiteBackground) {
+    const padX = Math.round(14 * scale);
+    const padY = Math.round(12 * scale);
+    const boxW = Math.round(logoW + padX * 2);
+    const boxH = Math.round(logoH + padY * 2);
+    const boxX = rx - boxW;
+    const boxY = ry - boxH;
+    const radius = Math.round(8 * scale);
+
+    drawWhiteCard(ctx, boxX, boxY, boxW, boxH, radius, scale);
+    lx = boxX + padX;
+    ly = boxY + padY;
+  }
+
+  ctx.save();
   // 1. Draw 5-Finger High-Five Hand Emblem
   const handX = lx + 120 * scale;
   const handY = ly + 2 * scale;
@@ -146,10 +229,9 @@ function drawHi5OfficialLogo(
 /**
  * Draws the automatic watermark onto HTML5 Canvas.
  * Top-Left:
- *   - Green Phone Icon + Phone Number (+91 63792 39878)
- *   - Instagram Icon + Instagram Handle/Hashtag (#hi5_Creation)
+ *   - Solid White Square Card: Name (Brand/Company), Mobile Number (+ Phone Icon), Instagram Handle
  * Bottom-Right:
- *   - Official 3D Hi-5 CREATION Logo
+ *   - Solid White Square Card: Official Hi-5 CREATION Logo
  */
 export function drawWatermarkOnCanvas(
   ctx: CanvasRenderingContext2D,
@@ -167,17 +249,15 @@ export function drawWatermarkOnCanvas(
     brandText = "Hi-5 CREATION",
     position = "corners",
     style = "corners",
-    opacity = 0.9,
+    opacity = 0.95,
+    whiteBackground = true,
   } = opts;
 
   ctx.save();
   ctx.globalAlpha = Math.max(0.1, Math.min(1.0, opacity));
 
-  const scale = Math.max(0.5, Math.min(width, height) / 800);
-  const padding = Math.round(30 * scale);
-  const iconSize = Math.round(22 * scale);
-  const fontSize = Math.round(18 * scale);
-  const lineGap = Math.round(32 * scale);
+  const scale = Math.max(0.65, Math.min(width, height) / 800);
+  const padding = Math.round(24 * scale);
 
   // Style 1: Diagonal Tiled Mode
   if (style === "tiled" || position === "tiled") {
@@ -207,36 +287,150 @@ export function drawWatermarkOnCanvas(
     return;
   }
 
-  // Style 2: Official Corners Mode (Top-Left Contact + Bottom-Right Hi-5 Logo)
-  ctx.font = `800 ${fontSize}px sans-serif, system-ui`;
-  ctx.textAlign = "left";
-  ctx.textBaseline = "middle";
+  // Style 2: Official Corners Mode (Top-Left Contact Card + Bottom-Right Logo Square)
+  if (whiteBackground !== false) {
+    ctx.save();
+    const nameFont = `900 ${Math.round(14 * scale)}px system-ui, -apple-system, sans-serif`;
+    const phoneFont = `bold ${Math.round(13 * scale)}px system-ui, -apple-system, sans-serif`;
+    const instaFont = `bold ${Math.round(12.5 * scale)}px system-ui, -apple-system, sans-serif`;
 
-  const textX = padding + iconSize + Math.round(10 * scale);
+    const iconSize = Math.round(15 * scale);
+    const iconGap = Math.round(8 * scale);
 
-  // 1. Top-Left Line 1: Phone Icon + Phone Number
-  const y1 = padding + iconSize / 2;
-  drawPhoneIcon(ctx, padding, padding, iconSize);
+    ctx.font = nameFont;
+    const nameW = brandText ? ctx.measureText(brandText).width + Math.round(14 * scale) : 0;
 
-  // Text outline halo for maximum legibility over any background photo
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
-  ctx.lineWidth = 3.5 * scale;
-  ctx.strokeText(phone, textX, y1);
-  ctx.fillStyle = "#0f172a"; // Crisp Dark Font
-  ctx.fillText(phone, textX, y1);
+    ctx.font = phoneFont;
+    const phoneW = phone ? iconSize + iconGap + ctx.measureText(phone).width : 0;
 
-  // 2. Top-Left Line 2: Instagram Icon + Instagram Handle
-  const y2 = padding + lineGap + iconSize / 2;
-  drawInstagramIcon(ctx, padding, padding + lineGap, iconSize);
+    ctx.font = instaFont;
+    const instaW = instagram ? iconSize + iconGap + ctx.measureText(instagram).width : 0;
 
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
-  ctx.lineWidth = 3.5 * scale;
-  ctx.strokeText(instagram, textX, y2);
-  ctx.fillStyle = "#dc2626"; // Vibrant Red/Pink Instagram Hashtag
-  ctx.fillText(instagram, textX, y2);
+    const contentW = Math.max(nameW, phoneW, instaW);
+    const padX = Math.round(14 * scale);
+    const padY = Math.round(11 * scale);
+    const topBoxW = Math.round(contentW + padX * 2);
 
-  // 3. Bottom-Right: Hi-5 CREATION 3D Logo Graphic
-  drawHi5OfficialLogo(ctx, width - padding, height - padding, scale, brandText, logoImg);
+    const nameH = brandText ? Math.round(18 * scale) : 0;
+    const phoneH = phone ? Math.round(18 * scale) : 0;
+    const instaH = instagram ? Math.round(18 * scale) : 0;
+    const lineGap = Math.round(6 * scale);
+
+    let totalContentH = 0;
+    if (nameH > 0) totalContentH += nameH;
+    if (phoneH > 0) totalContentH += (totalContentH > 0 ? lineGap : 0) + phoneH;
+    if (instaH > 0) totalContentH += (totalContentH > 0 ? lineGap : 0) + instaH;
+
+    const topBoxH = Math.round(totalContentH + padY * 2);
+    const topBoxX = padding;
+    const topBoxY = padding;
+    const topRadius = Math.round(8 * scale);
+
+    // Draw Top-Left Solid White Card
+    drawWhiteCard(ctx, topBoxX, topBoxY, topBoxW, topBoxH, topRadius, scale);
+
+    // Draw Content inside Top-Left White Card
+    let curY = topBoxY + padY;
+
+    // A. Name Line (Brand / Company Name)
+    if (brandText) {
+      ctx.font = nameFont;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+
+      // Small orange accent dot
+      ctx.beginPath();
+      ctx.arc(
+        topBoxX + padX + Math.round(3.5 * scale),
+        curY + nameH / 2,
+        Math.round(3.5 * scale),
+        0,
+        Math.PI * 2
+      );
+      ctx.fillStyle = "#f97316";
+      ctx.fill();
+
+      // Brand name text in crisp slate-900
+      ctx.fillStyle = "#0f172a";
+      ctx.fillText(brandText, topBoxX + padX + Math.round(12 * scale), curY + nameH / 2);
+
+      curY += nameH + (phoneH > 0 || instaH > 0 ? lineGap : 0);
+    }
+
+    // B. Mobile Number Line
+    if (phone) {
+      const pIconY = curY + Math.round((phoneH - iconSize) / 2);
+      drawPhoneIcon(ctx, topBoxX + padX, pIconY, iconSize);
+
+      ctx.font = phoneFont;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#0f172a";
+      ctx.fillText(phone, topBoxX + padX + iconSize + iconGap, curY + phoneH / 2);
+
+      curY += phoneH + (instaH > 0 ? lineGap : 0);
+    }
+
+    // C. Instagram Line
+    if (instagram) {
+      const iIconY = curY + Math.round((instaH - iconSize) / 2);
+      drawInstagramIcon(ctx, topBoxX + padX, iIconY, iconSize);
+
+      ctx.font = instaFont;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#e11d48";
+      ctx.fillText(instagram, topBoxX + padX + iconSize + iconGap, curY + instaH / 2);
+    }
+    ctx.restore();
+
+    // 2. Bottom-Right: Hi-5 Logo with White Card
+    drawHi5OfficialLogo(
+      ctx,
+      width - padding,
+      height - padding,
+      scale,
+      brandText,
+      logoImg,
+      true
+    );
+  } else {
+    // Legacy transparent mode
+    const iconSize = Math.round(22 * scale);
+    const fontSize = Math.round(18 * scale);
+    const lineGap = Math.round(32 * scale);
+    ctx.font = `800 ${fontSize}px sans-serif, system-ui`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+
+    const textX = padding + iconSize + Math.round(10 * scale);
+
+    const y1 = padding + iconSize / 2;
+    drawPhoneIcon(ctx, padding, padding, iconSize);
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+    ctx.lineWidth = 3.5 * scale;
+    ctx.strokeText(phone, textX, y1);
+    ctx.fillStyle = "#0f172a";
+    ctx.fillText(phone, textX, y1);
+
+    const y2 = padding + lineGap + iconSize / 2;
+    drawInstagramIcon(ctx, padding, padding + lineGap, iconSize);
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+    ctx.lineWidth = 3.5 * scale;
+    ctx.strokeText(instagram, textX, y2);
+    ctx.fillStyle = "#dc2626";
+    ctx.fillText(instagram, textX, y2);
+
+    drawHi5OfficialLogo(
+      ctx,
+      width - padding,
+      height - padding,
+      scale,
+      brandText,
+      logoImg,
+      false
+    );
+  }
 
   ctx.restore();
 }

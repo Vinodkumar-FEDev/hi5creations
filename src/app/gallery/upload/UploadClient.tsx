@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, ChangeEvent, DragEvent, FormEvent } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import LoadingSpinner from "@/src/components/LoadingSpinner";
@@ -34,6 +35,26 @@ interface PendingFile {
 
 function WatermarkPreviewCanvas({ options }: { options: WatermarkOptions }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isZoomOpen, setIsZoomOpen] = useState(false);
+  const [zoomImgUrl, setZoomImgUrl] = useState<string>("");
+
+  useEffect(() => {
+    if (!isZoomOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsZoomOpen(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isZoomOpen]);
+
+  const handleOpenZoom = () => {
+    if (canvasRef.current) {
+      try {
+        setZoomImgUrl(canvasRef.current.toDataURL("image/png"));
+      } catch (_) {}
+    }
+    setIsZoomOpen(true);
+  };
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -41,54 +62,348 @@ function WatermarkPreviewCanvas({ options }: { options: WatermarkOptions }) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    canvas.width = 600;
-    canvas.height = 400;
+    // High DPI 1200x800 internal resolution for razor-sharp rendering on Retina & mobile screens
+    const width = 1200;
+    const height = 800;
+    canvas.width = width;
+    canvas.height = height;
 
-    // Dark sleek background with mock signage frame
-    const gradient = ctx.createLinearGradient(0, 0, 600, 400);
-    gradient.addColorStop(0, "#1c1917");
-    gradient.addColorStop(0.5, "#292524");
-    gradient.addColorStop(1, "#0c0a09");
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, 600, 400);
+    // 1. Studio Backdrop (Deep architectural dark slate gradient with subtle ambient lighting)
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, height);
+    bgGrad.addColorStop(0, "#0f172a"); // Slate-900
+    bgGrad.addColorStop(0.65, "#0b0f19"); // Deep studio dark
+    bgGrad.addColorStop(1, "#020617"); // Slate-950 floor
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, width, height);
 
-    // Mock signage box artwork
-    ctx.fillStyle = "rgba(249, 115, 22, 0.15)";
+    // 2. Overhead Warm Studio Spotlight Glow
+    const spot = ctx.createRadialGradient(width / 2, -40, 80, width / 2, 360, 750);
+    spot.addColorStop(0, "rgba(249, 115, 22, 0.22)"); // Soft amber accent
+    spot.addColorStop(0.45, "rgba(249, 115, 22, 0.05)");
+    spot.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = spot;
+    ctx.fillRect(0, 0, width, height);
+
+    // 3. Studio Horizon Reflection / Ground Plane
+    const horizonY = 670;
+    ctx.strokeStyle = "rgba(148, 163, 184, 0.09)";
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.roundRect(80, 70, 440, 260, 16);
-    ctx.fill();
-    ctx.strokeStyle = "rgba(249, 115, 22, 0.4)";
-    ctx.lineWidth = 2;
+    ctx.moveTo(0, horizonY);
+    ctx.lineTo(width, horizonY);
     ctx.stroke();
 
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 24px sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("STOREFRONT SIGNAGE SAMPLE", 300, 190);
-    ctx.fillStyle = "#fb923c";
-    ctx.font = "14px sans-serif";
-    ctx.fillText("3D Acrylic LED Illuminated Board", 300, 220);
+    // Studio ground shadow
+    const groundShadow = ctx.createLinearGradient(0, horizonY, 0, height);
+    groundShadow.addColorStop(0, "rgba(0, 0, 0, 0.55)");
+    groundShadow.addColorStop(1, "rgba(2, 6, 23, 0.95)");
+    ctx.fillStyle = groundShadow;
+    ctx.fillRect(0, horizonY, width, height - horizonY);
 
-    // Draw automatic watermark using official Hi-5 Creation logo
+    // 4. Central 3D Signage Display Board (Photorealistic Studio Exhibition Subject)
+    const bx = 110;
+    const by = 100;
+    const bw = 980;
+    const bh = 540;
+    const br = 20;
+
+    // Board Ambient LED Backlight Glow
+    ctx.save();
+    ctx.shadowColor = "rgba(249, 115, 22, 0.38)";
+    ctx.shadowBlur = 45;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 12;
+    ctx.fillStyle = "rgba(15, 23, 42, 0.98)";
+    ctx.beginPath();
+    ctx.roundRect(bx, by, bw, bh, br);
+    ctx.fill();
+    ctx.restore();
+
+    // Board Face Gradient (Brushed Dark Acrylic & Titanium look)
+    const boardGrad = ctx.createLinearGradient(bx, by, bx, by + bh);
+    boardGrad.addColorStop(0, "#1e293b");
+    boardGrad.addColorStop(0.5, "#0f172a");
+    boardGrad.addColorStop(1, "#090d16");
+    ctx.fillStyle = boardGrad;
+    ctx.beginPath();
+    ctx.roundRect(bx, by, bw, bh, br);
+    ctx.fill();
+
+    // Board Outer Accent Border
+    ctx.strokeStyle = "rgba(249, 115, 22, 0.5)";
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // Inner subtle chamfer stroke
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(bx + 8, by + 8, bw - 16, bh - 16, br - 4);
+    ctx.stroke();
+
+    // 5. Stainless Steel Standoff Mounting Pins at 4 corners
+    const standoffs = [
+      { x: bx + 36, y: by + 36 },
+      { x: bx + bw - 36, y: by + 36 },
+      { x: bx + 36, y: by + bh - 36 },
+      { x: bx + bw - 36, y: by + bh - 36 },
+    ];
+    standoffs.forEach((pt) => {
+      // Pin drop shadow
+      ctx.save();
+      ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, 11, 0, Math.PI * 2);
+      ctx.fillStyle = "#64748b";
+      ctx.fill();
+      ctx.restore();
+
+      // Metallic gradient
+      const metal = ctx.createLinearGradient(pt.x - 10, pt.y - 10, pt.x + 10, pt.y + 10);
+      metal.addColorStop(0, "#f8fafc");
+      metal.addColorStop(0.4, "#94a3b8");
+      metal.addColorStop(1, "#334155");
+      ctx.fillStyle = metal;
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, 9, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Inner bolt dot
+      ctx.fillStyle = "#1e293b";
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, 3, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // 6. Signage Graphic & Typography Artwork on Board
+    // Category pill
+    ctx.fillStyle = "rgba(249, 115, 22, 0.18)";
+    ctx.beginPath();
+    ctx.roundRect(width / 2 - 190, by + 88, 380, 34, 17);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(249, 115, 22, 0.4)";
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+
+    ctx.fillStyle = "#fb923c"; // Amber-400
+    ctx.font = "bold 13px system-ui, -apple-system, sans-serif";
+    ctx.textAlign = "center";
+    ctx.letterSpacing = "2px";
+    ctx.fillText("ARCHITECTURAL SIGNAGE STUDIO", width / 2, by + 110);
+
+    // Main 3D Signage Display Title
+    ctx.save();
+    ctx.shadowColor = "rgba(0, 0, 0, 0.85)";
+    ctx.shadowBlur = 12;
+    ctx.shadowOffsetY = 4;
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "800 36px system-ui, -apple-system, sans-serif";
+    ctx.letterSpacing = "1px";
+    ctx.fillText("COMMERCIAL 3D ACRYLIC & LED DISPLAY", width / 2, by + 195);
+    ctx.restore();
+
+    // Subtitle
+    ctx.fillStyle = "#94a3b8"; // Slate-400
+    ctx.font = "500 16px system-ui, -apple-system, sans-serif";
+    ctx.letterSpacing = "0.5px";
+    ctx.fillText("Custom Built • Precision CNC Router & Laser Cutting • Illuminated Boards", width / 2, by + 235);
+
+    // Glowing Divider Line
+    const divGrad = ctx.createLinearGradient(width / 2 - 250, 0, width / 2 + 250, 0);
+    divGrad.addColorStop(0, "rgba(249, 115, 22, 0)");
+    divGrad.addColorStop(0.5, "rgba(249, 115, 22, 0.8)");
+    divGrad.addColorStop(1, "rgba(249, 115, 22, 0)");
+    ctx.strokeStyle = divGrad;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(width / 2 - 250, by + 270);
+    ctx.lineTo(width / 2 + 250, by + 270);
+    ctx.stroke();
+
+    // Feature Badges on Board
+    const badges = [
+      "✓ UV RESISTANT",
+      "✓ IP67 WATERPROOF LED",
+      "✓ HIGH GRADE ACRYLIC",
+      "✓ 5-YEAR WARRANTY",
+    ];
+    const bStartX = width / 2 - 280;
+    badges.forEach((bText, idx) => {
+      const bxPos = bStartX + idx * 145;
+      ctx.fillStyle = "rgba(255, 255, 255, 0.05)";
+      ctx.beginPath();
+      ctx.roundRect(bxPos - 10, by + 300, 130, 28, 8);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.fillStyle = "#e2e8f0";
+      ctx.font = "bold 11px system-ui, -apple-system, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(bText, bxPos + 55, by + 318);
+    });
+
+    // 7. Render Real-time Watermark Overlay
     if (options.enabled !== false) {
       const logoImg = new Image();
       logoImg.crossOrigin = "anonymous";
       logoImg.onload = () => {
-        drawWatermarkOnCanvas(ctx, 600, 400, options, logoImg);
+        drawWatermarkOnCanvas(ctx, width, height, options, logoImg);
       };
       logoImg.onerror = () => {
-        drawWatermarkOnCanvas(ctx, 600, 400, options);
+        drawWatermarkOnCanvas(ctx, width, height, options);
       };
       logoImg.src = options.logoUrl || "/assets/logo.png";
+    } else {
+      // Disabled notice badge
+      ctx.save();
+      ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
+      ctx.beginPath();
+      ctx.roundRect(width / 2 - 220, height - 100, 440, 46, 23);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "600 14px system-ui, -apple-system, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("⚠️ Automatic Watermark Disabled — Images Upload Clean", width / 2, height - 72);
+      ctx.restore();
     }
   }, [options]);
 
   return (
-    <div className="relative rounded-2xl overflow-hidden border border-stone-800 shadow-xl bg-stone-950">
-      <canvas ref={canvasRef} className="w-full h-auto aspect-video object-cover" />
-      <div className="absolute top-3 left-3 bg-stone-900/80 backdrop-blur-xs text-[10px] font-bold text-orange-400 px-2.5 py-1 rounded-full border border-stone-700">
-        Live Watermark Preview
+    <div className="space-y-3">
+      {/* Studio Header Bar */}
+      <div className="flex items-center justify-between gap-2 px-1">
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 bg-stone-900 border border-stone-700/80 px-2.5 py-1 rounded-full text-[11px] font-bold text-orange-400 shadow-xs">
+            <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
+            <span>🎬 Studio Preview</span>
+          </span>
+          <span className="text-[11px] text-stone-500 hidden sm:inline">
+            High-DPI Architectural Studio
+          </span>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleOpenZoom}
+          className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors flex items-center gap-1 cursor-pointer"
+          title="Inspect full resolution preview"
+        >
+          <span>🔍</span>
+          <span>Zoom View</span>
+        </button>
       </div>
+
+      {/* Responsive Canvas Container */}
+      <div className="relative rounded-2xl overflow-hidden border border-stone-800 shadow-2xl bg-stone-950 aspect-[16/10] sm:aspect-video w-full flex items-center justify-center">
+        <canvas
+          ref={canvasRef}
+          className="w-full h-full object-contain cursor-pointer"
+          onClick={handleOpenZoom}
+          title="Click to zoom in"
+        />
+
+        {/* Live watermark status badge on preview */}
+        <div className="absolute bottom-3 left-3 bg-stone-950/85 backdrop-blur-xs text-[10px] font-bold text-stone-300 px-3 py-1 rounded-full border border-stone-800 flex items-center gap-2">
+          <span
+            className={`w-1.5 h-1.5 rounded-full ${
+              options.enabled !== false ? "bg-emerald-400" : "bg-stone-500"
+            }`}
+          />
+          <span>{options.enabled !== false ? "Watermark Active" : "Disabled"}</span>
+          <span className="text-stone-600">•</span>
+          <span className="capitalize">{options.style || "Corners"} Style</span>
+          <span className="text-stone-600">•</span>
+          <span>{Math.round((options.opacity ?? 0.9) * 100)}% Opacity</span>
+        </div>
+      </div>
+
+      {/* Info helper */}
+      <p className="text-[11px] text-stone-500 text-center leading-relaxed">
+        Live studio preview showing automatic watermark stamp placement on newly uploaded project signage photos.
+      </p>
+
+      {/* Fullscreen Zoom Modal rendered at body level with max z-index */}
+      {isZoomOpen && typeof document !== "undefined" && createPortal(
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-[99999] bg-black/95 backdrop-blur-md flex flex-col items-center justify-between p-3 sm:p-6 overflow-hidden animate-in fade-in duration-150"
+          onClick={() => setIsZoomOpen(false)}
+        >
+          {/* Top Bar inside modal */}
+          <div
+            className="w-full max-w-5xl flex items-center justify-between py-2 sm:py-3 px-2 z-10 shrink-0"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-orange-400 bg-stone-900 px-3 py-1.5 rounded-full border border-stone-700 shadow-md">
+                🎬 Studio Preview • Full Resolution
+              </span>
+              <span className="text-xs text-stone-400 hidden md:inline">
+                Inspect white card watermarks &amp; contact badges
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsZoomOpen(false)}
+              className="bg-stone-800 hover:bg-stone-700 text-white px-4 py-1.5 rounded-full text-xs font-bold border border-stone-600 transition-all flex items-center gap-1.5 shadow-lg cursor-pointer"
+              aria-label="Close zoom preview"
+            >
+              <span>✕</span>
+              <span>Close (Esc)</span>
+            </button>
+          </div>
+
+          {/* Center: Image Display with pinch-to-zoom support */}
+          <div
+            className="w-full max-w-5xl flex-1 flex items-center justify-center p-1 sm:p-2 min-h-0"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="relative rounded-2xl overflow-hidden border border-stone-800 shadow-2xl bg-stone-950 max-h-[82vh] w-auto flex items-center justify-center">
+              {zoomImgUrl ? (
+                <img
+                  src={zoomImgUrl}
+                  alt="Studio Watermark Zoom Preview"
+                  className="max-h-[80vh] w-auto max-w-full object-contain select-none"
+                />
+              ) : (
+                <canvas
+                  ref={(node) => {
+                    if (node && canvasRef.current) {
+                      const ctx = node.getContext("2d");
+                      if (ctx) {
+                        node.width = canvasRef.current.width;
+                        node.height = canvasRef.current.height;
+                        ctx.drawImage(canvasRef.current, 0, 0);
+                      }
+                    }
+                  }}
+                  className="max-h-[80vh] w-auto max-w-full object-contain"
+                />
+              )}
+            </div>
+          </div>
+
+          {/* Bottom Bar inside modal */}
+          <div
+            className="w-full max-w-5xl py-2 px-3 text-center shrink-0 z-10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span className="text-[11px] sm:text-xs text-stone-400">
+              White square badges protect branding clarity on dark &amp; textured backgrounds. Mobile pinch-to-zoom enabled.
+            </span>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
@@ -122,6 +437,21 @@ export default function UploadClient() {
     providerType: "local",
     missingVars: [],
   });
+
+  // Cloud Storage Details Dialog Modal State
+  const [isStorageDialogOpen, setIsStorageDialogOpen] = useState<boolean>(false);
+  // Mobile Tab for Watermark Section ("settings" vs "preview")
+  const [mobileWatermarkTab, setMobileWatermarkTab] = useState<"settings" | "preview">("settings");
+
+  // Escape key closes Cloud Storage Dialog
+  useEffect(() => {
+    if (!isStorageDialogOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsStorageDialogOpen(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isStorageDialogOpen]);
 
   const checkR2Status = async () => {
     setR2Status((prev) => ({ ...prev, loading: true }));
@@ -222,6 +552,17 @@ export default function UploadClient() {
   const [newCatInput, setNewCatInput] = useState("");
   const [catSearchQuery, setCatSearchQuery] = useState("");
   const [subCatInputs, setSubCatInputs] = useState<Record<string, string>>({});
+  const [selectedCategoryModal, setSelectedCategoryModal] = useState<string | null>(null);
+
+  // Escape key closes Category Subcategories Dialog
+  useEffect(() => {
+    if (!selectedCategoryModal) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSelectedCategoryModal(null);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedCategoryModal]);
 
   const [globalCategory, setGlobalCategory] = useState("");
   const [globalSubcategory, setGlobalSubcategory] = useState("");
@@ -891,7 +1232,50 @@ export default function UploadClient() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+            {/* Storage Status Icon & Button: Green = OK, Yellow = Pending, Red = Disconnected */}
+            <button
+              type="button"
+              onClick={() => setIsStorageDialogOpen(true)}
+              className={`px-3 py-1.5 rounded-full border text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer shadow-xs ${
+                r2Status.loading
+                  ? "bg-amber-50 border-amber-300 text-amber-800 hover:bg-amber-100"
+                  : r2Status.connected
+                  ? "bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100"
+                  : "bg-rose-50 border-rose-300 text-rose-800 hover:bg-rose-100"
+              }`}
+              title="Click to view AWS S3 Cloud Storage connection details"
+              aria-label="Cloud storage connection status"
+            >
+              <span className="relative flex h-2.5 w-2.5">
+                <span
+                  className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                    r2Status.loading
+                      ? "bg-amber-400"
+                      : r2Status.connected
+                      ? "bg-emerald-400"
+                      : "bg-rose-400"
+                  }`}
+                />
+                <span
+                  className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
+                    r2Status.loading
+                      ? "bg-amber-500"
+                      : r2Status.connected
+                      ? "bg-emerald-500"
+                      : "bg-rose-500"
+                  }`}
+                />
+              </span>
+              <span className="font-semibold">
+                {r2Status.loading
+                  ? "Checking S3..."
+                  : r2Status.connected
+                  ? "AWS S3 Connected"
+                  : "Not Connected"}
+              </span>
+            </button>
+
             <Link
               href="/gallery"
               className="px-4 py-2 border border-stone-300 hover:border-stone-400 text-stone-700 text-xs font-semibold rounded-full transition-all"
@@ -909,123 +1293,226 @@ export default function UploadClient() {
       </section>
 
       <div className="max-w-7xl mx-auto px-5 lg:px-8 pt-8 space-y-8">
-        {/* CONTAINER 0: Cloud Connection Status Card (S3, R2, or Local) */}
-        <section className={`rounded-3xl border p-5 sm:p-6 shadow-xs transition-all ${
-          r2Status.providerType === "s3"
-            ? "bg-gradient-to-r from-emerald-50/95 via-teal-50/80 to-emerald-50/90 border-emerald-300"
-            : r2Status.providerType === "r2"
-            ? "bg-gradient-to-r from-orange-50/95 via-amber-50/80 to-orange-50/90 border-orange-300"
-            : "bg-stone-50/90 border-stone-200"
-        }`}>
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-            <div className="flex items-start gap-3.5">
-              <span className={`w-11 h-11 rounded-2xl flex items-center justify-center text-xl font-black shrink-0 shadow-xs ${
-                r2Status.providerType === "s3"
-                  ? "bg-emerald-600 text-white shadow-emerald-500/20"
-                  : r2Status.providerType === "r2"
-                  ? "bg-orange-500 text-white shadow-orange-500/20"
-                  : "bg-stone-700 text-white"
-              }`}>
-                {r2Status.providerType === "s3" ? "☁️" : r2Status.providerType === "r2" ? "⚡" : "💾"}
-              </span>
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-base font-extrabold text-stone-900 font-display">
-                    {r2Status.providerType === "s3"
-                      ? "AWS S3 Cloud Storage Connected"
-                      : r2Status.providerType === "r2"
-                      ? "Cloudflare R2 Cloud Storage Connected"
-                      : "Local Browser & Static Storage Connected"}
-                  </h3>
-                  <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${
-                    r2Status.providerType === "s3"
-                      ? "bg-emerald-600 text-white"
-                      : r2Status.providerType === "r2"
-                      ? "bg-orange-600 text-white"
-                      : "bg-stone-700 text-white"
-                  }`}>
-                    {r2Status.providerType === "s3"
-                      ? "Active & Secured (AWS S3)"
-                      : r2Status.providerType === "r2"
-                      ? "Active & Secured (Cloudflare R2)"
-                      : "Active (Local Storage)"}
+        {/* Cloud Storage Details Modal Dialog rendered at body level with max z-index */}
+        {isStorageDialogOpen && typeof document !== "undefined" && createPortal(
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="fixed inset-0 z-[99999] bg-stone-950/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-150"
+            onClick={() => setIsStorageDialogOpen(false)}
+          >
+            <div
+              className="bg-white rounded-3xl border border-stone-200 shadow-2xl max-w-lg w-full overflow-hidden my-8"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="p-6 pb-4 border-b border-stone-100 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`w-10 h-10 rounded-2xl flex items-center justify-center text-lg font-bold shrink-0 ${
+                      r2Status.loading
+                        ? "bg-amber-100 text-amber-700"
+                        : r2Status.connected
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-rose-100 text-rose-700"
+                    }`}
+                  >
+                    {r2Status.loading ? "⏳" : r2Status.connected ? "☁️" : "⚠️"}
                   </span>
+                  <div>
+                    <h3 className="text-base font-bold text-stone-900 font-display">
+                      AWS S3 Cloud Storage
+                    </h3>
+                    <p className="text-xs text-stone-500">
+                      Live bucket connectivity &amp; synchronization status
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsStorageDialogOpen(false)}
+                  className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 flex items-center justify-center text-sm font-bold transition-all cursor-pointer"
+                  aria-label="Close dialog"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 space-y-5">
+                {/* Status Banner */}
+                <div
+                  className={`p-4 rounded-2xl border transition-all ${
+                    r2Status.loading
+                      ? "bg-amber-50/80 border-amber-200"
+                      : r2Status.connected
+                      ? "bg-emerald-50/80 border-emerald-200"
+                      : "bg-rose-50/80 border-rose-200"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-stone-700">
+                      Current Connection Status
+                    </span>
+                    <span
+                      className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${
+                        r2Status.loading
+                          ? "bg-amber-500 text-white"
+                          : r2Status.connected
+                          ? "bg-emerald-600 text-white"
+                          : "bg-rose-600 text-white"
+                      }`}
+                    >
+                      {r2Status.loading
+                        ? "Pending Verification"
+                        : r2Status.connected
+                        ? r2Status.providerType === "s3"
+                          ? "Active & Secured (AWS S3)"
+                          : r2Status.providerType === "r2"
+                          ? "Active & Secured (Cloudflare R2)"
+                          : "Active (Local Storage)"
+                        : "Not Connected"}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-stone-700 leading-relaxed">
+                    {r2Status.loading ? (
+                      "Checking connection to AWS S3 storage bucket..."
+                    ) : r2Status.providerType === "s3" ? (
+                      <>
+                        Connected to Amazon S3 bucket{" "}
+                        <strong className="font-mono text-emerald-950 bg-emerald-100 px-1.5 py-0.5 rounded">
+                          &apos;{r2Status.bucketName || "hi5creation"}&apos;
+                        </strong>{" "}
+                        in region{" "}
+                        <strong className="font-mono text-emerald-950 bg-emerald-100 px-1.5 py-0.5 rounded">
+                          &apos;{r2Status.region || "eu-north-1"}&apos;
+                        </strong>
+                        . Uploaded photos, categories, and subcategories are stored securely in AWS S3 and synced across all devices.
+                      </>
+                    ) : r2Status.providerType === "r2" ? (
+                      <>
+                        Connected to Cloudflare R2 bucket{" "}
+                        <strong className="font-mono text-orange-950 bg-orange-100 px-1.5 py-0.5 rounded">
+                          &apos;{r2Status.bucketName || "hi5creations"}&apos;
+                        </strong>
+                        . Uploaded photos and categories are stored securely in Cloudflare R2 cloud.
+                      </>
+                    ) : (
+                      <>
+                        Connected to local browser &amp; static storage bucket{" "}
+                        <strong className="font-mono text-stone-900 bg-stone-200 px-1.5 py-0.5 rounded">
+                          &apos;{r2Status.bucketName || "hi5-local-storage"}&apos;
+                        </strong>
+                        . Uploaded photos and categories are stored on this device.
+                      </>
+                    )}
+                  </p>
                 </div>
 
-                <p className="text-xs text-stone-700 mt-1.5 leading-relaxed">
-                  {r2Status.providerType === "s3" ? (
-                    <>
-                      Connected to Amazon S3 bucket <strong className="font-mono text-emerald-950 bg-emerald-100/70 px-1.5 py-0.5 rounded">&apos;{r2Status.bucketName || "hi5creation"}&apos;</strong> in region <strong className="font-mono text-emerald-950 bg-emerald-100/70 px-1.5 py-0.5 rounded">&apos;{r2Status.region || "eu-north-1"}&apos;</strong>. Uploaded photos, categories, and subcategories are stored securely in AWS S3 and synced across all devices.
-                    </>
-                  ) : r2Status.providerType === "r2" ? (
-                    <>
-                      Connected to Cloudflare R2 bucket <strong className="font-mono text-orange-950 bg-orange-100/70 px-1.5 py-0.5 rounded">&apos;{r2Status.bucketName || "hi5creations"}&apos;</strong>. Uploaded photos, categories, and subcategories are stored securely in Cloudflare R2 cloud and synced across all devices.
-                    </>
-                  ) : (
-                    <>
-                      Connected to local browser &amp; static storage bucket <strong className="font-mono text-stone-900 bg-stone-200/80 px-1.5 py-0.5 rounded">&apos;{r2Status.bucketName || "hi5-local-storage"}&apos;</strong>. Uploaded photos, categories, and subcategories are stored on this device.
-                    </>
-                  )}
-                </p>
+                {/* Bucket & Provider Specs */}
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="bg-stone-50 border border-stone-200 rounded-xl p-3">
+                    <span className="text-[10px] font-bold text-stone-400 uppercase block">Bucket Name</span>
+                    <span className="font-mono font-bold text-stone-900 truncate block mt-0.5">
+                      {r2Status.bucketName || "hi5creation"}
+                    </span>
+                  </div>
+                  <div className="bg-stone-50 border border-stone-200 rounded-xl p-3">
+                    <span className="text-[10px] font-bold text-stone-400 uppercase block">AWS Region</span>
+                    <span className="font-mono font-bold text-stone-900 truncate block mt-0.5">
+                      {r2Status.region || "eu-north-1"}
+                    </span>
+                  </div>
+                </div>
 
                 {/* Storage Provider Status Indicator Badges */}
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <div className={`px-2.5 py-1 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-all ${
-                    r2Status.providerType === "s3"
-                      ? "bg-emerald-100/90 text-emerald-900 border-emerald-300 shadow-2xs"
-                      : "bg-white/80 text-stone-400 border-stone-200"
-                  }`}>
-                    <span>{r2Status.providerType === "s3" ? "✅" : "⚪"}</span>
-                    <span>AWS S3 (Amazon Web Services)</span>
-                    {r2Status.providerType === "s3" && (
-                      <span className="text-[10px] bg-emerald-600 text-white px-1.5 py-0.2 rounded font-mono font-bold">
-                        Connected
-                      </span>
-                    )}
-                  </div>
+                <div>
+                  <label className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block mb-2">
+                    Storage Providers
+                  </label>
+                  <div className="space-y-2">
+                    <div
+                      className={`p-3 rounded-xl border flex items-center justify-between text-xs transition-all ${
+                        r2Status.providerType === "s3"
+                          ? "bg-emerald-50 border-emerald-300 text-emerald-950 font-bold"
+                          : "bg-white border-stone-200 text-stone-500"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span>{r2Status.providerType === "s3" ? "✅" : "⚪"}</span>
+                        <span>AWS S3 (Amazon Web Services)</span>
+                      </div>
+                      {r2Status.providerType === "s3" && (
+                        <span className="text-[10px] bg-emerald-600 text-white px-2 py-0.5 rounded-full font-bold">
+                          Connected
+                        </span>
+                      )}
+                    </div>
 
-                  <div className={`px-2.5 py-1 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-all ${
-                    r2Status.providerType === "r2"
-                      ? "bg-orange-100/90 text-orange-900 border-orange-300 shadow-2xs"
-                      : "bg-white/80 text-stone-400 border-stone-200"
-                  }`}>
-                    <span>{r2Status.providerType === "r2" ? "✅" : "⚪"}</span>
-                    <span>Cloudflare R2</span>
-                    {r2Status.providerType === "r2" && (
-                      <span className="text-[10px] bg-orange-600 text-white px-1.5 py-0.2 rounded font-mono font-bold">
-                        Connected
-                      </span>
-                    )}
-                  </div>
+                    <div
+                      className={`p-3 rounded-xl border flex items-center justify-between text-xs transition-all ${
+                        r2Status.providerType === "r2"
+                          ? "bg-orange-50 border-orange-300 text-orange-950 font-bold"
+                          : "bg-white border-stone-200 text-stone-500"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span>{r2Status.providerType === "r2" ? "✅" : "⚪"}</span>
+                        <span>Cloudflare R2 Storage</span>
+                      </div>
+                      {r2Status.providerType === "r2" && (
+                        <span className="text-[10px] bg-orange-600 text-white px-2 py-0.5 rounded-full font-bold">
+                          Connected
+                        </span>
+                      )}
+                    </div>
 
-                  <div className={`px-2.5 py-1 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-all ${
-                    r2Status.providerType === "local"
-                      ? "bg-stone-200 text-stone-900 border-stone-300 shadow-2xs"
-                      : "bg-white/80 text-stone-400 border-stone-200"
-                  }`}>
-                    <span>{r2Status.providerType === "local" ? "✅" : "⚪"}</span>
-                    <span>Local Storage</span>
-                    {r2Status.providerType === "local" && (
-                      <span className="text-[10px] bg-stone-700 text-white px-1.5 py-0.2 rounded font-mono font-bold">
-                        Connected
-                      </span>
-                    )}
+                    <div
+                      className={`p-3 rounded-xl border flex items-center justify-between text-xs transition-all ${
+                        r2Status.providerType === "local"
+                          ? "bg-stone-100 border-stone-300 text-stone-900 font-bold"
+                          : "bg-white border-stone-200 text-stone-500"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span>{r2Status.providerType === "local" ? "✅" : "⚪"}</span>
+                        <span>Local Storage</span>
+                      </div>
+                      {r2Status.providerType === "local" && (
+                        <span className="text-[10px] bg-stone-700 text-white px-2 py-0.5 rounded-full font-bold">
+                          Connected
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <button
-              onClick={() => checkR2Status()}
-              disabled={r2Status.loading}
-              className="text-xs font-bold px-3 py-1.5 rounded-xl border border-stone-300 bg-white hover:bg-stone-50 text-stone-700 transition-colors flex items-center gap-1.5 self-start sm:self-auto shrink-0 shadow-2xs"
-              title="Refresh connection status"
-            >
-              <span>{r2Status.loading ? "⏳" : "🔄"}</span>
-              <span>{r2Status.loading ? "Checking..." : "Recheck Status"}</span>
-            </button>
-          </div>
-        </section>
+              {/* Modal Footer */}
+              <div className="p-4 bg-stone-50 border-t border-stone-100 flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => checkR2Status()}
+                  disabled={r2Status.loading}
+                  className="text-xs font-bold px-4 py-2 rounded-xl border border-stone-300 bg-white hover:bg-stone-100 text-stone-700 transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                >
+                  <span>{r2Status.loading ? "⏳" : "🔄"}</span>
+                  <span>{r2Status.loading ? "Checking..." : "Recheck Status"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsStorageDialogOpen(false)}
+                  className="text-xs font-bold px-5 py-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-white transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
 
 
         {/* CONTAINER WATERMARK: Automatic Watermark Settings (Collapsible Card) */}
@@ -1069,10 +1556,43 @@ export default function UploadClient() {
           </div>
 
           {sectionOpen.sectionWatermark && (
-            <div className="px-6 pb-6 md:px-8 md:pb-8 border-t border-stone-100 pt-6">
+            <div className="px-4 pb-6 sm:px-6 md:px-8 md:pb-8 border-t border-stone-100 pt-6">
+              {/* Mobile Tab Switcher: Settings vs Studio Preview */}
+              <div className="lg:hidden flex items-center p-1 bg-stone-100 rounded-xl mb-6">
+                <button
+                  type="button"
+                  onClick={() => setMobileWatermarkTab("settings")}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    mobileWatermarkTab === "settings"
+                      ? "bg-white text-stone-900 shadow-xs"
+                      : "text-stone-500 hover:text-stone-800"
+                  }`}
+                >
+                  <span>⚙️</span>
+                  <span>Watermark Settings</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMobileWatermarkTab("preview")}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    mobileWatermarkTab === "preview"
+                      ? "bg-white text-stone-900 shadow-xs"
+                      : "text-stone-500 hover:text-stone-800"
+                  }`}
+                >
+                  <span>🎬</span>
+                  <span>Studio Preview</span>
+                  <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
+                </button>
+              </div>
+
               <div className="grid lg:grid-cols-12 gap-8 items-start">
                 {/* Left Column: Controls */}
-                <div className="lg:col-span-7 space-y-5">
+                <div
+                  className={`lg:col-span-7 space-y-5 ${
+                    mobileWatermarkTab === "settings" ? "block" : "hidden lg:block"
+                  }`}
+                >
                   {/* Enable / Disable Toggle */}
                   <div className="flex items-center justify-between bg-stone-50 p-4 rounded-2xl border border-stone-200">
                     <div>
@@ -1270,15 +1790,19 @@ export default function UploadClient() {
                   )}
                 </div>
 
-                {/* Right Column: Live Watermark Preview Canvas */}
-                <div className="lg:col-span-5 space-y-3">
-                  <h4 className="text-xs font-bold text-stone-700 uppercase tracking-wider">
-                    Real-time Watermark Preview
+                {/* Right Column: Studio Watermark Preview Canvas */}
+                <div
+                  className={`lg:col-span-5 space-y-3 lg:sticky lg:top-24 ${
+                    mobileWatermarkTab === "preview" ? "block" : "hidden lg:block"
+                  }`}
+                >
+                  <h4 className="text-xs font-bold text-stone-700 uppercase tracking-wider flex items-center justify-between">
+                    <span>Studio Watermark Preview</span>
+                    <span className="text-[10px] text-emerald-600 font-extrabold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                      LIVE
+                    </span>
                   </h4>
                   <WatermarkPreviewCanvas options={watermarkOpts} />
-                  <p className="text-[11px] text-stone-400 text-center leading-relaxed">
-                    Preview of how your automatic watermark will be rendered onto project photos upon batch upload.
-                  </p>
                 </div>
               </div>
             </div>
@@ -1601,57 +2125,131 @@ export default function UploadClient() {
                   No categories found matching &quot;{catSearchQuery}&quot;
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {filteredCategories.map((catObj) => (
                     <div
                       key={catObj.name}
-                      className="bg-stone-50/70 border border-stone-200/90 hover:border-orange-300 rounded-2xl p-4 sm:p-5 flex flex-col justify-between transition-all shadow-2xs hover:shadow-xs"
+                      onClick={() => setSelectedCategoryModal(catObj.name)}
+                      className="bg-stone-50/80 hover:bg-orange-50/40 border border-stone-200/90 hover:border-orange-400 rounded-2xl p-4.5 transition-all shadow-2xs hover:shadow-md cursor-pointer group flex flex-col justify-between select-none"
                     >
                       <div>
-                        {/* Card Title & Delete Action */}
-                        <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-stone-200/80">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="w-2.5 h-2.5 rounded-full bg-orange-500 flex-shrink-0" />
-                            <h3 className="text-sm font-extrabold text-stone-900 truncate">
-                              {catObj.name}
-                            </h3>
-                          </div>
-
-                          <button
-                            onClick={() => handleDeleteCategory(catObj.name)}
-                            className="text-stone-400 hover:text-red-600 hover:bg-red-50 px-2.5 py-1.5 rounded-lg transition-colors text-xs font-semibold flex items-center gap-1 flex-shrink-0"
-                            title="Delete Category"
-                          >
-                            <span className="hidden sm:inline">Delete</span>
-                            <span className="text-sm font-bold text-red-500">🗑</span>
-                          </button>
+                        {/* Category Icon & Subcategories Count Badge */}
+                        <div className="flex items-center justify-between gap-2 mb-3">
+                          <span className="w-9 h-9 rounded-xl bg-orange-100 text-orange-600 font-bold text-base flex items-center justify-center shrink-0 group-hover:bg-orange-500 group-hover:text-white transition-all shadow-2xs">
+                            📁
+                          </span>
+                          <span className="text-[11px] font-bold bg-white text-stone-700 px-2.5 py-1 rounded-full border border-stone-200 shadow-2xs">
+                            {catObj.subcategories.length} {catObj.subcategories.length === 1 ? "sub" : "subs"}
+                          </span>
                         </div>
 
-                        {/* Subcategories Chip List */}
-                        <div className="space-y-2 mb-4">
-                          <div className="flex items-center justify-between text-[11px] font-bold text-stone-400 uppercase tracking-wider">
+                        {/* Category Name */}
+                        <h3 className="text-sm font-extrabold text-stone-900 group-hover:text-orange-600 transition-colors line-clamp-1">
+                          {catObj.name}
+                        </h3>
+                        <p className="text-[11px] text-stone-400 mt-0.5 line-clamp-1">
+                          {catObj.subcategories.length > 0
+                            ? catObj.subcategories.slice(0, 3).join(", ") + (catObj.subcategories.length > 3 ? "..." : "")
+                            : "No subcategories yet"}
+                        </p>
+                      </div>
+
+                      {/* Card Footer: Action Link & Delete button */}
+                      <div className="mt-4 pt-3 border-t border-stone-200/60 flex items-center justify-between text-xs">
+                        <span className="text-[11px] font-bold text-orange-600 group-hover:text-orange-700 flex items-center gap-1">
+                          <span>View subcategories</span>
+                          <span className="group-hover:translate-x-0.5 transition-transform">→</span>
+                        </span>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteCategory(catObj.name);
+                          }}
+                          className="text-stone-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors cursor-pointer"
+                          title={`Delete Category "${catObj.name}"`}
+                          aria-label={`Delete category ${catObj.name}`}
+                        >
+                          <span className="text-sm">🗑</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Small Dialog Modal for Subcategories */}
+              {selectedCategoryModal && (() => {
+                const activeCat = dynamicCategories.find((c) => c.name === selectedCategoryModal);
+                if (!activeCat) return null;
+
+                return typeof document !== "undefined" && createPortal(
+                  <div
+                    role="dialog"
+                    aria-modal="true"
+                    className="fixed inset-0 z-[99999] bg-stone-950/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-150"
+                    onClick={() => setSelectedCategoryModal(null)}
+                  >
+                    <div
+                      className="bg-white rounded-3xl border border-stone-200 shadow-2xl max-w-md w-full overflow-hidden my-8 animate-in zoom-in-95 duration-150"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {/* Dialog Header */}
+                      <div className="p-5 sm:p-6 pb-4 border-b border-stone-100 flex items-center justify-between">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className="w-10 h-10 rounded-2xl bg-orange-100 text-orange-600 font-extrabold text-base flex items-center justify-center shadow-2xs shrink-0">
+                            📁
+                          </span>
+                          <div className="min-w-0">
+                            <h3 className="text-base font-bold text-stone-900 truncate">
+                              {activeCat.name}
+                            </h3>
+                            <p className="text-xs text-stone-500">
+                              {activeCat.subcategories.length} {activeCat.subcategories.length === 1 ? "Subcategory" : "Subcategories"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCategoryModal(null)}
+                          className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 flex items-center justify-center text-sm font-bold transition-all cursor-pointer"
+                          aria-label="Close dialog"
+                        >
+                          ✕
+                        </button>
+                      </div>
+
+                      {/* Dialog Body */}
+                      <div className="p-5 sm:p-6 space-y-4">
+                        {/* Subcategories list */}
+                        <div>
+                          <div className="flex items-center justify-between text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-2.5">
                             <span>Subcategories</span>
-                            <span className="bg-stone-200 text-stone-700 px-2 py-0.2 rounded-full text-[10px]">
-                              {catObj.subcategories.length}
+                            <span className="bg-stone-100 text-stone-600 px-2 py-0.5 rounded-full text-[10px]">
+                              {activeCat.subcategories.length} Total
                             </span>
                           </div>
 
-                          {catObj.subcategories.length === 0 ? (
-                            <p className="text-xs text-stone-400 italic py-1">
-                              No subcategories added yet. Use form below to add.
-                            </p>
+                          {activeCat.subcategories.length === 0 ? (
+                            <div className="py-6 text-center text-stone-400 text-xs bg-stone-50 rounded-2xl border border-dashed border-stone-200">
+                              No subcategories added yet. Use the form below to create one.
+                            </div>
                           ) : (
-                            <div className="flex flex-wrap gap-2">
-                              {catObj.subcategories.map((sub) => (
+                            <div className="flex flex-wrap gap-2 max-h-56 overflow-y-auto pr-1">
+                              {activeCat.subcategories.map((sub) => (
                                 <span
                                   key={sub}
-                                  className="inline-flex items-center gap-1.5 bg-white border border-stone-200 text-stone-800 text-xs px-3 py-1.5 rounded-xl font-semibold shadow-2xs group"
+                                  className="inline-flex items-center gap-2 bg-stone-50 hover:bg-stone-100 border border-stone-200 text-stone-800 text-xs px-3 py-1.5 rounded-xl font-semibold shadow-2xs group transition-all"
                                 >
                                   <span>{sub}</span>
                                   <button
-                                    onClick={() => handleDeleteSubcategory(catObj.name, sub)}
-                                    className="w-4 h-4 bg-stone-100 hover:bg-red-600 hover:text-white text-stone-400 rounded-full flex items-center justify-center text-[10px] transition-colors ml-0.5"
+                                    type="button"
+                                    onClick={() => handleDeleteSubcategory(activeCat.name, sub)}
+                                    className="w-4 h-4 bg-stone-200 hover:bg-red-600 hover:text-white text-stone-500 rounded-full flex items-center justify-center text-[10px] transition-colors cursor-pointer"
                                     title={`Delete ${sub}`}
+                                    aria-label={`Delete subcategory ${sub}`}
                                   >
                                     ✕
                                   </button>
@@ -1660,39 +2258,69 @@ export default function UploadClient() {
                             </div>
                           )}
                         </div>
+
+                        {/* Add Subcategory Input Form */}
+                        <div className="pt-3 border-t border-stone-100">
+                          <label className="text-[11px] font-bold text-stone-700 uppercase tracking-wider block mb-2">
+                            + Add New Subcategory
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={subCatInputs[activeCat.name] || ""}
+                              onChange={(e) =>
+                                setSubCatInputs((prev) => ({
+                                  ...prev,
+                                  [activeCat.name]: e.target.value,
+                                }))
+                              }
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  handleAddSubcategory(activeCat.name);
+                                }
+                              }}
+                              placeholder="Type subcategory name..."
+                              className="w-full px-3.5 py-2 border border-stone-300 rounded-xl text-xs bg-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleAddSubcategory(activeCat.name)}
+                              className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-4 py-2 rounded-xl text-xs transition-colors shadow-2xs flex-shrink-0 cursor-pointer"
+                            >
+                              Add
+                            </button>
+                          </div>
+                        </div>
                       </div>
 
-                      {/* Add Subcategory Inline Form */}
-                      <div className="pt-3 border-t border-stone-200/80 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                        <input
-                          type="text"
-                          value={subCatInputs[catObj.name] || ""}
-                          onChange={(e) =>
-                            setSubCatInputs((prev) => ({
-                              ...prev,
-                              [catObj.name]: e.target.value,
-                            }))
-                          }
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              handleAddSubcategory(catObj.name);
-                            }
-                          }}
-                          placeholder="+ Add Subcategory..."
-                          className="w-full px-3 py-2 border border-stone-300 rounded-xl text-xs bg-white focus:outline-none focus:border-orange-500"
-                        />
+                      {/* Dialog Footer */}
+                      <div className="p-4 bg-stone-50 border-t border-stone-100 flex items-center justify-between">
                         <button
-                          onClick={() => handleAddSubcategory(catObj.name)}
-                          className="bg-stone-900 hover:bg-orange-500 text-white font-bold px-4 py-2 rounded-xl text-xs transition-colors shadow-2xs flex-shrink-0"
+                          type="button"
+                          onClick={() => {
+                            handleDeleteCategory(activeCat.name);
+                            setSelectedCategoryModal(null);
+                          }}
+                          className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50 font-semibold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
                         >
-                          + Add
+                          <span>🗑</span>
+                          <span>Delete Category</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCategoryModal(null)}
+                          className="text-xs font-bold px-5 py-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-white transition-colors cursor-pointer"
+                        >
+                          Done
                         </button>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                  </div>,
+                  document.body
+                );
+              })()}
             </div>
           )}
         </section>
