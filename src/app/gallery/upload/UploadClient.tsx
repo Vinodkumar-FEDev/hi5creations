@@ -522,7 +522,7 @@ export default function UploadClient() {
     enabled: true,
     phone: "+91 63792 39878",
     instagram: "#hi5_Creation",
-    brandText: "Hi-5 CREATION",
+    brandText: "",
     logoUrl: "/assets/logo.png",
     position: "corners",
     style: "corners",
@@ -2130,48 +2130,50 @@ export default function UploadClient() {
                     <div
                       key={catObj.name}
                       onClick={() => setSelectedCategoryModal(catObj.name)}
-                      className="bg-stone-50/80 hover:bg-orange-50/40 border border-stone-200/90 hover:border-orange-400 rounded-2xl p-4.5 transition-all shadow-2xs hover:shadow-md cursor-pointer group flex flex-col justify-between select-none"
+                      className="bg-white hover:bg-orange-50/30 border border-stone-200 hover:border-orange-400 rounded-2xl p-4.5 transition-all shadow-xs hover:shadow-md cursor-pointer group flex flex-col justify-between select-none"
                     >
                       <div>
                         {/* Category Icon & Subcategories Count Badge */}
                         <div className="flex items-center justify-between gap-2 mb-3">
-                          <span className="w-9 h-9 rounded-xl bg-orange-100 text-orange-600 font-bold text-base flex items-center justify-center shrink-0 group-hover:bg-orange-500 group-hover:text-white transition-all shadow-2xs">
+                          <span className="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 font-bold text-base flex items-center justify-center shrink-0 group-hover:bg-orange-500 group-hover:text-white transition-all shadow-2xs">
                             📁
                           </span>
-                          <span className="text-[11px] font-bold bg-white text-stone-700 px-2.5 py-1 rounded-full border border-stone-200 shadow-2xs">
-                            {catObj.subcategories.length} {catObj.subcategories.length === 1 ? "sub" : "subs"}
+                          <span className="text-[11px] font-bold bg-stone-100 text-stone-700 px-2.5 py-1 rounded-full border border-stone-200">
+                            {catObj.subcategories.length} {catObj.subcategories.length === 1 ? "subcategory" : "subcategories"}
                           </span>
                         </div>
 
                         {/* Category Name */}
-                        <h3 className="text-sm font-extrabold text-stone-900 group-hover:text-orange-600 transition-colors line-clamp-1">
+                        <h3 className="text-sm font-extrabold text-stone-900 group-hover:text-orange-600 transition-colors line-clamp-1 mb-1">
                           {catObj.name}
                         </h3>
-                        <p className="text-[11px] text-stone-400 mt-0.5 line-clamp-1">
+                        <p className="text-[11px] text-stone-400 line-clamp-1">
                           {catObj.subcategories.length > 0
                             ? catObj.subcategories.slice(0, 3).join(", ") + (catObj.subcategories.length > 3 ? "..." : "")
-                            : "No subcategories yet"}
+                            : "Click to add subcategories"}
                         </p>
                       </div>
 
-                      {/* Card Footer: Action Link & Delete button */}
-                      <div className="mt-4 pt-3 border-t border-stone-200/60 flex items-center justify-between text-xs">
-                        <span className="text-[11px] font-bold text-orange-600 group-hover:text-orange-700 flex items-center gap-1">
-                          <span>View subcategories</span>
-                          <span className="group-hover:translate-x-0.5 transition-transform">→</span>
+                      {/* Card Footer: Action Link & Clearly Identifiable Red Delete button */}
+                      <div className="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between gap-2">
+                        <span className="text-xs font-bold text-orange-600 group-hover:text-orange-700 flex items-center gap-1">
+                          <span>Subcategories</span>
+                          <span className="group-hover:translate-x-0.5 transition-transform font-mono">→</span>
                         </span>
 
+                        {/* Conspicuous, High-Visibility Red Delete Button */}
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDeleteCategory(catObj.name);
                           }}
-                          className="text-stone-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors cursor-pointer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-600 text-red-600 hover:text-white border border-red-200 hover:border-red-600 text-xs font-bold transition-all shadow-2xs cursor-pointer"
                           title={`Delete Category "${catObj.name}"`}
                           aria-label={`Delete category ${catObj.name}`}
                         >
-                          <span className="text-sm">🗑</span>
+                          <span className="text-xs">🗑️</span>
+                          <span>Delete</span>
                         </button>
                       </div>
                     </div>
@@ -2237,7 +2239,7 @@ export default function UploadClient() {
                               No subcategories added yet. Use the form below to create one.
                             </div>
                           ) : (
-                            <div className="flex flex-wrap gap-2 max-h-56 overflow-y-auto pr-1">
+                            <div className="flex flex-wrap gap-2 max-h-60 overflow-y-auto pr-1">
                               {activeCat.subcategories.map((sub) => (
                                 <span
                                   key={sub}
@@ -2292,29 +2294,6 @@ export default function UploadClient() {
                             </button>
                           </div>
                         </div>
-                      </div>
-
-                      {/* Dialog Footer */}
-                      <div className="p-4 bg-stone-50 border-t border-stone-100 flex items-center justify-between">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            handleDeleteCategory(activeCat.name);
-                            setSelectedCategoryModal(null);
-                          }}
-                          className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50 font-semibold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
-                        >
-                          <span>🗑</span>
-                          <span>Delete Category</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setSelectedCategoryModal(null)}
-                          className="text-xs font-bold px-5 py-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-white transition-colors cursor-pointer"
-                        >
-                          Done
-                        </button>
                       </div>
                     </div>
                   </div>,

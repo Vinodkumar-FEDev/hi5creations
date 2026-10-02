@@ -16,7 +16,7 @@ export const DEFAULT_WATERMARK_OPTIONS: WatermarkOptions = {
   enabled: true,
   phone: "+91 63792 39878",
   instagram: "#hi5_Creation",
-  brandText: "Hi-5 CREATION",
+  brandText: "",
   logoUrl: "/assets/logo.png",
   position: "corners",
   style: "corners",
@@ -102,7 +102,7 @@ function drawInstagramIcon(ctx: CanvasRenderingContext2D, x: number, y: number, 
   ctx.restore();
 }
 
-/** Draw 3D Hi-5 CREATION Official Logo at Bottom-Right Corner */
+/** Draw 3D Hi-5 CREATION Official Logo at Bottom-Right Corner (subtly reduced size) */
 function drawHi5OfficialLogo(
   ctx: CanvasRenderingContext2D,
   rx: number,
@@ -112,8 +112,11 @@ function drawHi5OfficialLogo(
   customLogoImg?: HTMLImageElement,
   whiteBackground = true
 ) {
+  // Subtly reduced logo size (~22% reduction) for a clean, non-overpowering watermark
+  const logoScale = scale * 0.78;
+
   if (customLogoImg) {
-    const w = Math.round(180 * scale);
+    const w = Math.round(180 * logoScale);
     const h = Math.round(
       ((customLogoImg.naturalHeight || customLogoImg.height) /
         (customLogoImg.naturalWidth || customLogoImg.width)) *
@@ -121,15 +124,15 @@ function drawHi5OfficialLogo(
     );
 
     if (whiteBackground) {
-      const padX = Math.round(14 * scale);
-      const padY = Math.round(12 * scale);
+      const padX = Math.round(12 * logoScale);
+      const padY = Math.round(10 * logoScale);
       const boxW = Math.round(w + padX * 2);
       const boxH = Math.round(h + padY * 2);
       const boxX = rx - boxW;
       const boxY = ry - boxH;
-      const radius = Math.round(8 * scale);
+      const radius = Math.round(7 * logoScale);
 
-      drawWhiteCard(ctx, boxX, boxY, boxW, boxH, radius, scale);
+      drawWhiteCard(ctx, boxX, boxY, boxW, boxH, radius, logoScale);
       ctx.drawImage(customLogoImg, boxX + padX, boxY + padY, w, h);
     } else {
       ctx.drawImage(customLogoImg, rx - w, ry - h, w, h);
@@ -138,47 +141,47 @@ function drawHi5OfficialLogo(
   }
 
   // Fallback vector logo
-  const logoW = Math.round(180 * scale);
-  const logoH = Math.round(75 * scale);
+  const logoW = Math.round(180 * logoScale);
+  const logoH = Math.round(75 * logoScale);
 
   let lx = rx - logoW;
   let ly = ry - logoH;
 
   if (whiteBackground) {
-    const padX = Math.round(14 * scale);
-    const padY = Math.round(12 * scale);
+    const padX = Math.round(12 * logoScale);
+    const padY = Math.round(10 * logoScale);
     const boxW = Math.round(logoW + padX * 2);
     const boxH = Math.round(logoH + padY * 2);
     const boxX = rx - boxW;
     const boxY = ry - boxH;
-    const radius = Math.round(8 * scale);
+    const radius = Math.round(7 * logoScale);
 
-    drawWhiteCard(ctx, boxX, boxY, boxW, boxH, radius, scale);
+    drawWhiteCard(ctx, boxX, boxY, boxW, boxH, radius, logoScale);
     lx = boxX + padX;
     ly = boxY + padY;
   }
 
   ctx.save();
   // 1. Draw 5-Finger High-Five Hand Emblem
-  const handX = lx + 120 * scale;
-  const handY = ly + 2 * scale;
-  const fingerW = 6.5 * scale;
-  const fingerHeights = [24 * scale, 30 * scale, 34 * scale, 28 * scale, 20 * scale];
+  const handX = lx + 120 * logoScale;
+  const handY = ly + 2 * logoScale;
+  const fingerW = 6.5 * logoScale;
+  const fingerHeights = [24 * logoScale, 30 * logoScale, 34 * logoScale, 28 * logoScale, 20 * logoScale];
 
   fingerHeights.forEach((fh, i) => {
-    const fx = handX + i * 8.5 * scale;
-    const fy = handY + (34 * scale - fh);
+    const fx = handX + i * 8.5 * logoScale;
+    const fy = handY + (34 * logoScale - fh);
     ctx.beginPath();
     ctx.roundRect(fx, fy, fingerW, fh, fingerW / 2);
     ctx.fillStyle = i % 2 === 0 ? "#dc2626" : "#f97316";
     ctx.fill();
     ctx.strokeStyle = "#991b1b";
-    ctx.lineWidth = 1.2 * scale;
+    ctx.lineWidth = 1.2 * logoScale;
     ctx.stroke();
   });
 
   // 2. Draw "Hi-5" 3D Yellow-Orange Gradient Text with Red 3D Extrusion
-  const mainFont = `900 ${Math.round(36 * scale)}px sans-serif, system-ui`;
+  const mainFont = `900 ${Math.round(36 * logoScale)}px sans-serif, system-ui`;
   ctx.font = mainFont;
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
@@ -188,12 +191,12 @@ function drawHi5OfficialLogo(
 
   // Red 3D Extrusion Shadow
   ctx.fillStyle = "#991b1b";
-  ctx.fillText("Hi-5", textX + 3 * scale, textY + 3 * scale);
+  ctx.fillText("Hi-5", textX + 3 * logoScale, textY + 3 * logoScale);
   ctx.fillStyle = "#dc2626";
-  ctx.fillText("Hi-5", textX + 1.5 * scale, textY + 1.5 * scale);
+  ctx.fillText("Hi-5", textX + 1.5 * logoScale, textY + 1.5 * logoScale);
 
   // Main Fill (Yellow-Orange Gradient)
-  const grad = ctx.createLinearGradient(textX, textY, textX, textY + 36 * scale);
+  const grad = ctx.createLinearGradient(textX, textY, textX, textY + 36 * logoScale);
   grad.addColorStop(0, "#fef08a");
   grad.addColorStop(0.5, "#facc15");
   grad.addColorStop(1, "#f97316");
@@ -201,18 +204,18 @@ function drawHi5OfficialLogo(
   ctx.fillText("Hi-5", textX, textY);
 
   ctx.strokeStyle = "#7f1d1d";
-  ctx.lineWidth = 1.5 * scale;
+  ctx.lineWidth = 1.5 * logoScale;
   ctx.strokeText("Hi-5", textX, textY);
 
   // 3. Draw "CREATION" Text
-  const subFont = `900 ${Math.round(18 * scale)}px sans-serif, system-ui`;
+  const subFont = `900 ${Math.round(18 * logoScale)}px sans-serif, system-ui`;
   ctx.font = subFont;
-  const subY = textY + 38 * scale;
+  const subY = textY + 38 * logoScale;
 
   ctx.fillStyle = "#991b1b";
-  ctx.fillText("CREATION", textX + 1.5 * scale, subY + 1.5 * scale);
+  ctx.fillText("CREATION", textX + 1.5 * logoScale, subY + 1.5 * logoScale);
 
-  const subGrad = ctx.createLinearGradient(textX, subY, textX + 100 * scale, subY);
+  const subGrad = ctx.createLinearGradient(textX, subY, textX + 100 * logoScale, subY);
   subGrad.addColorStop(0, "#ef4444");
   subGrad.addColorStop(0.5, "#facc15");
   subGrad.addColorStop(1, "#f97316");
@@ -220,7 +223,7 @@ function drawHi5OfficialLogo(
   ctx.fillText("CREATION", textX, subY);
 
   ctx.strokeStyle = "#7f1d1d";
-  ctx.lineWidth = 1 * scale;
+  ctx.lineWidth = 1 * logoScale;
   ctx.strokeText("CREATION", textX, subY);
 
   ctx.restore();
@@ -246,7 +249,7 @@ export function drawWatermarkOnCanvas(
   const {
     phone = "+91 63792 39878",
     instagram = "#hi5_Creation",
-    brandText = "Hi-5 CREATION",
+    brandText = "",
     position = "corners",
     style = "corners",
     opacity = 0.95,
@@ -290,15 +293,11 @@ export function drawWatermarkOnCanvas(
   // Style 2: Official Corners Mode (Top-Left Contact Card + Bottom-Right Logo Square)
   if (whiteBackground !== false) {
     ctx.save();
-    const nameFont = `900 ${Math.round(14 * scale)}px system-ui, -apple-system, sans-serif`;
     const phoneFont = `bold ${Math.round(13 * scale)}px system-ui, -apple-system, sans-serif`;
     const instaFont = `bold ${Math.round(12.5 * scale)}px system-ui, -apple-system, sans-serif`;
 
     const iconSize = Math.round(15 * scale);
     const iconGap = Math.round(8 * scale);
-
-    ctx.font = nameFont;
-    const nameW = brandText ? ctx.measureText(brandText).width + Math.round(14 * scale) : 0;
 
     ctx.font = phoneFont;
     const phoneW = phone ? iconSize + iconGap + ctx.measureText(phone).width : 0;
@@ -306,19 +305,17 @@ export function drawWatermarkOnCanvas(
     ctx.font = instaFont;
     const instaW = instagram ? iconSize + iconGap + ctx.measureText(instagram).width : 0;
 
-    const contentW = Math.max(nameW, phoneW, instaW);
+    const contentW = Math.max(phoneW, instaW);
     const padX = Math.round(14 * scale);
     const padY = Math.round(11 * scale);
     const topBoxW = Math.round(contentW + padX * 2);
 
-    const nameH = brandText ? Math.round(18 * scale) : 0;
     const phoneH = phone ? Math.round(18 * scale) : 0;
     const instaH = instagram ? Math.round(18 * scale) : 0;
     const lineGap = Math.round(6 * scale);
 
     let totalContentH = 0;
-    if (nameH > 0) totalContentH += nameH;
-    if (phoneH > 0) totalContentH += (totalContentH > 0 ? lineGap : 0) + phoneH;
+    if (phoneH > 0) totalContentH += phoneH;
     if (instaH > 0) totalContentH += (totalContentH > 0 ? lineGap : 0) + instaH;
 
     const topBoxH = Math.round(totalContentH + padY * 2);
@@ -332,32 +329,7 @@ export function drawWatermarkOnCanvas(
     // Draw Content inside Top-Left White Card
     let curY = topBoxY + padY;
 
-    // A. Name Line (Brand / Company Name)
-    if (brandText) {
-      ctx.font = nameFont;
-      ctx.textAlign = "left";
-      ctx.textBaseline = "middle";
-
-      // Small orange accent dot
-      ctx.beginPath();
-      ctx.arc(
-        topBoxX + padX + Math.round(3.5 * scale),
-        curY + nameH / 2,
-        Math.round(3.5 * scale),
-        0,
-        Math.PI * 2
-      );
-      ctx.fillStyle = "#f97316";
-      ctx.fill();
-
-      // Brand name text in crisp slate-900
-      ctx.fillStyle = "#0f172a";
-      ctx.fillText(brandText, topBoxX + padX + Math.round(12 * scale), curY + nameH / 2);
-
-      curY += nameH + (phoneH > 0 || instaH > 0 ? lineGap : 0);
-    }
-
-    // B. Mobile Number Line
+    // 1. Mobile Number Line
     if (phone) {
       const pIconY = curY + Math.round((phoneH - iconSize) / 2);
       drawPhoneIcon(ctx, topBoxX + padX, pIconY, iconSize);
@@ -371,7 +343,7 @@ export function drawWatermarkOnCanvas(
       curY += phoneH + (instaH > 0 ? lineGap : 0);
     }
 
-    // C. Instagram Line
+    // 2. Instagram Line
     if (instagram) {
       const iIconY = curY + Math.round((instaH - iconSize) / 2);
       drawInstagramIcon(ctx, topBoxX + padX, iIconY, iconSize);
