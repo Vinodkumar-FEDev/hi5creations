@@ -60,3 +60,4 @@ public/uploads/
 uploads/
 public/assets/gallery/temp/
 public/api/config.local.php
+*.zip

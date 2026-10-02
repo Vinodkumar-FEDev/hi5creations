@@ -163,7 +163,7 @@ export function saveLocalCustomCategories(cats: CategoryData[]): void {
   if (typeof window !== "undefined") {
     try {
       localStorage.setItem(LOCAL_STORAGE_CATEGORIES_KEY, JSON.stringify(cats));
-    } catch (_) {}
+    } catch (_) { }
   }
 }
 
@@ -175,7 +175,7 @@ export function getLocalCustomCategories(): CategoryData[] | null {
         const parsed = JSON.parse(data);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
-    } catch (_) {}
+    } catch (_) { }
   }
   return null;
 }
@@ -189,7 +189,7 @@ export function saveLocalGalleryImage(img: StoredImage): void {
         ...existing.filter((i) => (i.id || i.key) !== (img.id || img.key)),
       ].slice(0, MAX_GALLERY_IMAGES);
       localStorage.setItem(LOCAL_STORAGE_GALLERY_KEY, JSON.stringify(updated));
-    } catch (_) {}
+    } catch (_) { }
   }
 }
 
@@ -201,7 +201,7 @@ export function getLocalGalleryImages(): StoredImage[] {
         const parsed = JSON.parse(data);
         if (Array.isArray(parsed)) return parsed;
       }
-    } catch (_) {}
+    } catch (_) { }
   }
   return [];
 }
@@ -213,11 +213,11 @@ export function deleteLocalGalleryImages(keysOrIds: string[]): void {
       const existing = getLocalGalleryImages();
       const updated = existing.filter((img) => !set.has(img.id) && !set.has(img.key || ""));
       localStorage.setItem(LOCAL_STORAGE_GALLERY_KEY, JSON.stringify(updated));
-    } catch (_) {}
+    } catch (_) { }
   }
 }
 
-const S3_BUCKET_NAME = process.env.NEXT_PUBLIC_AWS_BUCKET_NAME || "hi5creation";
+const S3_BUCKET_NAME = process.env.NEXT_PUBLIC_AWS_BUCKET_NAME || "hi5creationdb";
 const S3_REGION = process.env.NEXT_PUBLIC_AWS_REGION || "eu-north-1";
 const S3_PUBLIC_BASE = `https://${S3_BUCKET_NAME}.s3.${S3_REGION}.amazonaws.com`;
 
@@ -240,7 +240,7 @@ export async function fetchDynamicCategories(forceRefresh = false): Promise<Cate
         }
       }
     }
-  } catch (_) {}
+  } catch (_) { }
 
   // 2. Plain JS: Direct AWS S3 fetch
   try {
@@ -252,7 +252,7 @@ export async function fetchDynamicCategories(forceRefresh = false): Promise<Cate
         return s3Data;
       }
     }
-  } catch (_) {}
+  } catch (_) { }
 
   // 3. Fallback to locally saved categories if user added any on static hosting
   const localCats = getLocalCustomCategories();
@@ -354,7 +354,7 @@ export async function uploadFileToR2(
                 category: metadata.category,
                 subcategory: metadata.subcategory || "",
               }),
-            }).catch(() => {});
+            }).catch(() => { });
             return { success: true, key };
           }
         } catch (presignedErr) {
@@ -461,7 +461,7 @@ export async function getStoredGalleryImages(): Promise<StoredImage[]> {
           images = s3Data;
         }
       }
-    } catch (_) {}
+    } catch (_) { }
   }
 
   // 3. Fallback to static JSON file in public/assets/gallery/ if no dynamic images returned
@@ -562,7 +562,7 @@ export async function clearAllStoredImages(): Promise<boolean> {
   if (typeof window !== "undefined") {
     try {
       localStorage.removeItem(LOCAL_STORAGE_GALLERY_KEY);
-    } catch (_) {}
+    } catch (_) { }
   }
   try {
     const images = await getStoredGalleryImages();

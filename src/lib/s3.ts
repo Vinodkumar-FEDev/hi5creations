@@ -29,7 +29,7 @@ export interface StorageConfig {
 export function validateStorageConfig(): StorageConfig {
   const awsKey = cleanEnvVar(process.env.AWS_ACCESS_KEY_ID);
   const awsSecret = cleanEnvVar(process.env.AWS_SECRET_ACCESS_KEY);
-  const awsBucket = cleanEnvVar(process.env.AWS_BUCKET_NAME || "hi5creation");
+  const awsBucket = cleanEnvVar(process.env.AWS_BUCKET_NAME || "hi5creationdb");
   const awsRegion = cleanEnvVar(process.env.AWS_REGION || "eu-north-1");
 
   if (awsKey && !awsKey.includes("your_") && awsSecret && !awsSecret.includes("your_") && awsBucket) {
@@ -70,7 +70,7 @@ export function validateStorageConfig(): StorageConfig {
     provider: "Local Storage",
     providerType: "local",
     missingVars: missing,
-    bucketName: awsBucket || "hi5creation",
+    bucketName: awsBucket || "hi5creationdb",
     region: awsRegion,
   };
 }
@@ -81,7 +81,7 @@ export function validateR2Config() {
 
 export function getBucketName(): string {
   const config = validateStorageConfig();
-  return config.bucketName || "hi5creation";
+  return config.bucketName || "hi5creationdb";
 }
 
 let cachedS3Client: S3Client | null = null;

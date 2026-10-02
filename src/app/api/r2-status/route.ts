@@ -15,7 +15,7 @@ export async function GET() {
       connected: true,
       provider: "AWS S3",
       providerType: "s3",
-      bucketName: process.env.AWS_BUCKET_NAME || process.env.NEXT_PUBLIC_AWS_BUCKET_NAME || "hi5creation",
+      bucketName: process.env.AWS_BUCKET_NAME || process.env.NEXT_PUBLIC_AWS_BUCKET_NAME || "hi5creationdb",
       region: process.env.AWS_REGION || process.env.NEXT_PUBLIC_AWS_REGION || "eu-north-1",
       missingVars: [],
       environment: process.env.NODE_ENV,

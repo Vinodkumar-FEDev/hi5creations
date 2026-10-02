@@ -2,15 +2,25 @@ import fs from "node:fs";
 import path from "node:path";
 import { execSync } from "node:child_process";
 
+import { generateFaviconIco } from "./generate-favicon.mjs";
+
 const rootDir = process.cwd();
 
 if (process.env.VERCEL) {
   console.log("⚡ Vercel environment detected. Running native next build...");
+  try {
+    await generateFaviconIco();
+  } catch (_) {}
   execSync("npx next build", { stdio: "inherit", cwd: rootDir });
   process.exit(0);
 }
 
 console.log("🚀 Preparing static export build for cPanel public_html hosting...");
+try {
+  await generateFaviconIco();
+} catch (e) {
+  console.warn("⚠️ Favicon generation warning:", e.message);
+}
 
 try {
   try {
@@ -65,6 +75,15 @@ try {
   const outHtaccess = path.join(rootDir, "out", ".htaccess");
   if (fs.existsSync(publicHtaccess)) {
     fs.copyFileSync(publicHtaccess, outHtaccess);
+  }
+
+  const envLocal = path.join(rootDir, ".env.local");
+  if (fs.existsSync(envLocal)) {
+    console.log("🔒 Copying environment variables to out/.env and out/api/.env...");
+    fs.copyFileSync(envLocal, path.join(rootDir, "out", ".env"));
+    if (fs.existsSync(outApiDir)) {
+      fs.copyFileSync(envLocal, path.join(outApiDir, ".env"));
+    }
   }
 
   console.log("✅ Static build succeeded! Files exported to the 'out/' directory.");

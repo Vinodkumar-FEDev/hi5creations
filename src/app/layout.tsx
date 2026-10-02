@@ -119,11 +119,15 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   icons: {
     icon: [
-      { url: "/assets/logo (2).svg", type: "image/svg+xml" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "any" },
       { url: "/icon.svg", type: "image/svg+xml" },
-    ],
-    apple: [
       { url: "/assets/logo (2).svg", type: "image/svg+xml" },
+    ],
+    shortcut: ["/favicon.svg"],
+    apple: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/apple-touch-icon.png", sizes: "180x180" },
     ],
   },
   other: {

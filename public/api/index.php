@@ -27,9 +27,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 $endpoint = isset($_GET['endpoint']) ? trim($_GET['endpoint'], '/') : '';
 if (empty($endpoint)) {
     $uri = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
-    $uri = preg_replace('#^/?api/?#', '', $uri);
-    $endpoint = trim($uri, '/');
+    $endpoint = preg_replace('#^.*?/api/?#i', '', $uri);
+    $endpoint = trim($endpoint, '/');
 }
+$endpoint = preg_replace('#\?.*$#', '', $endpoint);
 
 // Storage Paths in public_html
 $baseDir = dirname(__DIR__); // public_html root
@@ -78,7 +79,7 @@ foreach ($envCandidates as $envFile) {
 $awsKey = getenv('AWS_ACCESS_KEY_ID') ?: ($_ENV['AWS_ACCESS_KEY_ID'] ?? '');
 $awsSecret = getenv('AWS_SECRET_ACCESS_KEY') ?: ($_ENV['AWS_SECRET_ACCESS_KEY'] ?? '');
 $awsRegion = getenv('AWS_REGION') ?: ($_ENV['AWS_REGION'] ?? 'eu-north-1');
-$awsBucket = getenv('AWS_BUCKET_NAME') ?: ($_ENV['AWS_BUCKET_NAME'] ?? 'hi5creation');
+$awsBucket = getenv('AWS_BUCKET_NAME') ?: ($_ENV['AWS_BUCKET_NAME'] ?? 'hi5creationdb');
 
 $hasS3 = (!empty($awsKey) && !empty($awsSecret) && !empty($awsBucket));
 
@@ -105,6 +106,7 @@ function s3_v4_request($method, $key, $body = '', $contentType = 'application/oc
     $dateStamp = gmdate('Ymd');
     $uri = '/' . ltrim($key, '/');
     $payloadHash = hash('sha256', $body);
+    $bodyLength = strlen($body);
 
     $canonicalHeaders = "host:{$host}\nx-amz-content-sha256:{$payloadHash}\nx-amz-date:{$now}\n";
     $signedHeaders = "host;x-amz-content-sha256;x-amz-date";
@@ -127,16 +129,20 @@ function s3_v4_request($method, $key, $body = '', $contentType = 'application/oc
         if ($method === 'PUT' || $method === 'POST') {
             curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
         }
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        $headers = [
             "Host: {$host}",
             "x-amz-date: {$now}",
             "x-amz-content-sha256: {$payloadHash}",
-            "Content-Type: {$contentType}",
+            "Content-Length: {$bodyLength}",
             "Authorization: {$authHeader}"
-        ]);
+        ];
+        if (!empty($contentType) && $method !== 'GET' && $method !== 'DELETE') {
+            $headers[] = "Content-Type: {$contentType}";
+        }
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 45);
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
@@ -658,20 +664,108 @@ if ($endpoint === 'upload-gallery' || $endpoint === 'upload-direct') {
         ]);
     }
 
+    // Case C: Raw binary PUT / POST stream (e.g. from fetch(uploadUrl, { method: "PUT", body: file }))
+    $rawStream = @file_get_contents('php://input');
+    if (!empty($rawStream) && strlen($rawStream) > 50) {
+        $cleanContentType = $_SERVER['CONTENT_TYPE'] ?? 'image/jpeg';
+        $ext = 'jpg';
+        if (strpos($cleanContentType, 'png') !== false) $ext = 'png';
+        elseif (strpos($cleanContentType, 'webp') !== false) $ext = 'webp';
+        elseif (strpos($cleanContentType, 'gif') !== false) $ext = 'gif';
+        elseif (strpos($cleanContentType, 'svg') !== false) $ext = 'svg';
+
+        $filename = 'img_' . $now . '_' . substr(md5(uniqid()), 0, 6) . '.' . $ext;
+        $dest = $uploadsDir . '/' . $filename;
+        @file_put_contents($dest, $rawStream);
+
+        $imageUrl = '/assets/gallery/uploads/' . $filename;
+        $s3Key = "users/admin/images/{$filename}";
+
+        if ($hasS3) {
+            $s3Upload = s3_v4_request('PUT', $s3Key, $rawStream, $cleanContentType);
+            if ($s3Upload['success']) {
+                $imageUrl = "https://{$awsBucket}.s3.{$awsRegion}.amazonaws.com/{$s3Key}";
+            }
+        }
+
+        $title = trim($_GET['title'] ?? ($_POST['title'] ?? 'Signage Project'));
+        $category = trim($_GET['category'] ?? ($_POST['category'] ?? 'LED Sign Board'));
+        $subcategory = trim($_GET['subcategory'] ?? ($_POST['subcategory'] ?? ''));
+
+        $record = [
+            "id" => $s3Key,
+            "key" => $s3Key,
+            "title" => $title,
+            "category" => $category,
+            "subcategory" => $subcategory,
+            "url" => $imageUrl,
+            "imageDataUrl" => $imageUrl,
+            "fileName" => $filename,
+            "timestamp" => $now
+        ];
+        array_unshift($currentImages, $record);
+        write_manifest_cloud($manifestPath, $currentImages, $hasS3);
+
+        send_json([
+            "success" => true,
+            "key" => $s3Key,
+            "addedCount" => 1,
+            "imageUrl" => $imageUrl,
+            "images" => $currentImages
+        ]);
+    }
+
     send_json(["error" => "No images provided for upload"], 400);
 }
 
 // 8. /api/upload-url (Cloud presigned upload simulation)
 if ($endpoint === 'upload-url') {
     $now = round(microtime(true) * 1000);
+    $key = "users/admin/images/img_" . $now . "_" . substr(md5(uniqid()), 0, 6) . ".jpg";
     send_json([
         "uploadUrl" => "/api/upload-direct",
-        "key" => "img_" . $now
+        "key" => $key
     ]);
 }
 
-// 9. /api/confirm-upload
+// 9. /api/confirm-upload (Registers S3 uploaded image into cloud manifest)
 if ($endpoint === 'confirm-upload') {
+    $body = get_json_body();
+    $key = trim($body['key'] ?? '');
+    $title = trim($body['title'] ?? 'Signage Project');
+    $category = trim($body['category'] ?? 'LED Sign Board');
+    $subcategory = trim($body['subcategory'] ?? '');
+
+    if (!empty($key)) {
+        $now = round(microtime(true) * 1000);
+        $imageUrl = "https://{$awsBucket}.s3.{$awsRegion}.amazonaws.com/{$key}";
+        $currentImages = read_manifest_cloud_first($manifestPath, $hasS3);
+
+        // Check if already registered
+        $exists = false;
+        foreach ($currentImages as $img) {
+            if (($img['key'] ?? '') === $key || ($img['id'] ?? '') === $key) {
+                $exists = true;
+                break;
+            }
+        }
+
+        if (!$exists) {
+            $record = [
+                "id" => $key,
+                "key" => $key,
+                "title" => $title,
+                "category" => $category,
+                "subcategory" => $subcategory,
+                "url" => $imageUrl,
+                "imageDataUrl" => $imageUrl,
+                "timestamp" => $now
+            ];
+            array_unshift($currentImages, $record);
+            write_manifest_cloud($manifestPath, $currentImages, $hasS3);
+            send_json(["success" => true, "record" => $record]);
+        }
+    }
     send_json(["success" => true]);
 }
 

@@ -16,7 +16,7 @@ function readLocalFallback(): any[] {
       const parsed = JSON.parse(data);
       if (Array.isArray(parsed)) return parsed;
     }
-  } catch (_) {}
+  } catch (_) { }
   return [];
 }
 
@@ -64,7 +64,7 @@ export async function GET() {
           try {
             const getCmd = new GetObjectCommand({ Bucket: bucket, Key: itemKey });
             url = await getSignedUrl(client, getCmd, { expiresIn: 604800 });
-          } catch (_) {}
+          } catch (_) { }
 
           return {
             id: itemKey,
@@ -104,7 +104,7 @@ export async function GET() {
             try {
               const getCmd = new GetObjectCommand({ Bucket: bucket, Key: obj.Key });
               url = await getSignedUrl(client, getCmd, { expiresIn: 604800 });
-            } catch (_) {}
+            } catch (_) { }
 
             const filename = obj.Key.split("/").pop() || "";
             const title = filename.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
@@ -126,7 +126,7 @@ export async function GET() {
         validScanned.sort((a, b) => (Number(b.timestamp) || 0) - (Number(a.timestamp) || 0));
         return NextResponse.json(validScanned);
       }
-    } catch (_) {}
+    } catch (_) { }
 
     // Fallback to local gallery data
     return NextResponse.json(readLocalFallback());

@@ -51,7 +51,7 @@ function WatermarkPreviewCanvas({ options }: { options: WatermarkOptions }) {
     if (canvasRef.current) {
       try {
         setZoomImgUrl(canvasRef.current.toDataURL("image/png"));
-      } catch (_) {}
+      } catch (_) { }
     }
     setIsZoomOpen(true);
   };
@@ -312,9 +312,8 @@ function WatermarkPreviewCanvas({ options }: { options: WatermarkOptions }) {
         {/* Live watermark status badge on preview */}
         <div className="absolute bottom-3 left-3 bg-stone-950/85 backdrop-blur-xs text-[10px] font-bold text-stone-300 px-3 py-1 rounded-full border border-stone-800 flex items-center gap-2">
           <span
-            className={`w-1.5 h-1.5 rounded-full ${
-              options.enabled !== false ? "bg-emerald-400" : "bg-stone-500"
-            }`}
+            className={`w-1.5 h-1.5 rounded-full ${options.enabled !== false ? "bg-emerald-400" : "bg-stone-500"
+              }`}
           />
           <span>{options.enabled !== false ? "Watermark Active" : "Disabled"}</span>
           <span className="text-stone-600">•</span>
@@ -408,6 +407,18 @@ function WatermarkPreviewCanvas({ options }: { options: WatermarkOptions }) {
   );
 }
 
+interface DeleteConfirmDialogState {
+  type: "category" | "subcategory" | "image" | "selected-images" | "clear-all";
+  title: string;
+  description: string;
+  categoryName?: string;
+  subcategoryName?: string;
+  imageId?: string;
+  imageTitle?: string;
+  imageThumbnail?: string;
+  count?: number;
+}
+
 export default function UploadClient() {
   const router = useRouter();
 
@@ -420,6 +431,22 @@ export default function UploadClient() {
   const [storedImages, setStoredImages] = useState<StoredImage[]>([]);
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [dynamicCategories, setDynamicCategories] = useState<CategoryData[]>([]);
+
+  // Action Loading & Confirmation Modal States
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [addingSubcategoryFor, setAddingSubcategoryFor] = useState<string | null>(null);
+  const [isDeletingItem, setIsDeletingItem] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirmDialogState | null>(null);
+
+  // Escape key closes Delete Confirmation Dialog
+  useEffect(() => {
+    if (!deleteConfirm) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isDeletingItem) setDeleteConfirm(null);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [deleteConfirm, isDeletingItem]);
 
   // Cloud Storage (AWS S3, Cloudflare R2, or Local) Connection Status State
   const [r2Status, setR2Status] = useState<{
@@ -464,8 +491,8 @@ export default function UploadClient() {
           data.providerType === "s3" || data.provider?.toLowerCase().includes("s3")
             ? "s3"
             : data.providerType === "r2" || data.provider?.toLowerCase().includes("r2")
-            ? "r2"
-            : "local";
+              ? "r2"
+              : "local";
 
         setR2Status({
           loading: false,
@@ -473,7 +500,7 @@ export default function UploadClient() {
           provider: data.provider || (pType === "s3" ? "AWS S3 Cloud Storage" : pType === "r2" ? "Cloudflare R2 Storage" : "Local Storage"),
           providerType: pType,
           missingVars: data.missingVars || [],
-          bucketName: data.bucketName || (pType === "s3" ? "hi5creation" : undefined),
+          bucketName: data.bucketName || (pType === "s3" ? "hi5creationdb" : undefined),
           region: data.region || (pType === "s3" ? "eu-north-1" : undefined),
         });
         return;
@@ -493,7 +520,7 @@ export default function UploadClient() {
         provider: "AWS S3 Cloud Storage",
         providerType: "s3",
         missingVars: [],
-        bucketName: awsBucket || "hi5creation",
+        bucketName: awsBucket || "hi5creationdb",
         region: awsRegion,
       });
     } else if (envProvider === "Cloudflare R2" || r2Bucket) {
@@ -582,6 +609,7 @@ export default function UploadClient() {
   const PAGE_SIZE = 24;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -701,19 +729,21 @@ export default function UploadClient() {
   };
 
   const showToast = (type: "success" | "error" | "info", text: string) => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
     setToastMessage({ type, text });
-    setTimeout(() => {
+    toastTimeoutRef.current = setTimeout(() => {
       setToastMessage(null);
-    }, 4000);
+    }, 4500);
   };
 
-  // Category & Subcategory Management Handlers with Action Loader
+  // Category & Subcategory Management Handlers with Action Loaders
   const handleAddCategory = async (e?: FormEvent) => {
     if (e) e.preventDefault();
     const name = newCatInput.trim();
-    if (!name) return;
+    if (!name || isAddingCategory) return;
 
-    setActionLoading({ loading: true, message: `Adding Category "${name}"...` });
+    setIsAddingCategory(true);
+    setActionLoading({ loading: true, message: `Adding Category "${name}" to AWS S3...` });
     try {
       const res = await fetch("/api/categories", {
         method: "POST",
@@ -727,62 +757,48 @@ export default function UploadClient() {
           setNewCatInput("");
           showToast("success", `Category "${name}" added successfully!`);
           await loadCategories();
-          setActionLoading({ loading: false });
           return;
         }
       }
-    } catch (_) { }
-
-    // Static Hosting / LocalStorage fallback
-    const currentCats = await fetchDynamicCategories(true);
-    if (!currentCats.some((c) => c.name.toLowerCase() === name.toLowerCase())) {
-      // Prepend new category so latest appears on top
-      const updated = [{ name, subcategories: [] }, ...currentCats];
-      saveLocalCustomCategories(updated);
-      setDynamicCategories(updated);
-      setNewCatInput("");
-      showToast("success", `Category "${name}" added successfully!`);
-    } else {
-      showToast("info", `Category "${name}" already exists.`);
-    }
-    setActionLoading({ loading: false });
-  };
-
-  const handleDeleteCategory = async (categoryName: string) => {
-    if (confirm(`Are you sure you want to delete Category "${categoryName}"?`)) {
-      setActionLoading({ loading: true, message: `Deleting Category "${categoryName}"...` });
-      try {
-        const res = await fetch("/api/categories", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "delete_category", categoryName }),
-        });
-        const contentType = res.headers.get("content-type") || "";
-        if (contentType.includes("application/json")) {
-          const data = await res.json().catch(() => ({}));
-          if (res.ok && data.success) {
-            showToast("info", `Category "${categoryName}" deleted.`);
-            await loadCategories();
-            setActionLoading({ loading: false });
-            return;
-          }
-        }
-      } catch (_) { }
 
       // Static Hosting / LocalStorage fallback
       const currentCats = await fetchDynamicCategories(true);
-      const updated = currentCats.filter((c) => c.name !== categoryName);
-      saveLocalCustomCategories(updated);
-      setDynamicCategories(updated);
-      showToast("info", `Category "${categoryName}" deleted.`);
+      if (!currentCats.some((c) => c.name.toLowerCase() === name.toLowerCase())) {
+        // Prepend new category so latest appears on top
+        const updated = [{ name, subcategories: [] }, ...currentCats];
+        saveLocalCustomCategories(updated);
+        setDynamicCategories(updated);
+        setNewCatInput("");
+        showToast("success", `Category "${name}" added successfully!`);
+      } else {
+        showToast("info", `Category "${name}" already exists.`);
+      }
+    } catch (_) {
+      showToast("error", `Failed to add category "${name}".`);
+    } finally {
+      setIsAddingCategory(false);
       setActionLoading({ loading: false });
     }
   };
 
+  const promptDeleteCategory = (categoryName: string) => {
+    const cat = dynamicCategories.find((c) => c.name === categoryName);
+    const subCount = cat?.subcategories?.length || 0;
+    setDeleteConfirm({
+      type: "category",
+      title: `Delete Category "${categoryName}"`,
+      description: subCount > 0
+        ? `Are you sure you want to permanently delete category "${categoryName}" and all of its ${subCount} subcategory items from AWS S3 cloud storage?`
+        : `Are you sure you want to permanently delete category "${categoryName}" from AWS S3 cloud storage?`,
+      categoryName,
+    });
+  };
+
   const handleAddSubcategory = async (categoryName: string) => {
     const subName = (subCatInputs[categoryName] || "").trim();
-    if (!subName) return;
+    if (!subName || addingSubcategoryFor === categoryName) return;
 
+    setAddingSubcategoryFor(categoryName);
     setActionLoading({
       loading: true,
       message: `Adding Subcategory "${subName}" to ${categoryName}...`,
@@ -804,72 +820,41 @@ export default function UploadClient() {
           setSubCatInputs((prev) => ({ ...prev, [categoryName]: "" }));
           showToast("success", `Subcategory "${subName}" added under ${categoryName}!`);
           await loadCategories();
-          setActionLoading({ loading: false });
           return;
         }
       }
-    } catch (_) { }
 
-    // Static Hosting / LocalStorage fallback
-    const currentCats = await fetchDynamicCategories(true);
-    const updated = currentCats.map((c) => {
-      if (c.name === categoryName) {
-        const existingSubs = c.subcategories || [];
-        if (!existingSubs.includes(subName)) {
-          return { ...c, subcategories: [...existingSubs, subName] };
+      // Static Hosting / LocalStorage fallback
+      const currentCats = await fetchDynamicCategories(true);
+      const updated = currentCats.map((c) => {
+        if (c.name === categoryName) {
+          const existingSubs = c.subcategories || [];
+          if (!existingSubs.includes(subName)) {
+            return { ...c, subcategories: [...existingSubs, subName] };
+          }
         }
-      }
-      return c;
-    });
-    saveLocalCustomCategories(updated);
-    setDynamicCategories(updated);
-    setSubCatInputs((prev) => ({ ...prev, [categoryName]: "" }));
-    showToast("success", `Subcategory "${subName}" added under ${categoryName}!`);
-    setActionLoading({ loading: false });
+        return c;
+      });
+      saveLocalCustomCategories(updated);
+      setDynamicCategories(updated);
+      setSubCatInputs((prev) => ({ ...prev, [categoryName]: "" }));
+      showToast("success", `Subcategory "${subName}" added under ${categoryName}!`);
+    } catch (_) {
+      showToast("error", `Failed to add subcategory "${subName}".`);
+    } finally {
+      setAddingSubcategoryFor(null);
+      setActionLoading({ loading: false });
+    }
   };
 
-  const handleDeleteSubcategory = async (categoryName: string, subcategoryName: string) => {
-    setActionLoading({
-      loading: true,
-      message: `Deleting Subcategory "${subcategoryName}"...`,
+  const promptDeleteSubcategory = (categoryName: string, subcategoryName: string) => {
+    setDeleteConfirm({
+      type: "subcategory",
+      title: `Delete Subcategory "${subcategoryName}"`,
+      description: `Are you sure you want to delete subcategory "${subcategoryName}" under category "${categoryName}" from AWS S3 cloud storage?`,
+      categoryName,
+      subcategoryName,
     });
-    try {
-      const res = await fetch("/api/categories", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "delete_subcategory",
-          categoryName,
-          subcategoryName,
-        }),
-      });
-      const contentType = res.headers.get("content-type") || "";
-      if (contentType.includes("application/json")) {
-        const data = await res.json().catch(() => ({}));
-        if (res.ok && data.success) {
-          showToast("info", `Subcategory "${subcategoryName}" deleted.`);
-          await loadCategories();
-          setActionLoading({ loading: false });
-          return;
-        }
-      }
-    } catch (_) { }
-
-    // Static Hosting / LocalStorage fallback
-    const currentCats = await fetchDynamicCategories(true);
-    const updated = currentCats.map((c) => {
-      if (c.name === categoryName) {
-        return {
-          ...c,
-          subcategories: (c.subcategories || []).filter((s) => s !== subcategoryName),
-        };
-      }
-      return c;
-    });
-    saveLocalCustomCategories(updated);
-    setDynamicCategories(updated);
-    showToast("info", `Subcategory "${subcategoryName}" deleted.`);
-    setActionLoading({ loading: false });
   };
 
   const processFiles = (files: FileList | File[]) => {
@@ -1013,54 +998,153 @@ export default function UploadClient() {
     setActionLoading({ loading: false });
   };
 
-  const handleDeleteOne = async (id: string) => {
-    setActionLoading({ loading: true, message: "Deleting image from storage..." });
-    try {
-      const success = await deleteStoredImage(id);
-      if (success) {
-        showToast("info", "Image deleted successfully.");
-        await loadImages();
-      } else {
-        showToast("error", "Failed to delete image.");
-      }
-    } finally {
-      setActionLoading({ loading: false });
-    }
+  const promptDeleteImage = (img: StoredImage) => {
+    setDeleteConfirm({
+      type: "image",
+      title: `Delete Photo "${img.title}"`,
+      description: `Are you sure you want to permanently delete this signage project photo from AWS S3 cloud storage?`,
+      imageId: img.id || img.key,
+      imageTitle: img.title,
+      imageThumbnail: img.imageDataUrl,
+      categoryName: img.category,
+      subcategoryName: img.subcategory,
+    });
   };
 
-  const handleDeleteSelected = async () => {
+  const promptDeleteSelected = () => {
     if (selectedIds.size === 0) return;
-    if (confirm(`Are you sure you want to delete ${selectedIds.size} selected image(s)?`)) {
-      setActionLoading({
-        loading: true,
-        message: `Deleting ${selectedIds.size} selected image(s)...`,
-      });
-      try {
+    setDeleteConfirm({
+      type: "selected-images",
+      title: `Delete ${selectedIds.size} Selected Images`,
+      description: `Are you sure you want to permanently delete ${selectedIds.size} selected image(s) from AWS S3 cloud storage? This action cannot be undone.`,
+      count: selectedIds.size,
+    });
+  };
+
+  const promptClearAll = () => {
+    if (storedImages.length === 0) return;
+    setDeleteConfirm({
+      type: "clear-all",
+      title: "Clear All Gallery Images",
+      description: `WARNING: This will permanently delete ALL ${storedImages.length} gallery images from AWS S3 cloud storage and local disks. This action cannot be undone.`,
+      count: storedImages.length,
+    });
+  };
+
+  const executeDeleteConfirmed = async () => {
+    if (!deleteConfirm || isDeletingItem) return;
+    setIsDeletingItem(true);
+
+    try {
+      if (deleteConfirm.type === "category" && deleteConfirm.categoryName) {
+        const catName = deleteConfirm.categoryName;
+        setActionLoading({ loading: true, message: `Deleting Category "${catName}" from AWS S3...` });
+        try {
+          const res = await fetch("/api/categories", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "delete_category", categoryName: catName }),
+          });
+          const contentType = res.headers.get("content-type") || "";
+          if (contentType.includes("application/json")) {
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data.success) {
+              showToast("info", `Category "${catName}" deleted.`);
+              await loadCategories();
+              if (selectedCategoryModal === catName) {
+                setSelectedCategoryModal(null);
+              }
+              return;
+            }
+          }
+        } catch (_) { }
+
+        // Local fallback
+        const currentCats = await fetchDynamicCategories(true);
+        const updated = currentCats.filter((c) => c.name !== catName);
+        saveLocalCustomCategories(updated);
+        setDynamicCategories(updated);
+        showToast("info", `Category "${catName}" deleted.`);
+        if (selectedCategoryModal === catName) {
+          setSelectedCategoryModal(null);
+        }
+      } else if (deleteConfirm.type === "subcategory" && deleteConfirm.categoryName && deleteConfirm.subcategoryName) {
+        const catName = deleteConfirm.categoryName;
+        const subName = deleteConfirm.subcategoryName;
+        setActionLoading({ loading: true, message: `Deleting Subcategory "${subName}" from AWS S3...` });
+        try {
+          const res = await fetch("/api/categories", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "delete_subcategory",
+              categoryName: catName,
+              subcategoryName: subName,
+            }),
+          });
+          const contentType = res.headers.get("content-type") || "";
+          if (contentType.includes("application/json")) {
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data.success) {
+              showToast("info", `Subcategory "${subName}" deleted.`);
+              await loadCategories();
+              return;
+            }
+          }
+        } catch (_) { }
+
+        // Local fallback
+        const currentCats = await fetchDynamicCategories(true);
+        const updated = currentCats.map((c) => {
+          if (c.name === catName) {
+            return {
+              ...c,
+              subcategories: (c.subcategories || []).filter((s) => s !== subName),
+            };
+          }
+          return c;
+        });
+        saveLocalCustomCategories(updated);
+        setDynamicCategories(updated);
+        showToast("info", `Subcategory "${subName}" deleted.`);
+      } else if (deleteConfirm.type === "image" && deleteConfirm.imageId) {
+        const imgId = deleteConfirm.imageId;
+        setActionLoading({ loading: true, message: "Deleting photo from AWS S3 cloud storage..." });
+        const success = await deleteStoredImage(imgId);
+        if (success) {
+          showToast("info", "Image deleted successfully.");
+          await loadImages();
+        } else {
+          showToast("error", "Failed to delete image.");
+        }
+      } else if (deleteConfirm.type === "selected-images") {
+        const count = selectedIds.size;
+        setActionLoading({ loading: true, message: `Deleting ${count} selected image(s) from AWS S3...` });
         const success = await deleteMultipleStoredImages(Array.from(selectedIds));
         if (success) {
-          showToast("info", `Deleted ${selectedIds.size} image(s).`);
+          showToast("info", `Deleted ${count} image(s).`);
+          setSelectedIds(new Set());
           await loadImages();
         } else {
           showToast("error", "Failed to delete selected images.");
         }
-      } finally {
-        setActionLoading({ loading: false });
-      }
-    }
-  };
-
-  const handleClearAll = async () => {
-    if (confirm("WARNING: This will permanently delete ALL gallery images. Continue?")) {
-      setActionLoading({ loading: true, message: "Clearing all gallery images..." });
-      try {
+      } else if (deleteConfirm.type === "clear-all") {
+        setActionLoading({ loading: true, message: "Clearing all gallery images from AWS S3..." });
         const success = await clearAllStoredImages();
         if (success) {
           showToast("info", "All gallery images have been cleared.");
+          setSelectedIds(new Set());
           await loadImages();
+        } else {
+          showToast("error", "Failed to clear gallery images.");
         }
-      } finally {
-        setActionLoading({ loading: false });
       }
+    } catch (err: any) {
+      showToast("error", `Delete failed: ${err?.message || "Server error"}`);
+    } finally {
+      setIsDeletingItem(false);
+      setActionLoading({ loading: false });
+      setDeleteConfirm(null);
     }
   };
 
@@ -1193,29 +1277,206 @@ export default function UploadClient() {
 
   return (
     <div className="pt-16 min-h-screen bg-[#faf9f7] pb-24 relative">
-      {/* Global Action Loading Modal Overlay */}
-      {actionLoading.loading && (
-        <div className="fixed inset-0 z-50 bg-stone-950/10 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-stone-200 p-8 shadow-2xl text-center max-w-xs w-full animate-fade-up">
-            <LoadingSpinner size="lg" text={actionLoading.message || "Processing request..."} />
+      {/* Global Action Loading Modal Overlay with High Z-Index */}
+      {actionLoading.loading && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[100000] bg-stone-950/40 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl border border-stone-200 p-6 sm:p-8 shadow-2xl text-center max-w-xs w-full animate-in zoom-in-95 duration-150 flex flex-col items-center">
+            <div className="w-12 h-12 rounded-2xl bg-orange-50 border border-orange-200 flex items-center justify-center mb-4 text-orange-600 shadow-2xs">
+              <svg className="animate-spin h-6 w-6 text-orange-600" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </div>
+            <p className="text-sm font-bold text-stone-900 mb-1">Please wait...</p>
+            <p className="text-xs text-stone-500 font-medium">
+              {actionLoading.message || "Processing request..."}
+            </p>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 animate-bounce">
+      {/* Small Delete Confirmation Dialog Modal */}
+      {deleteConfirm && typeof document !== "undefined" && createPortal(
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-[100001] bg-stone-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150"
+          onClick={() => {
+            if (!isDeletingItem) setDeleteConfirm(null);
+          }}
+        >
           <div
-            className={`px-5 py-3 rounded-2xl shadow-xl text-xs font-bold text-white flex items-center gap-2 ${toastMessage.type === "success"
-              ? "bg-emerald-600"
-              : toastMessage.type === "error"
-                ? "bg-red-600"
-                : "bg-stone-800"
-              }`}
+            className="bg-white rounded-3xl border border-stone-200 shadow-2xl max-w-sm sm:max-w-md w-full overflow-hidden my-6 p-6 sm:p-7 text-left animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
           >
-            <span>{toastMessage.text}</span>
+            {/* Header: Icon, Badge, and Close Button */}
+            <div className="flex items-start gap-3.5 mb-4">
+              <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center text-xl font-bold shrink-0 shadow-2xs">
+                🗑️
+              </div>
+              <div className="min-w-0 flex-1">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-red-600 block">
+                  Confirm Deletion
+                </span>
+                <h3 className="text-base sm:text-lg font-bold text-stone-900 leading-snug">
+                  {deleteConfirm.title}
+                </h3>
+              </div>
+              <button
+                type="button"
+                disabled={isDeletingItem}
+                onClick={() => setDeleteConfirm(null)}
+                className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-500 hover:text-stone-800 flex items-center justify-center text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+                aria-label="Close dialog"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Context Item Preview: Image Thumbnail, Category Badge, or Subcategory Badge */}
+            {deleteConfirm.type === "image" && deleteConfirm.imageThumbnail && (
+              <div className="mb-4 p-3 bg-stone-50 border border-stone-200 rounded-2xl flex items-center gap-3">
+                <div className="w-14 h-14 rounded-xl overflow-hidden bg-stone-200 shrink-0 border border-stone-200">
+                  <img
+                    src={deleteConfirm.imageThumbnail}
+                    alt={deleteConfirm.imageTitle || "Image"}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-xs font-bold text-stone-900 truncate">
+                    {deleteConfirm.imageTitle || "Gallery Project"}
+                  </h4>
+                  <span className="text-[10px] font-bold text-orange-600 block mt-0.5">
+                    {deleteConfirm.categoryName} {deleteConfirm.subcategoryName ? `· ${deleteConfirm.subcategoryName}` : ""}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {deleteConfirm.type === "category" && deleteConfirm.categoryName && (
+              <div className="mb-4 p-3.5 bg-red-50/60 border border-red-200 rounded-2xl flex items-center gap-3">
+                <span className="text-2xl">📁</span>
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-xs font-extrabold text-stone-900 truncate">
+                    {deleteConfirm.categoryName}
+                  </h4>
+                  <span className="text-[10px] text-stone-500 block">
+                    Product Category
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {deleteConfirm.type === "subcategory" && deleteConfirm.subcategoryName && (
+              <div className="mb-4 p-3.5 bg-stone-50 border border-stone-200 rounded-2xl flex items-center gap-3">
+                <span className="text-xl">🏷️</span>
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-xs font-extrabold text-stone-900 truncate">
+                    {deleteConfirm.subcategoryName}
+                  </h4>
+                  <span className="text-[10px] text-orange-600 font-bold block">
+                    Subproduct under &quot;{deleteConfirm.categoryName}&quot;
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Warning / Explanation Text */}
+            <p className="text-xs text-stone-600 leading-relaxed mb-6">
+              {deleteConfirm.description}
+            </p>
+
+            {/* Actions: Cancel & Delete Button with Loader */}
+            <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-stone-100">
+              <button
+                type="button"
+                disabled={isDeletingItem}
+                onClick={() => setDeleteConfirm(null)}
+                className="px-4 py-2.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-100 text-stone-700 text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                disabled={isDeletingItem}
+                onClick={executeDeleteConfirmed}
+                className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed"
+              >
+                {isDeletingItem ? (
+                  <>
+                    <svg className="animate-spin h-3.5 w-3.5 text-white" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>🗑️</span>
+                    <span>
+                      {deleteConfirm.type === "category"
+                        ? "Delete Category"
+                        : deleteConfirm.type === "subcategory"
+                          ? "Delete Subcategory"
+                          : deleteConfirm.type === "image"
+                            ? "Delete Photo"
+                            : "Confirm Delete"}
+                    </span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
-        </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Toast Notification (Top-Right Floating Notification) */}
+      {toastMessage && typeof document !== "undefined" && createPortal(
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed top-6 right-6 z-[100002] max-w-sm sm:max-w-md w-full pointer-events-auto transition-all duration-300 animate-in slide-in-from-top-4 fade-in-50"
+        >
+          <div
+            className={`p-4 rounded-2xl shadow-2xl backdrop-blur-md border flex items-center justify-between gap-3 text-xs font-semibold ${
+              toastMessage.type === "success"
+                ? "bg-emerald-950/95 text-emerald-100 border-emerald-500/40 shadow-emerald-950/40"
+                : toastMessage.type === "error"
+                  ? "bg-red-950/95 text-red-100 border-red-500/40 shadow-red-950/40"
+                  : "bg-stone-900/95 text-stone-100 border-stone-700/60 shadow-stone-950/40"
+            }`}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <span
+                className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 ${
+                  toastMessage.type === "success"
+                    ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                    : toastMessage.type === "error"
+                      ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                      : "bg-orange-500/20 text-orange-400 border border-orange-500/30"
+                }`}
+              >
+                {toastMessage.type === "success" ? "✓" : toastMessage.type === "error" ? "✕" : "ℹ"}
+              </span>
+              <p className="leading-snug break-words">
+                {toastMessage.text}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setToastMessage(null)}
+              className="w-6 h-6 rounded-lg hover:bg-white/10 text-stone-400 hover:text-white flex items-center justify-center text-xs transition-colors shrink-0 cursor-pointer"
+              aria-label="Dismiss notification"
+            >
+              ✕
+            </button>
+          </div>
+        </div>,
+        document.body
       )}
 
       {/* Top Header */}
@@ -1237,42 +1498,39 @@ export default function UploadClient() {
             <button
               type="button"
               onClick={() => setIsStorageDialogOpen(true)}
-              className={`px-3 py-1.5 rounded-full border text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer shadow-xs ${
-                r2Status.loading
-                  ? "bg-amber-50 border-amber-300 text-amber-800 hover:bg-amber-100"
-                  : r2Status.connected
+              className={`px-3 py-1.5 rounded-full border text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer shadow-xs ${r2Status.loading
+                ? "bg-amber-50 border-amber-300 text-amber-800 hover:bg-amber-100"
+                : r2Status.connected
                   ? "bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100"
                   : "bg-rose-50 border-rose-300 text-rose-800 hover:bg-rose-100"
-              }`}
+                }`}
               title="Click to view AWS S3 Cloud Storage connection details"
               aria-label="Cloud storage connection status"
             >
               <span className="relative flex h-2.5 w-2.5">
                 <span
-                  className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                    r2Status.loading
-                      ? "bg-amber-400"
-                      : r2Status.connected
+                  className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${r2Status.loading
+                    ? "bg-amber-400"
+                    : r2Status.connected
                       ? "bg-emerald-400"
                       : "bg-rose-400"
-                  }`}
+                    }`}
                 />
                 <span
-                  className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
-                    r2Status.loading
-                      ? "bg-amber-500"
-                      : r2Status.connected
+                  className={`relative inline-flex rounded-full h-2.5 w-2.5 ${r2Status.loading
+                    ? "bg-amber-500"
+                    : r2Status.connected
                       ? "bg-emerald-500"
                       : "bg-rose-500"
-                  }`}
+                    }`}
                 />
               </span>
               <span className="font-semibold">
                 {r2Status.loading
                   ? "Checking S3..."
                   : r2Status.connected
-                  ? "AWS S3 Connected"
-                  : "Not Connected"}
+                    ? "AWS S3 Connected"
+                    : "Not Connected"}
               </span>
             </button>
 
@@ -1309,13 +1567,12 @@ export default function UploadClient() {
               <div className="p-6 pb-4 border-b border-stone-100 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <span
-                    className={`w-10 h-10 rounded-2xl flex items-center justify-center text-lg font-bold shrink-0 ${
-                      r2Status.loading
-                        ? "bg-amber-100 text-amber-700"
-                        : r2Status.connected
+                    className={`w-10 h-10 rounded-2xl flex items-center justify-center text-lg font-bold shrink-0 ${r2Status.loading
+                      ? "bg-amber-100 text-amber-700"
+                      : r2Status.connected
                         ? "bg-emerald-100 text-emerald-700"
                         : "bg-rose-100 text-rose-700"
-                    }`}
+                      }`}
                   >
                     {r2Status.loading ? "⏳" : r2Status.connected ? "☁️" : "⚠️"}
                   </span>
@@ -1342,36 +1599,34 @@ export default function UploadClient() {
               <div className="p-6 space-y-5">
                 {/* Status Banner */}
                 <div
-                  className={`p-4 rounded-2xl border transition-all ${
-                    r2Status.loading
-                      ? "bg-amber-50/80 border-amber-200"
-                      : r2Status.connected
+                  className={`p-4 rounded-2xl border transition-all ${r2Status.loading
+                    ? "bg-amber-50/80 border-amber-200"
+                    : r2Status.connected
                       ? "bg-emerald-50/80 border-emerald-200"
                       : "bg-rose-50/80 border-rose-200"
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <span className="text-xs font-bold uppercase tracking-wider text-stone-700">
                       Current Connection Status
                     </span>
                     <span
-                      className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${
-                        r2Status.loading
-                          ? "bg-amber-500 text-white"
-                          : r2Status.connected
+                      className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${r2Status.loading
+                        ? "bg-amber-500 text-white"
+                        : r2Status.connected
                           ? "bg-emerald-600 text-white"
                           : "bg-rose-600 text-white"
-                      }`}
+                        }`}
                     >
                       {r2Status.loading
                         ? "Pending Verification"
                         : r2Status.connected
-                        ? r2Status.providerType === "s3"
-                          ? "Active & Secured (AWS S3)"
-                          : r2Status.providerType === "r2"
-                          ? "Active & Secured (Cloudflare R2)"
-                          : "Active (Local Storage)"
-                        : "Not Connected"}
+                          ? r2Status.providerType === "s3"
+                            ? "Active & Secured (AWS S3)"
+                            : r2Status.providerType === "r2"
+                              ? "Active & Secured (Cloudflare R2)"
+                              : "Active (Local Storage)"
+                          : "Not Connected"}
                     </span>
                   </div>
 
@@ -1382,7 +1637,7 @@ export default function UploadClient() {
                       <>
                         Connected to Amazon S3 bucket{" "}
                         <strong className="font-mono text-emerald-950 bg-emerald-100 px-1.5 py-0.5 rounded">
-                          &apos;{r2Status.bucketName || "hi5creation"}&apos;
+                          &apos;{r2Status.bucketName || "hi5creationdb"}&apos;
                         </strong>{" "}
                         in region{" "}
                         <strong className="font-mono text-emerald-950 bg-emerald-100 px-1.5 py-0.5 rounded">
@@ -1415,7 +1670,7 @@ export default function UploadClient() {
                   <div className="bg-stone-50 border border-stone-200 rounded-xl p-3">
                     <span className="text-[10px] font-bold text-stone-400 uppercase block">Bucket Name</span>
                     <span className="font-mono font-bold text-stone-900 truncate block mt-0.5">
-                      {r2Status.bucketName || "hi5creation"}
+                      {r2Status.bucketName || "hi5creationdb"}
                     </span>
                   </div>
                   <div className="bg-stone-50 border border-stone-200 rounded-xl p-3">
@@ -1433,11 +1688,10 @@ export default function UploadClient() {
                   </label>
                   <div className="space-y-2">
                     <div
-                      className={`p-3 rounded-xl border flex items-center justify-between text-xs transition-all ${
-                        r2Status.providerType === "s3"
-                          ? "bg-emerald-50 border-emerald-300 text-emerald-950 font-bold"
-                          : "bg-white border-stone-200 text-stone-500"
-                      }`}
+                      className={`p-3 rounded-xl border flex items-center justify-between text-xs transition-all ${r2Status.providerType === "s3"
+                        ? "bg-emerald-50 border-emerald-300 text-emerald-950 font-bold"
+                        : "bg-white border-stone-200 text-stone-500"
+                        }`}
                     >
                       <div className="flex items-center gap-2">
                         <span>{r2Status.providerType === "s3" ? "✅" : "⚪"}</span>
@@ -1451,11 +1705,10 @@ export default function UploadClient() {
                     </div>
 
                     <div
-                      className={`p-3 rounded-xl border flex items-center justify-between text-xs transition-all ${
-                        r2Status.providerType === "r2"
-                          ? "bg-orange-50 border-orange-300 text-orange-950 font-bold"
-                          : "bg-white border-stone-200 text-stone-500"
-                      }`}
+                      className={`p-3 rounded-xl border flex items-center justify-between text-xs transition-all ${r2Status.providerType === "r2"
+                        ? "bg-orange-50 border-orange-300 text-orange-950 font-bold"
+                        : "bg-white border-stone-200 text-stone-500"
+                        }`}
                     >
                       <div className="flex items-center gap-2">
                         <span>{r2Status.providerType === "r2" ? "✅" : "⚪"}</span>
@@ -1469,11 +1722,10 @@ export default function UploadClient() {
                     </div>
 
                     <div
-                      className={`p-3 rounded-xl border flex items-center justify-between text-xs transition-all ${
-                        r2Status.providerType === "local"
-                          ? "bg-stone-100 border-stone-300 text-stone-900 font-bold"
-                          : "bg-white border-stone-200 text-stone-500"
-                      }`}
+                      className={`p-3 rounded-xl border flex items-center justify-between text-xs transition-all ${r2Status.providerType === "local"
+                        ? "bg-stone-100 border-stone-300 text-stone-900 font-bold"
+                        : "bg-white border-stone-200 text-stone-500"
+                        }`}
                     >
                       <div className="flex items-center gap-2">
                         <span>{r2Status.providerType === "local" ? "✅" : "⚪"}</span>
@@ -1562,11 +1814,10 @@ export default function UploadClient() {
                 <button
                   type="button"
                   onClick={() => setMobileWatermarkTab("settings")}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                    mobileWatermarkTab === "settings"
-                      ? "bg-white text-stone-900 shadow-xs"
-                      : "text-stone-500 hover:text-stone-800"
-                  }`}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${mobileWatermarkTab === "settings"
+                    ? "bg-white text-stone-900 shadow-xs"
+                    : "text-stone-500 hover:text-stone-800"
+                    }`}
                 >
                   <span>⚙️</span>
                   <span>Watermark Settings</span>
@@ -1574,11 +1825,10 @@ export default function UploadClient() {
                 <button
                   type="button"
                   onClick={() => setMobileWatermarkTab("preview")}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                    mobileWatermarkTab === "preview"
-                      ? "bg-white text-stone-900 shadow-xs"
-                      : "text-stone-500 hover:text-stone-800"
-                  }`}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${mobileWatermarkTab === "preview"
+                    ? "bg-white text-stone-900 shadow-xs"
+                    : "text-stone-500 hover:text-stone-800"
+                    }`}
                 >
                   <span>🎬</span>
                   <span>Studio Preview</span>
@@ -1589,9 +1839,8 @@ export default function UploadClient() {
               <div className="grid lg:grid-cols-12 gap-8 items-start">
                 {/* Left Column: Controls */}
                 <div
-                  className={`lg:col-span-7 space-y-5 ${
-                    mobileWatermarkTab === "settings" ? "block" : "hidden lg:block"
-                  }`}
+                  className={`lg:col-span-7 space-y-5 ${mobileWatermarkTab === "settings" ? "block" : "hidden lg:block"
+                    }`}
                 >
                   {/* Enable / Disable Toggle */}
                   <div className="flex items-center justify-between bg-stone-50 p-4 rounded-2xl border border-stone-200">
@@ -1792,9 +2041,8 @@ export default function UploadClient() {
 
                 {/* Right Column: Studio Watermark Preview Canvas */}
                 <div
-                  className={`lg:col-span-5 space-y-3 lg:sticky lg:top-24 ${
-                    mobileWatermarkTab === "preview" ? "block" : "hidden lg:block"
-                  }`}
+                  className={`lg:col-span-5 space-y-3 lg:sticky lg:top-24 ${mobileWatermarkTab === "preview" ? "block" : "hidden lg:block"
+                    }`}
                 >
                   <h4 className="text-xs font-bold text-stone-700 uppercase tracking-wider flex items-center justify-between">
                     <span>Studio Watermark Preview</span>
@@ -2095,16 +2343,28 @@ export default function UploadClient() {
                 <form onSubmit={handleAddCategory} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 max-w-lg">
                   <input
                     type="text"
+                    disabled={isAddingCategory}
                     value={newCatInput}
                     onChange={(e) => setNewCatInput(e.target.value)}
                     placeholder="➕ Create New Category Name..."
-                    className="w-full px-4 py-2.5 border border-stone-300 rounded-xl text-xs font-medium focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 bg-stone-50/50"
+                    className="w-full px-4 py-2.5 border border-stone-300 rounded-xl text-xs font-medium focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 bg-stone-50/50 disabled:opacity-60"
                   />
                   <button
                     type="submit"
-                    className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition-all shadow-sm flex-shrink-0"
+                    disabled={isAddingCategory || !newCatInput.trim()}
+                    className="bg-orange-500 hover:bg-orange-600 disabled:opacity-75 disabled:cursor-not-allowed text-white font-bold px-5 py-2.5 rounded-xl text-xs transition-all shadow-sm flex items-center justify-center gap-2 flex-shrink-0 cursor-pointer"
                   >
-                    + Add Category
+                    {isAddingCategory ? (
+                      <>
+                        <svg className="animate-spin h-3.5 w-3.5 text-white" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Adding Category...</span>
+                      </>
+                    ) : (
+                      <span>+ Add Category</span>
+                    )}
                   </button>
                 </form>
 
@@ -2166,7 +2426,7 @@ export default function UploadClient() {
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDeleteCategory(catObj.name);
+                            promptDeleteCategory(catObj.name);
                           }}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-600 text-red-600 hover:text-white border border-red-200 hover:border-red-600 text-xs font-bold transition-all shadow-2xs cursor-pointer"
                           title={`Delete Category "${catObj.name}"`}
@@ -2248,7 +2508,7 @@ export default function UploadClient() {
                                   <span>{sub}</span>
                                   <button
                                     type="button"
-                                    onClick={() => handleDeleteSubcategory(activeCat.name, sub)}
+                                    onClick={() => promptDeleteSubcategory(activeCat.name, sub)}
                                     className="w-4 h-4 bg-stone-200 hover:bg-red-600 hover:text-white text-stone-500 rounded-full flex items-center justify-center text-[10px] transition-colors cursor-pointer"
                                     title={`Delete ${sub}`}
                                     aria-label={`Delete subcategory ${sub}`}
@@ -2269,6 +2529,7 @@ export default function UploadClient() {
                           <div className="flex items-center gap-2">
                             <input
                               type="text"
+                              disabled={addingSubcategoryFor === activeCat.name}
                               value={subCatInputs[activeCat.name] || ""}
                               onChange={(e) =>
                                 setSubCatInputs((prev) => ({
@@ -2282,15 +2543,30 @@ export default function UploadClient() {
                                   handleAddSubcategory(activeCat.name);
                                 }
                               }}
-                              placeholder="Type subcategory name..."
-                              className="w-full px-3.5 py-2 border border-stone-300 rounded-xl text-xs bg-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                              placeholder={
+                                addingSubcategoryFor === activeCat.name
+                                  ? "Adding subcategory..."
+                                  : "Type subcategory name..."
+                              }
+                              className="w-full px-3.5 py-2 border border-stone-300 rounded-xl text-xs bg-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 disabled:opacity-60 disabled:bg-stone-50"
                             />
                             <button
                               type="button"
+                              disabled={addingSubcategoryFor === activeCat.name}
                               onClick={() => handleAddSubcategory(activeCat.name)}
-                              className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-4 py-2 rounded-xl text-xs transition-colors shadow-2xs flex-shrink-0 cursor-pointer"
+                              className="bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-bold px-4 py-2 rounded-xl text-xs transition-colors shadow-2xs flex-shrink-0 cursor-pointer flex items-center gap-1.5"
                             >
-                              Add
+                              {addingSubcategoryFor === activeCat.name ? (
+                                <>
+                                  <svg className="animate-spin w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                                  </svg>
+                                  <span>Adding...</span>
+                                </>
+                              ) : (
+                                "Add"
+                              )}
                             </button>
                           </div>
                         </div>
@@ -2390,8 +2666,9 @@ export default function UploadClient() {
                   <div className="flex items-center gap-3">
                     {selectedIds.size > 0 && (
                       <button
-                        onClick={handleDeleteSelected}
-                        className="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded-xl text-xs transition-all shadow-sm"
+                        type="button"
+                        onClick={promptDeleteSelected}
+                        className="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded-xl text-xs transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
                       >
                         Delete Selected ({selectedIds.size})
                       </button>
@@ -2399,8 +2676,9 @@ export default function UploadClient() {
 
                     {storedImages.length > 0 && (
                       <button
-                        onClick={handleClearAll}
-                        className="text-xs text-stone-400 hover:text-red-600 font-semibold px-2 py-2"
+                        type="button"
+                        onClick={promptClearAll}
+                        className="text-xs text-stone-400 hover:text-red-600 font-semibold px-2 py-2 cursor-pointer transition-colors"
                       >
                         Clear All
                       </button>
@@ -2462,8 +2740,9 @@ export default function UploadClient() {
                             className="absolute top-2 left-2 z-10 w-4 h-4 rounded border-stone-300 text-orange-500 focus:ring-orange-500"
                           />
                           <button
-                            onClick={() => handleDeleteOne(img.id)}
-                            className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 w-7 h-7 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center text-xs transition-all shadow-md"
+                            type="button"
+                            onClick={() => promptDeleteImage(img)}
+                            className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 w-7 h-7 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center text-xs transition-all shadow-md cursor-pointer"
                             title="Delete image"
                           >
                             ✕

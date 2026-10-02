@@ -2,6 +2,12 @@
   RewriteEngine On
   RewriteBase /
 
+  # Protect sensitive environment and config files
+  <FilesMatch "^\.env">
+    Order allow,deny
+    Deny from all
+  </FilesMatch>
+
   # Redirect HTTP to HTTPS automatically
   RewriteCond %{HTTPS} off
   RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
