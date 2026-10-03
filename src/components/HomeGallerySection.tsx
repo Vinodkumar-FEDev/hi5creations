@@ -5,41 +5,12 @@ import Link from "next/link";
 import { getStoredGalleryImages, StoredImage } from "@/src/utils/galleryStorage";
 
 const DEFAULT_GALLERY_ITEMS = [
-  {
-    img: "https://images.unsplash.com/photo-1765448806017-cc2c746a0f35?w=800&h=560&fit=crop&auto=format",
-    cat: "LED SIGNAGE",
-    subcat: "3D Acrylic LED",
-    title: "Illuminated Storefront Signage",
-    span: "col-span-2 row-span-2",
-  },
-  {
-    img: "https://images.unsplash.com/photo-1784983699508-90a598476589?w=600&h=400&fit=crop&auto=format",
-    cat: "INTERIOR BRANDING",
-    subcat: "Neon Flex",
-    title: "Neon Brand Identity",
-    span: "col-span-1 row-span-1",
-  },
-  {
-    img: "https://images.unsplash.com/photo-1502739423516-a7da6332f56f?w=600&h=400&fit=crop&auto=format",
-    cat: "CORPORATE SIGNAGE",
-    subcat: "Acrylic Board",
-    title: "Studio Entrance Signage",
-    span: "col-span-1 row-span-1",
-  },
-  {
-    img: "https://images.unsplash.com/photo-1766038844135-97a78ec7978c?w=600&h=800&fit=crop&auto=format",
-    cat: "METAL LETTERS",
-    subcat: "Titanium 3D",
-    title: "Chrome 3D Letters",
-    span: "col-span-1 row-span-2",
-  },
-  {
-    img: "https://images.unsplash.com/photo-1771773636411-89929d278a73?w=800&h=400&fit=crop&auto=format",
-    cat: "OUTDOOR SIGNAGE",
-    subcat: "ACP Elevation",
-    title: "Multi-Brand Retail Signage",
-    span: "col-span-2 row-span-1",
-  },
+  { img: "/assets/Shop Sign Boards.png", alt: "Shop Sign Boards Coimbatore" },
+  { img: "/assets/3D Lettering Signage.png", alt: "3D Lettering Signage Coimbatore" },
+  { img: "/assets/ACP Elevation & Cladding.png", alt: "ACP Elevation & Cladding Coimbatore" },
+  { img: "/assets/Acrylic LED Sign Boards.png", alt: "Acrylic LED Sign Boards Coimbatore" },
+  { img: "/assets/Aluminium Channel Letters.png", alt: "Aluminium Channel Letters Coimbatore" },
+  { img: "/assets/Neon LED Signage.png", alt: "Neon LED Signage Coimbatore" },
 ];
 
 export default function HomeGallerySection() {
@@ -64,7 +35,7 @@ export default function HomeGallerySection() {
               OUR FEATURED WORK
             </p>
             <h2 className="text-3xl lg:text-4xl xl:text-5xl font-extrabold text-stone-900 leading-tight tracking-tight font-display">
-              Real Signage & Branding Projects
+              Real Signage &amp; Branding Projects
             </h2>
           </div>
           <Link
@@ -84,70 +55,39 @@ export default function HomeGallerySection() {
           </Link>
         </div>
 
-        {/* Dynamic Image Grid */}
+        {/* Dynamic Image Grid — Images Only (No Overlaid Text/Name) */}
         {displayItems.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {displayItems.map((img) => (
-              <figure
+              <Link
                 key={img.id}
-                className="group relative rounded-2xl overflow-hidden bg-stone-100 border border-stone-200 shadow-sm hover:shadow-md transition-all h-72 cursor-pointer"
+                href="/gallery"
+                className="group relative rounded-2xl overflow-hidden bg-stone-100 border border-stone-200 shadow-sm hover:shadow-xl transition-all h-72 sm:h-80 cursor-pointer block"
               >
                 <img
                   src={img.imageDataUrl}
-                  alt={`${img.title} — ${img.category} by Hi5 Creation Coimbatore`}
+                  alt={`${img.title || "Signage project"} by Hi5 Creation Coimbatore`}
                   loading="lazy"
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
-                {/* Automatic Brand Watermark Overlay */}
-                <div className="absolute top-3 right-3 z-10 pointer-events-none opacity-90 group-hover:opacity-100 transition-opacity">
-                  <div className="bg-stone-950/85 backdrop-blur-xs border border-orange-500/40 px-2 py-1 rounded-lg flex items-center shadow-sm">
-                    <img
-                      src="/assets/logo.svg"
-                      alt="Hi5 Creation"
-                      className="h-4 w-auto object-contain brightness-110"
-                    />
-                  </div>
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-stone-950/85 via-stone-900/30 to-transparent opacity-80 group-hover:opacity-95 transition-opacity" />
-                <figcaption className="absolute bottom-0 left-0 right-0 p-5">
-                  <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                    <span className="text-[10px] font-bold tracking-widest text-orange-400 uppercase bg-orange-500/10 border border-orange-400/30 px-2 py-0.5 rounded-full">
-                      {img.category}
-                    </span>
-                    {img.subcategory && (
-                      <span className="text-[10px] font-medium tracking-wide text-stone-300 bg-stone-800/60 px-2 py-0.5 rounded-full">
-                        {img.subcategory}
-                      </span>
-                    )}
-                  </div>
-                  <h3 className="text-white text-base font-bold leading-tight">
-                    {img.title}
-                  </h3>
-                </figcaption>
-              </figure>
+              </Link>
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {DEFAULT_GALLERY_ITEMS.map((item, i) => (
-              <div
+              <Link
                 key={i}
-                className={`${item.span} rounded-xl overflow-hidden relative group cursor-pointer bg-stone-100`}
+                href="/gallery"
+                className="group relative rounded-2xl overflow-hidden bg-stone-100 border border-stone-200 shadow-sm hover:shadow-xl transition-all h-72 sm:h-80 cursor-pointer block"
               >
                 <img
                   src={item.img}
-                  alt={item.title + " — Hi 5 Creation signage project Coimbatore"}
+                  alt={item.alt}
+                  loading="lazy"
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-stone-900/80 via-transparent to-transparent opacity-90 group-hover:opacity-100 transition-opacity" />
-                <div className="absolute bottom-0 left-0 p-4">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="text-[10px] font-bold tracking-widest text-orange-300">{item.cat}</p>
-                    <span className="text-[10px] text-stone-300">{item.subcat}</span>
-                  </div>
-                  <p className="text-white text-sm font-semibold">{item.title}</p>
-                </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}

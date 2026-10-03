@@ -2,42 +2,35 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { getStoredGalleryImages } from "@/src/utils/galleryStorage";
 
 const WHATSAPP_URL =
   "https://wa.me/916379239878?text=Hi%20Hi%205%20Creation%2C%20I'm%20interested%20in%20your%20signage%20services.%20I'd%20like%20to%20discuss%20my%20requirement.";
 
-const DEFAULT_BACKGROUND_SLIDES = [
-  "https://images.unsplash.com/photo-1765448806017-cc2c746a0f35?w=1600&h=900&fit=crop&auto=format",
-  "https://images.unsplash.com/photo-1502739423516-a7da6332f56f?w=1600&h=900&fit=crop&auto=format",
-  "https://images.unsplash.com/photo-1766038844135-97a78ec7978c?w=1600&h=900&fit=crop&auto=format",
-  "https://images.unsplash.com/photo-1784983699508-90a598476589?w=1600&h=900&fit=crop&auto=format",
+const HERO_BACKGROUND_SLIDES = [
+  {
+    src: "/assets/Lollipop Projecting Signs.png",
+    alt: "Hi5 Creation Lollipop Projecting Signs Coimbatore",
+  },
+  {
+    src: "/assets/Aluminium Channel Letters.png",
+    alt: "Hi5 Creation Aluminium Channel Letters Signage Coimbatore",
+  },
+  {
+    src: "/assets/Neon LED Signage.png",
+    alt: "Hi5 Creation Neon LED Signage Coimbatore",
+  },
+  {
+    src: "/assets/Multi Langugage Name Board.png",
+    alt: "Hi5 Creation Multi Language Name Board Coimbatore",
+  },
 ];
 
 export default function FullHeroSlider() {
-  const [bgImages, setBgImages] = useState<string[]>(DEFAULT_BACKGROUND_SLIDES);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  useEffect(() => {
-    async function loadGalleryBackgrounds() {
-      try {
-        const stored = await getStoredGalleryImages();
-        if (Array.isArray(stored) && stored.length > 0) {
-          const loadedUrls = stored
-            .map((i) => i.imageDataUrl || i.url)
-            .filter((u): u is string => Boolean(u));
-
-        }
-      } catch (err) {
-        console.error("Error loading hero background slider:", err);
-      }
-    }
-    loadGalleryBackgrounds();
-  }, []);
-
   const nextSlide = useCallback(() => {
-    setCurrentIndex((prev) => (prev + 1) % bgImages.length);
-  }, [bgImages.length]);
+    setCurrentIndex((prev) => (prev + 1) % HERO_BACKGROUND_SLIDES.length);
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -49,19 +42,21 @@ export default function FullHeroSlider() {
   return (
     <section className="relative min-h-[95vh] flex items-center bg-stone-950 text-white overflow-hidden pt-20 sm:pt-24 lg:pt-16">
       {/* Background Image Slideshow with Smooth Crossfade */}
-      {bgImages.map((src, idx) => {
+      {HERO_BACKGROUND_SLIDES.map((slide, idx) => {
         const isActive = idx === currentIndex;
         return (
           <div
-            key={src + idx}
-            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${isActive ? "opacity-100 z-0" : "opacity-0 z-0"
-              }`}
+            key={slide.src}
+            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+              isActive ? "opacity-100 z-0" : "opacity-0 z-0"
+            }`}
           >
             <img
-              src={src}
-              alt={`Hi5 Creation Custom LED Sign Boards & Storefront Facade Cladding Coimbatore - Project ${idx + 1}`}
-              className={`w-full h-full object-cover transition-transform duration-10000 ease-linear ${isActive ? "scale-105" : "scale-100"
-                }`}
+              src={slide.src}
+              alt={slide.alt}
+              className={`w-full h-full object-cover transition-transform duration-10000 ease-linear ${
+                isActive ? "scale-105" : "scale-100"
+              }`}
             />
             {/* Multi-layered dark gradient overlay for optimal text contrast */}
             <div className="absolute inset-0 bg-gradient-to-r from-stone-950/95 via-stone-950/85 to-stone-950/65" />
@@ -159,14 +154,15 @@ export default function FullHeroSlider() {
 
       {/* Slide Navigation Dots */}
       <div className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
-        {bgImages.map((_, idx) => (
+        {HERO_BACKGROUND_SLIDES.map((_, idx) => (
           <button
             key={idx}
             type="button"
             onClick={() => setCurrentIndex(idx)}
             aria-label={`Go to slide ${idx + 1}`}
-            className={`h-1.5 rounded-full transition-all duration-300 ${idx === currentIndex ? "w-6 sm:w-8 bg-orange-500" : "w-1.5 sm:w-2 bg-white/40 hover:bg-white"
-              }`}
+            className={`h-1.5 rounded-full transition-all duration-300 ${
+              idx === currentIndex ? "w-6 sm:w-8 bg-orange-500" : "w-1.5 sm:w-2 bg-white/40 hover:bg-white"
+            }`}
           />
         ))}
       </div>
