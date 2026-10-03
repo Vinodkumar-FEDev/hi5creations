@@ -5,12 +5,36 @@ import Link from "next/link";
 import { getStoredGalleryImages, StoredImage } from "@/src/utils/galleryStorage";
 
 const DEFAULT_GALLERY_ITEMS = [
-  { img: "/assets/Shop Sign Boards.png", alt: "Shop Sign Boards Coimbatore" },
-  { img: "/assets/3D Lettering Signage.png", alt: "3D Lettering Signage Coimbatore" },
-  { img: "/assets/ACP Elevation & Cladding.png", alt: "ACP Elevation & Cladding Coimbatore" },
-  { img: "/assets/Acrylic LED Sign Boards.png", alt: "Acrylic LED Sign Boards Coimbatore" },
-  { img: "/assets/Aluminium Channel Letters.png", alt: "Aluminium Channel Letters Coimbatore" },
-  { img: "/assets/Neon LED Signage.png", alt: "Neon LED Signage Coimbatore" },
+  {
+    img: "https://images.unsplash.com/photo-1765448806017-cc2c746a0f35?w=800&h=560&fit=crop&auto=format",
+    cat: "LED SIGNAGE",
+    subcat: "3D Acrylic LED",
+    span: "col-span-1 sm:col-span-2 row-span-2 min-h-[280px] sm:min-h-[380px]",
+  },
+  {
+    img: "https://images.unsplash.com/photo-1784983699508-90a598476589?w=600&h=400&fit=crop&auto=format",
+    cat: "INTERIOR BRANDING",
+    subcat: "Neon Flex",
+    span: "col-span-1 row-span-1 min-h-[180px]",
+  },
+  {
+    img: "https://images.unsplash.com/photo-1502739423516-a7da6332f56f?w=600&h=400&fit=crop&auto=format",
+    cat: "CORPORATE SIGNAGE",
+    subcat: "Acrylic Board",
+    span: "col-span-1 row-span-1 min-h-[180px]",
+  },
+  {
+    img: "https://images.unsplash.com/photo-1766038844135-97a78ec7978c?w=600&h=800&fit=crop&auto=format",
+    cat: "METAL LETTERS",
+    subcat: "Titanium 3D",
+    span: "col-span-1 row-span-2 min-h-[280px] sm:min-h-[380px]",
+  },
+  {
+    img: "https://images.unsplash.com/photo-1771773636411-89929d278a73?w=800&h=400&fit=crop&auto=format",
+    cat: "OUTDOOR SIGNAGE",
+    subcat: "ACP Elevation",
+    span: "col-span-1 sm:col-span-2 row-span-1 min-h-[180px]",
+  },
 ];
 
 export default function HomeGallerySection() {
@@ -55,7 +79,7 @@ export default function HomeGallerySection() {
           </Link>
         </div>
 
-        {/* Dynamic Image Grid — Images Only (No Overlaid Text/Name) */}
+        {/* Dynamic Image Grid — Images with Categories & Badges (Image Name Removed) */}
         {displayItems.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {displayItems.map((img) => (
@@ -66,27 +90,83 @@ export default function HomeGallerySection() {
               >
                 <img
                   src={img.imageDataUrl}
-                  alt={`${img.title || "Signage project"} by Hi5 Creation Coimbatore`}
+                  alt={`${img.category} by Hi5 Creation Coimbatore`}
                   loading="lazy"
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
+
+                {/* Automatic Brand Watermark Overlay */}
+                <div className="absolute top-3 right-3 z-10 pointer-events-none opacity-90 group-hover:opacity-100 transition-opacity">
+                  <div className="bg-stone-950/85 backdrop-blur-xs border border-orange-500/40 px-2 py-1 rounded-lg flex items-center shadow-sm">
+                    <img
+                      src="/assets/logo.svg"
+                      alt="Hi5 Creation"
+                      className="h-4 w-auto object-contain brightness-110"
+                    />
+                  </div>
+                </div>
+
+                {/* Soft Bottom Gradient for Tag Legibility */}
+                <div className="absolute inset-0 bg-gradient-to-t from-stone-950/85 via-stone-950/25 to-transparent opacity-85 group-hover:opacity-95 transition-opacity" />
+
+                {/* Category & Subcategory Badge (No Image Name / Title) */}
+                <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-5">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-bold tracking-widest text-orange-400 uppercase bg-orange-500/20 border border-orange-400/40 px-2.5 py-1 rounded-full shadow-xs">
+                      {img.category}
+                    </span>
+                    {img.subcategory && (
+                      <span className="text-[10px] font-medium tracking-wide text-stone-300 bg-stone-900/80 border border-stone-700/50 px-2.5 py-1 rounded-full">
+                        {img.subcategory}
+                      </span>
+                    )}
+                  </div>
+                </div>
               </Link>
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {DEFAULT_GALLERY_ITEMS.map((item, i) => (
               <Link
                 key={i}
                 href="/gallery"
-                className="group relative rounded-2xl overflow-hidden bg-stone-100 border border-stone-200 shadow-sm hover:shadow-xl transition-all h-72 sm:h-80 cursor-pointer block"
+                className={`${item.span} rounded-2xl overflow-hidden relative group cursor-pointer bg-stone-100 border border-stone-200 shadow-sm hover:shadow-xl transition-all block`}
               >
                 <img
                   src={item.img}
-                  alt={item.alt}
+                  alt={`${item.cat} by Hi5 Creation Coimbatore`}
                   loading="lazy"
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
+
+                {/* Automatic Brand Watermark Overlay */}
+                <div className="absolute top-3 right-3 z-10 pointer-events-none opacity-90 group-hover:opacity-100 transition-opacity">
+                  <div className="bg-stone-950/85 backdrop-blur-xs border border-orange-500/40 px-2 py-1 rounded-lg flex items-center shadow-sm">
+                    <img
+                      src="/assets/logo.svg"
+                      alt="Hi5 Creation"
+                      className="h-4 w-auto object-contain brightness-110"
+                    />
+                  </div>
+                </div>
+
+                {/* Soft Bottom Gradient for Tag Legibility */}
+                <div className="absolute inset-0 bg-gradient-to-t from-stone-950/85 via-stone-950/25 to-transparent opacity-85 group-hover:opacity-95 transition-opacity" />
+
+                {/* Category & Subcategory Badge (No Image Name / Title) */}
+                <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-5">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-bold tracking-widest text-orange-400 uppercase bg-orange-500/20 border border-orange-400/40 px-2.5 py-1 rounded-full shadow-xs">
+                      {item.cat}
+                    </span>
+                    {item.subcat && (
+                      <span className="text-[10px] font-medium tracking-wide text-stone-300 bg-stone-900/80 border border-stone-700/50 px-2.5 py-1 rounded-full">
+                        {item.subcat}
+                      </span>
+                    )}
+                  </div>
+                </div>
               </Link>
             ))}
           </div>
