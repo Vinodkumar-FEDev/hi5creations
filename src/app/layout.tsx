@@ -154,6 +154,8 @@ export default function RootLayout({
       "Hi 5 Creation Signage Studio",
       "Hi-5 Creation Coimbatore",
     ],
+    slogan: "Signage That Speaks!",
+    foundingDate: "2018",
     url: "https://hi5creation.in",
     logo: "https://hi5creation.in/assets/logo (1).svg",
     image: [
@@ -166,6 +168,25 @@ export default function RootLayout({
     priceRange: "₹₹",
     currenciesAccepted: "INR",
     paymentAccepted: "Cash, UPI, Credit Card, Debit Card, Net Banking, Cheque",
+    contactPoint: {
+      "@type": "ContactPoint",
+      telephone: "+91-6379239878",
+      contactType: "customer service",
+      areaServed: ["IN-TN", "IN-KL"],
+      availableLanguage: ["English", "Tamil"],
+    },
+    knowsAbout: [
+      "Shop Sign Board Manufacturing",
+      "LED Sign Board Design and Fabrication",
+      "3D Lettering Signage",
+      "Aluminium Channel Letters",
+      "ACP Elevation and Facade Cladding",
+      "Neon LED Signage",
+      "Pylon Signage and Totem Displays",
+      "Hospital Wayfinding and Braille Signs",
+      "Commercial Storefront Visual Branding",
+      "Architectural Signage Systems",
+    ],
     address: {
       "@type": "PostalAddress",
       streetAddress:

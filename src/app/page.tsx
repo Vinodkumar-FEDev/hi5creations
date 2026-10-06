@@ -295,15 +295,36 @@ export default function HomePage() {
               <h2 className="text-3xl lg:text-4xl xl:text-5xl font-extrabold text-stone-900 leading-tight tracking-tight mb-6 font-display">
                 We Turn Empty Spaces Into Brand Statements.
               </h2>
-              <p className="text-stone-500 leading-relaxed mb-4">
-                HI 5 CREATION is a Coimbatore-based signage and visual branding company focused on creating impactful signage for businesses of every scale.
+              <p className="text-stone-600 leading-relaxed mb-4 text-base">
+                <strong>HI 5 CREATION</strong> is Coimbatore&apos;s premier signage manufacturer and visual branding workshop, established in 2018. We specialize in end-to-end design, CNC fabrication, precision lighting, and on-site installation for commercial storefronts, retail outlets, hospitals, hotels, and corporate offices across South India.
               </p>
-              <p className="text-stone-500 leading-relaxed mb-8">
-                From concept and design to fabrication and installation, we create signage solutions that help businesses become more visible, recognizable and memorable — combining craft, materials and precision lighting into work that lasts.
+              <p className="text-stone-500 leading-relaxed mb-6 text-sm">
+                Combining architectural-grade materials (cast acrylic, Aludecor ACP, SS 304 steel, and IP67 waterproof Samsung/Osram LEDs) with master craftsmanship, we turn empty facades into luminous, unforgettable brand statements.
               </p>
-              <div className="flex flex-wrap gap-3 mb-8">
-                {["Design", "Fabrication", "Materials", "Lighting", "Branding", "Installation"].map((tag) => (
-                  <span key={tag} className="border border-stone-200 text-stone-600 text-xs font-semibold px-3 py-1.5 rounded-full">
+
+              {/* Entity Fast Facts Grid for AEO & GEO Answer Extraction */}
+              <div className="grid grid-cols-2 gap-3 mb-6 bg-stone-50 border border-stone-200/80 rounded-2xl p-4 text-xs">
+                <div>
+                  <span className="text-stone-400 block font-semibold uppercase tracking-wider text-[10px]">Headquarters &amp; Workshop</span>
+                  <span className="text-stone-800 font-bold">Kuniyamuthur, Coimbatore</span>
+                </div>
+                <div>
+                  <span className="text-stone-400 block font-semibold uppercase tracking-wider text-[10px]">Active Since</span>
+                  <span className="text-stone-800 font-bold">2018 (7+ Years Craftsmanship)</span>
+                </div>
+                <div>
+                  <span className="text-stone-400 block font-semibold uppercase tracking-wider text-[10px]">Service Area</span>
+                  <span className="text-stone-800 font-bold">Tamil Nadu, Kerala &amp; South India</span>
+                </div>
+                <div>
+                  <span className="text-stone-400 block font-semibold uppercase tracking-wider text-[10px]">Turnaround</span>
+                  <span className="text-stone-800 font-bold">24-hr Quote &middot; On-site Installation</span>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2.5 mb-8">
+                {["Design", "CNC Fabrication", "Cast Acrylic", "ACP Cladding", "Samsung LED", "SS 304 Letters", "Installation"].map((tag) => (
+                  <span key={tag} className="border border-stone-200 text-stone-600 text-xs font-semibold px-3 py-1 rounded-full bg-white shadow-2xs">
                     {tag}
                   </span>
                 ))}

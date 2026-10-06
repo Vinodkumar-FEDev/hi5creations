@@ -44,4 +44,12 @@ export const FAQ_ITEMS: FaqItem[] = [
     q: "How can I get a customized signage solution from HI5 Creation?",
     a: "HI5 Creation can develop signage based on the business type, location, available space, required dimensions, branding, material, lighting, and installation requirements. Customers can discuss their signage requirement with HI5 Creation to determine the appropriate signage type, design, materials, and installation approach.",
   },
+  {
+    q: "Where is Hi5 Creation located in Coimbatore, and how can I visit or contact them?",
+    a: "Hi5 Creation is located at No. 437, Kumaran Garden, Pooja Marbles Opp, Idayarpalayam Pirivu, Kuniyamuthur, Coimbatore, Tamil Nadu 641008. Customers can call or WhatsApp +91 63792 39878 / +91 78453 63330, or email hi5creationbe@gmail.com. Workshop hours are Monday to Saturday, 9:00 AM to 8:00 PM, with on-site consultation and installation across South India.",
+  },
+  {
+    q: "What materials, LED modules, and quality standards does Hi5 Creation use?",
+    a: "Hi5 Creation uses premium cast acrylic sheets, Aludecor architectural ACP panels, SS 304 grade stainless steel, titanium-finished 3D channel letters, and IP67-rated waterproof Samsung and Osram LED modules powered by BIS-certified outdoor power supplies. All signage is built for high heat, UV resistance, and heavy monsoon weather.",
+  },
 ];
