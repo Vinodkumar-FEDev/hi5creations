@@ -17,6 +17,29 @@ export async function generateFaviconIco() {
   }
 
   const svg = fs.readFileSync(svgPath);
+
+  // 1. Generate Google & Apple recommended PNG favicons
+  const pngSizes = [
+    { name: 'favicon-48x48.png', size: 48 },
+    { name: 'favicon-96x96.png', size: 96 },
+    { name: 'favicon-192x192.png', size: 192 },
+    { name: 'apple-touch-icon.png', size: 180 },
+  ];
+
+  for (const { name, size } of pngSizes) {
+    try {
+      const outPath = path.join(rootDir, 'public', name);
+      await sharp(svg)
+        .resize(size, size, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+        .png()
+        .toFile(outPath);
+      console.log(`✅ Generated public/${name} (${size}x${size})`);
+    } catch (err) {
+      console.warn(`Warning generating ${name}:`, err.message);
+    }
+  }
+
+  // 2. Generate multi-resolution favicon.ico (16, 32, 48)
   const sizes = [16, 32, 48];
   const images = [];
 
