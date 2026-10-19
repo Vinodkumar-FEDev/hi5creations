@@ -2,9 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-
-const WHATSAPP_URL =
-  "https://wa.me/916379239878?text=Hi%20Hi%205%20Creation%2C%20I'm%20interested%20in%20your%20signage%20services.%20I'd%20like%20to%20discuss%20my%20requirement.";
+import { useCompanyDetails } from "@/src/context/CompanyDetailsContext";
 
 const HERO_BACKGROUND_SLIDES = [
   {
@@ -26,6 +24,7 @@ const HERO_BACKGROUND_SLIDES = [
 ];
 
 export default function FullHeroSlider() {
+  const { whatsappUrl } = useCompanyDetails();
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const nextSlide = useCallback(() => {
@@ -95,7 +94,7 @@ export default function FullHeroSlider() {
           {/* CTA Buttons Strip (Responsive Mobile Layout) */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mb-10 sm:mb-16 w-full sm:w-auto">
             <a
-              href={WHATSAPP_URL}
+              href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold px-6 py-3.5 sm:px-7 sm:py-3.5 rounded-xl transition-all shadow-lg hover:shadow-orange-500/25 text-sm w-full sm:w-auto"

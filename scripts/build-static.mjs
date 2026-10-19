@@ -25,10 +25,10 @@ try {
 try {
   try {
     if (process.platform === "win32") {
-      execSync('powershell -NoProfile -Command "if (Test-Path \'.next\') { Remove-Item -Recurse -Force \'.next\' }; if (Test-Path \'out\') { Remove-Item -Recurse -Force \'out\' }"', { stdio: "ignore" });
+      execSync('powershell -NoProfile -Command "if (Test-Path \'out\') { Remove-Item -Recurse -Force \'out\' }; if (Test-Path \'.next-export\') { Remove-Item -Recurse -Force \'.next-export\' }"', { stdio: "ignore" });
     } else {
-      fs.rmSync(path.join(rootDir, ".next"), { recursive: true, force: true });
       fs.rmSync(path.join(rootDir, "out"), { recursive: true, force: true });
+      fs.rmSync(path.join(rootDir, ".next-export"), { recursive: true, force: true });
     }
   } catch (_) {}
   const apiDir = path.join(rootDir, "src", "app", "api");
@@ -59,6 +59,16 @@ try {
       fs.rmSync(tempApiDir, { recursive: true, force: true });
       console.log("✔ Restored Next.js API routes.");
     }
+  }
+
+  const exportDir = path.join(rootDir, ".next-export");
+  const outDir = path.join(rootDir, "out");
+  if (fs.existsSync(exportDir)) {
+    console.log("📦 Copying static export from .next-export to out/...");
+    if (!fs.existsSync(outDir)) {
+      fs.mkdirSync(outDir, { recursive: true });
+    }
+    fs.cpSync(exportDir, outDir, { recursive: true });
   }
 
   const publicApiDir = path.join(rootDir, "public", "api");

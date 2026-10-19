@@ -8,6 +8,7 @@ import {
   ListObjectsV2Command,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import type { CompanyDetails } from "@/src/data/companyDetails";
 
 export function cleanEnvVar(val: string | undefined): string {
   if (!val) return "";
@@ -249,3 +250,52 @@ export async function deleteS3Objects(keys: string[]): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Reads company details JSON from AWS S3
+ */
+export async function readCompanyDetailsFromS3(userId = "admin"): Promise<CompanyDetails | null> {
+  const config = validateStorageConfig();
+  if (!config.valid) return null;
+  try {
+    const key = `users/${userId}/company-details.json`;
+    const client = getStorageClient();
+    const cmd = new GetObjectCommand({ Bucket: getBucketName(), Key: key });
+    const res = await client.send(cmd);
+    const body = await res.Body?.transformToString();
+    if (body) {
+      const parsed = JSON.parse(body);
+      if (parsed && typeof parsed === "object" && parsed.email && parsed.primaryPhone) {
+        return parsed as CompanyDetails;
+      }
+    }
+  } catch (err) {
+    // File may not exist yet on initial run
+  }
+  return null;
+}
+
+/**
+ * Writes company details JSON to AWS S3
+ */
+export async function writeCompanyDetailsToS3(userId = "admin", data: CompanyDetails): Promise<boolean> {
+  const config = validateStorageConfig();
+  if (!config.valid) return false;
+  try {
+    const key = `users/${userId}/company-details.json`;
+    const client = getStorageClient();
+    const cmd = new PutObjectCommand({
+      Bucket: getBucketName(),
+      Key: key,
+      Body: JSON.stringify(data, null, 2),
+      ContentType: "application/json",
+      CacheControl: "no-cache, no-store, must-revalidate",
+    });
+    await client.send(cmd);
+    return true;
+  } catch (err) {
+    console.error("Error writing company details to S3:", err);
+    return false;
+  }
+}
+

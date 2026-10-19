@@ -1,0 +1,95 @@
+# Set directory index and prevent directory listing
+DirectoryIndex index.html index.php
+Options -Indexes
+
+<IfModule mod_mime.c>
+  AddType application/manifest+json .webmanifest
+  AddType application/json .json
+  AddType image/webp .webp
+  AddType image/svg+xml .svg
+  AddType font/woff2 .woff2
+  AddType font/woff .woff
+</IfModule>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Protect sensitive environment and config files (Apache 2.2 and 2.4 compatible)
+  <FilesMatch "^\.env">
+    <IfModule mod_authz_core.c>
+      Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+      Order allow,deny
+      Deny from all
+    </IfModule>
+  </FilesMatch>
+
+  # Prevent rewriting of static Next.js assets, public assets, and fonts
+  RewriteRule ^(_next|assets|fonts)/ - [L]
+
+  # Safe HTTPS redirect (handles direct SSL and Cloudflare / proxy SSL)
+  RewriteCond %{HTTPS} off
+  RewriteCond %{HTTP:X-Forwarded-Proto} !https
+  RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # Route API requests to PHP API handler
+  RewriteCond %{REQUEST_URI} ^/api(/.*)?$ [NC]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteRule ^api/?(.*)$ api/index.php?endpoint=$1 [QSA,L]
+
+  # Serve existing files and directories directly
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Clean URLs: map /page to /page/index.html if it exists
+  RewriteCond %{REQUEST_FILENAME}/index.html -f [OR]
+  RewriteCond %{DOCUMENT_ROOT}/$1/index.html -f
+  RewriteRule ^(.*)$ $1/index.html [L]
+
+  # Clean URLs: map /page to /page.html if it exists
+  RewriteCond %{REQUEST_FILENAME}.html -f [OR]
+  RewriteCond %{DOCUMENT_ROOT}/$1.html -f
+  RewriteRule ^(.*)$ $1.html [L]
+
+  # Client-side routing fallback (SPA)
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_URI} !^/api/ [NC]
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+# 404 fallback page
+ErrorDocument 404 /404.html
+
+# GZIP compression for fast loading
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json image/svg+xml
+</IfModule>
+
+# Asset Caching
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType image/webp "access plus 1 year"
+  ExpiresByType image/jpeg "access plus 1 year"
+  ExpiresByType image/png "access plus 1 year"
+  ExpiresByType image/svg+xml "access plus 1 year"
+  ExpiresByType text/css "access plus 1 month"
+  ExpiresByType application/javascript "access plus 1 month"
+</IfModule>
+
+# PHP Upload limits for MilesWeb gallery uploads
+<IfModule mod_php7.c>
+  php_value upload_max_filesize 64M
+  php_value post_max_size 64M
+  php_value memory_limit 256M
+  php_value max_execution_time 300
+</IfModule>
+<IfModule mod_php.c>
+  php_value upload_max_filesize 64M
+  php_value post_max_size 64M
+  php_value memory_limit 256M
+  php_value max_execution_time 300
+</IfModule>

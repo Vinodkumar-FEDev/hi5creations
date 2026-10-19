@@ -3,6 +3,8 @@ import "@/src/index.css";
 import Navbar from "@/src/components/Navbar";
 import Footer from "@/src/components/Footer";
 import FloatingWhatsApp from "@/src/components/FloatingWhatsApp";
+import TabTitleManager from "@/src/components/TabTitleManager";
+import { CompanyDetailsProvider } from "@/src/context/CompanyDetailsContext";
 
 export const viewport: Viewport = {
   themeColor: "#f97316",
@@ -356,10 +358,13 @@ export default function RootLayout({
             __html: JSON.stringify(jsonLdWebSite),
           }}
         />
-        <Navbar />
-        <div className="flex-1">{children}</div>
-        <Footer />
-        <FloatingWhatsApp />
+        <CompanyDetailsProvider>
+          <TabTitleManager />
+          <Navbar />
+          <div className="flex-1">{children}</div>
+          <Footer />
+          <FloatingWhatsApp />
+        </CompanyDetailsProvider>
       </body>
     </html>
   );

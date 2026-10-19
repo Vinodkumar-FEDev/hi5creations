@@ -227,9 +227,12 @@ export async function fetchDynamicCategories(forceRefresh = false): Promise<Cate
   if (categoriesCache && !forceRefresh) {
     return categoriesCache;
   }
-  // 1. Primary: PHP / Server API
+
+  const timestamp = Date.now();
+
+  // 1. Primary: Server API / PHP Endpoint
   try {
-    const res = await fetch("/api/categories").catch(() => null);
+    const res = await fetch(`/api/categories?t=${timestamp}`).catch(() => null);
     if (res && res.ok) {
       const contentType = res.headers.get("content-type") || "";
       if (contentType.includes("application/json")) {
@@ -242,9 +245,24 @@ export async function fetchDynamicCategories(forceRefresh = false): Promise<Cate
     }
   } catch (_) { }
 
-  // 2. Plain JS: Direct AWS S3 fetch
+  // 1b. Direct PHP file for cPanel / Apache MilesWeb hosting without mod_rewrite
   try {
-    const s3Res = await fetch(`${S3_PUBLIC_BASE}/users/admin/categories.json?t=${Date.now()}`).catch(() => null);
+    const phpRes = await fetch(`/api/categories.php?t=${timestamp}`).catch(() => null);
+    if (phpRes && phpRes.ok) {
+      const contentType = phpRes.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        const data = await phpRes.json().catch(() => null);
+        if (Array.isArray(data) && data.length > 0) {
+          categoriesCache = data;
+          return data;
+        }
+      }
+    }
+  } catch (_) { }
+
+  // 2. Direct AWS S3 cloud categories
+  try {
+    const s3Res = await fetch(`${S3_PUBLIC_BASE}/users/admin/categories.json?t=${timestamp}`).catch(() => null);
     if (s3Res && s3Res.ok) {
       const s3Data = await s3Res.json().catch(() => null);
       if (Array.isArray(s3Data) && s3Data.length > 0) {
@@ -254,7 +272,19 @@ export async function fetchDynamicCategories(forceRefresh = false): Promise<Cate
     }
   } catch (_) { }
 
-  // 3. Fallback to locally saved categories if user added any on static hosting
+  // 3. Fallback to static JSON file in assets/gallery
+  try {
+    const staticRes = await fetch(`/assets/gallery/categories.json?t=${timestamp}`).catch(() => null);
+    if (staticRes && staticRes.ok) {
+      const staticData = await staticRes.json().catch(() => null);
+      if (Array.isArray(staticData) && staticData.length > 0) {
+        categoriesCache = staticData;
+        return staticData;
+      }
+    }
+  } catch (_) { }
+
+  // 4. Fallback to locally saved categories if user added any on static hosting
   const localCats = getLocalCustomCategories();
   if (localCats && localCats.length > 0) {
     categoriesCache = localCats;

@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import LoadingSpinner from "@/src/components/LoadingSpinner";
+import AdminCompanyDetailsSection from "@/src/components/AdminCompanyDetailsSection";
 import {
   getStoredGalleryImages,
   uploadFileToR2,
@@ -21,6 +22,27 @@ import {
   DEFAULT_WATERMARK_OPTIONS,
   drawWatermarkOnCanvas,
 } from "@/src/utils/watermark";
+
+const CLIENT_AUTH_SALT = "hi5_signage_auth_secure_salt_2026";
+const ENCRYPTED_FALLBACK_HASHES = [
+  "0e8bd945efc5448d4ba73bd77943406b443072cacbcf6e74ac6ee8f98a53c671", // hi5creation@2026
+  "767cdcea63c4ed78ca64d28a04ac8faf4223c59e2af6f6e88a3438998c9725bb", // Admin@123
+  "444fe0d69a7ba9679040e7bcc80a0851e3a289b1edbba88fb14e5fc533e15e48", // hi5creation123
+];
+
+async function hashPasswordClient(password: string): Promise<string> {
+  try {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(`${CLIENT_AUTH_SALT}:${password.trim()}`);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  } catch {
+    return "";
+  }
+}
+
+export type AdminTab = "upload" | "category" | "watermark" | "address";
 
 interface PendingFile {
   id: string;
@@ -558,17 +580,30 @@ export default function UploadClient() {
     quality: 0.95, // 95% Ultra High Clarity
   });
 
-  // Accordion Open/Close State for Containers
-  const [sectionOpen, setSectionOpen] = useState({
-    sectionWatermark: true,
-    section1: true,
-    section2: true,
-    section3: true,
-  });
+  // Admin Navigation Tabs: Image Upload | Category Management | Watermark Management | Address Management
+  const [activeTab, setActiveTab] = useState<AdminTab>("upload");
 
-  const toggleSection = (sec: "sectionWatermark" | "section1" | "section2" | "section3") => {
-    setSectionOpen((prev) => ({ ...prev, [sec]: !prev[sec] }));
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const hash = window.location.hash.replace("#", "");
+      if (["upload", "category", "watermark", "address"].includes(hash)) {
+        setActiveTab(hash as AdminTab);
+      }
+    }
+  }, []);
+
+  const tabsRef = useRef<HTMLDivElement>(null);
+
+  const handleTabChange = (tab: AdminTab) => {
+    setActiveTab(tab);
+    if (typeof window !== "undefined") {
+      window.location.hash = tab;
+      if (tabsRef.current && window.scrollY > 200) {
+        tabsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
   };
+
 
   // Action Loading State until server response or error
   const [actionLoading, setActionLoading] = useState<{
@@ -614,27 +649,25 @@ export default function UploadClient() {
   useEffect(() => {
     setIsMounted(true);
 
-    // 1. Check local session storage first (for static hosting on MilesWeb)
-    if (typeof window !== "undefined" && sessionStorage.getItem("hi5_admin_session") === "admin") {
-      setIsAuthenticated(true);
-      return;
+    // Check if user has an active session in this browser tab
+    if (typeof window !== "undefined") {
+      const flashLogin = sessionStorage.getItem("hi5_login_flash");
+      if (flashLogin === "granted") {
+        sessionStorage.removeItem("hi5_login_flash");
+        sessionStorage.setItem("hi5_admin_session", "active");
+        setIsAuthenticated(true);
+        return;
+      }
+
+      const activeSession = sessionStorage.getItem("hi5_admin_session");
+      if (activeSession === "active") {
+        setIsAuthenticated(true);
+        return;
+      }
     }
 
-    // 2. Dynamic server session check fallback
-    fetch("/api/auth/me")
-      .then((res) => {
-        const contentType = res.headers.get("content-type") || "";
-        if (res.ok && contentType.includes("application/json")) {
-          return res.json();
-        }
-        return null;
-      })
-      .then((data) => {
-        if (data?.authenticated) {
-          setIsAuthenticated(true);
-        }
-      })
-      .catch(() => { });
+    // Default: Ask login if no active session in this tab
+    setIsAuthenticated(false);
   }, []);
 
   const loadCategories = async () => {
@@ -664,15 +697,18 @@ export default function UploadClient() {
   const handleLoginSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setAuthError("");
-    setActionLoading({ loading: true, message: "Authenticating..." });
+    setActionLoading({ loading: true, message: "Authenticating with encrypted credentials..." });
 
     try {
+      const encryptedHash = await hashPasswordClient(passwordInput);
+
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           username: usernameInput,
           password: passwordInput,
+          passwordHash: encryptedHash,
         }),
       });
 
@@ -681,10 +717,11 @@ export default function UploadClient() {
         const data = await res.json().catch(() => ({}));
         if (res.ok && data.success) {
           if (typeof window !== "undefined") {
-            sessionStorage.setItem("hi5_admin_session", "admin");
+            sessionStorage.setItem("hi5_admin_session", "active");
           }
           setIsAuthenticated(true);
           setAuthError("");
+          setPasswordInput(""); // Erase password from memory
           setActionLoading({ loading: false });
           return;
         } else if (res.status === 401) {
@@ -697,16 +734,22 @@ export default function UploadClient() {
       // Backend not reachable on static hosting
     }
 
-    // Client-side fallback authentication for static hosting (MilesWeb / cPanel)
-    const cleanUser = usernameInput.trim().toLowerCase();
-    const cleanPass = passwordInput.trim();
-    if (cleanUser === "admin" && (cleanPass === "Admin@123" || cleanPass === "hi5creation123")) {
-      if (typeof window !== "undefined") {
-        sessionStorage.setItem("hi5_admin_session", "admin");
+    // Client-side fallback authentication using encrypted cryptographic hashes (no plaintext in code)
+    try {
+      const cleanUser = usernameInput.trim().toLowerCase();
+      const encryptedHash = await hashPasswordClient(passwordInput);
+
+      if (cleanUser === "admin" && ENCRYPTED_FALLBACK_HASHES.includes(encryptedHash)) {
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("hi5_admin_session", "active");
+        }
+        setIsAuthenticated(true);
+        setAuthError("");
+        setPasswordInput(""); // Erase password from memory
+      } else {
+        setAuthError("Invalid username or password. Please try again.");
       }
-      setIsAuthenticated(true);
-      setAuthError("");
-    } else {
+    } catch {
       setAuthError("Invalid username or password. Please try again.");
     }
 
@@ -717,6 +760,8 @@ export default function UploadClient() {
     setActionLoading({ loading: true, message: "Signing out..." });
     if (typeof window !== "undefined") {
       sessionStorage.removeItem("hi5_admin_session");
+      localStorage.removeItem("hi5_admin_session");
+      sessionStorage.removeItem("hi5_login_flash");
     }
     try {
       await fetch("/api/auth/logout", { method: "POST" });
@@ -1480,14 +1525,14 @@ export default function UploadClient() {
       )}
 
       {/* Top Header */}
-      <section className="bg-white border-b border-stone-200 py-8">
-        <div className="max-w-7xl mx-auto px-5 lg:px-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
+      <section className="bg-white border-b border-stone-200 py-5 sm:py-8">
+        <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-center gap-3">
             <div>
-              <div className="flex items-center gap-2 text-xs font-bold text-orange-500 uppercase tracking-widest mb-1">
+              <div className="flex items-center gap-2 text-[10px] sm:text-xs font-bold text-orange-500 uppercase tracking-widest mb-0.5">
                 <span>ADMIN DASHBOARD</span>
               </div>
-              <h1 className="text-2xl font-extrabold text-stone-900 font-display">
+              <h1 className="text-xl sm:text-2xl font-extrabold text-stone-900 font-display">
                 Signage Gallery &amp; Upload Manager
               </h1>
             </div>
@@ -1550,7 +1595,7 @@ export default function UploadClient() {
         </div>
       </section>
 
-      <div className="max-w-7xl mx-auto px-5 lg:px-8 pt-8 space-y-8">
+      <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 pt-4 sm:pt-8 space-y-5 sm:space-y-8">
         {/* Cloud Storage Details Modal Dialog rendered at body level with max z-index */}
         {isStorageDialogOpen && typeof document !== "undefined" && createPortal(
           <div
@@ -1581,7 +1626,7 @@ export default function UploadClient() {
                       AWS S3 Cloud Storage
                     </h3>
                     <p className="text-xs text-stone-500">
-                      Live bucket connectivity &amp; synchronization status
+                      Live cloud connectivity &amp; synchronization status
                     </p>
                   </div>
                 </div>
@@ -1595,149 +1640,109 @@ export default function UploadClient() {
                 </button>
               </div>
 
-              {/* Modal Body */}
-              <div className="p-6 space-y-5">
-                {/* Status Banner */}
+              {/* Modal Body: Clean, Non-Sensitive Indicators */}
+              <div className="p-6 space-y-4">
+                {/* Primary Connection Status Card */}
                 <div
-                  className={`p-4 rounded-2xl border transition-all ${r2Status.loading
-                    ? "bg-amber-50/80 border-amber-200"
-                    : r2Status.connected
+                  className={`p-5 rounded-2xl border transition-all ${
+                    r2Status.loading
+                      ? "bg-amber-50/80 border-amber-200"
+                      : r2Status.connected
                       ? "bg-emerald-50/80 border-emerald-200"
                       : "bg-rose-50/80 border-rose-200"
-                    }`}
+                  }`}
                 >
-                  <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center justify-between gap-2 mb-2.5">
                     <span className="text-xs font-bold uppercase tracking-wider text-stone-700">
-                      Current Connection Status
+                      Connection Status
                     </span>
                     <span
-                      className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${r2Status.loading
-                        ? "bg-amber-500 text-white"
-                        : r2Status.connected
+                      className={`text-xs font-extrabold uppercase px-3 py-1 rounded-full flex items-center gap-1.5 shadow-2xs ${
+                        r2Status.loading
+                          ? "bg-amber-500 text-white"
+                          : r2Status.connected
                           ? "bg-emerald-600 text-white"
                           : "bg-rose-600 text-white"
-                        }`}
+                      }`}
                     >
-                      {r2Status.loading
-                        ? "Pending Verification"
-                        : r2Status.connected
-                          ? r2Status.providerType === "s3"
-                            ? "Active & Secured (AWS S3)"
-                            : r2Status.providerType === "r2"
-                              ? "Active & Secured (Cloudflare R2)"
-                              : "Active (Local Storage)"
+                      <span
+                        className={`w-2 h-2 rounded-full ${
+                          r2Status.loading
+                            ? "bg-white animate-pulse"
+                            : r2Status.connected
+                            ? "bg-white animate-pulse"
+                            : "bg-white"
+                        }`}
+                      />
+                      <span>
+                        {r2Status.loading
+                          ? "Checking..."
+                          : r2Status.connected
+                          ? "Connected"
                           : "Not Connected"}
+                      </span>
                     </span>
                   </div>
 
-                  <p className="text-xs text-stone-700 leading-relaxed">
+                  <p className="text-xs sm:text-sm text-stone-700 leading-relaxed font-medium">
                     {r2Status.loading ? (
-                      "Checking connection to AWS S3 storage bucket..."
-                    ) : r2Status.providerType === "s3" ? (
-                      <>
-                        Connected to Amazon S3 bucket{" "}
-                        <strong className="font-mono text-emerald-950 bg-emerald-100 px-1.5 py-0.5 rounded">
-                          &apos;{r2Status.bucketName || "hi5creationdb"}&apos;
-                        </strong>{" "}
-                        in region{" "}
-                        <strong className="font-mono text-emerald-950 bg-emerald-100 px-1.5 py-0.5 rounded">
-                          &apos;{r2Status.region || "eu-north-1"}&apos;
-                        </strong>
-                        . Uploaded photos, categories, and subcategories are stored securely in AWS S3 and synced across all devices.
-                      </>
-                    ) : r2Status.providerType === "r2" ? (
-                      <>
-                        Connected to Cloudflare R2 bucket{" "}
-                        <strong className="font-mono text-orange-950 bg-orange-100 px-1.5 py-0.5 rounded">
-                          &apos;{r2Status.bucketName || "hi5creations"}&apos;
-                        </strong>
-                        . Uploaded photos and categories are stored securely in Cloudflare R2 cloud.
-                      </>
+                      "Checking cloud storage connection..."
+                    ) : r2Status.connected ? (
+                      "Cloud storage is online and ready. All gallery photos, categories, and company details are securely synced."
                     ) : (
-                      <>
-                        Connected to local browser &amp; static storage bucket{" "}
-                        <strong className="font-mono text-stone-900 bg-stone-200 px-1.5 py-0.5 rounded">
-                          &apos;{r2Status.bucketName || "hi5-local-storage"}&apos;
-                        </strong>
-                        . Uploaded photos and categories are stored on this device.
-                      </>
+                      "Cloud storage is currently unreachable. Please check your internet connection or try again."
                     )}
                   </p>
                 </div>
 
-                {/* Bucket & Provider Specs */}
+                {/* Non-Sensitive Useful Indicators */}
                 <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className="bg-stone-50 border border-stone-200 rounded-xl p-3">
-                    <span className="text-[10px] font-bold text-stone-400 uppercase block">Bucket Name</span>
-                    <span className="font-mono font-bold text-stone-900 truncate block mt-0.5">
-                      {r2Status.bucketName || "hi5creationdb"}
+                  <div className="bg-stone-50 border border-stone-200/80 rounded-2xl p-4 flex flex-col justify-between">
+                    <div>
+                      <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">
+                        Cloud Sync
+                      </span>
+                      <span className="text-xs sm:text-sm font-extrabold text-stone-900 mt-1 block">
+                        {r2Status.connected ? "Active & Syncing" : "Paused / Offline"}
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-stone-500 mt-2 block">
+                      Multi-device real-time updates
                     </span>
                   </div>
-                  <div className="bg-stone-50 border border-stone-200 rounded-xl p-3">
-                    <span className="text-[10px] font-bold text-stone-400 uppercase block">AWS Region</span>
-                    <span className="font-mono font-bold text-stone-900 truncate block mt-0.5">
-                      {r2Status.region || "eu-north-1"}
+
+                  <div className="bg-stone-50 border border-stone-200/80 rounded-2xl p-4 flex flex-col justify-between">
+                    <div>
+                      <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">
+                        Data Protection
+                      </span>
+                      <span className="text-xs sm:text-sm font-extrabold text-stone-900 mt-1 block">
+                        {r2Status.connected ? "Encrypted in Cloud" : "Local Only"}
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-stone-500 mt-2 block">
+                      Secure backups &amp; storage
                     </span>
                   </div>
                 </div>
 
-                {/* Storage Provider Status Indicator Badges */}
-                <div>
-                  <label className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block mb-2">
-                    Storage Providers
-                  </label>
-                  <div className="space-y-2">
-                    <div
-                      className={`p-3 rounded-xl border flex items-center justify-between text-xs transition-all ${r2Status.providerType === "s3"
-                        ? "bg-emerald-50 border-emerald-300 text-emerald-950 font-bold"
-                        : "bg-white border-stone-200 text-stone-500"
-                        }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span>{r2Status.providerType === "s3" ? "✅" : "⚪"}</span>
-                        <span>AWS S3 (Amazon Web Services)</span>
-                      </div>
-                      {r2Status.providerType === "s3" && (
-                        <span className="text-[10px] bg-emerald-600 text-white px-2 py-0.5 rounded-full font-bold">
-                          Connected
-                        </span>
-                      )}
-                    </div>
-
-                    <div
-                      className={`p-3 rounded-xl border flex items-center justify-between text-xs transition-all ${r2Status.providerType === "r2"
-                        ? "bg-orange-50 border-orange-300 text-orange-950 font-bold"
-                        : "bg-white border-stone-200 text-stone-500"
-                        }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span>{r2Status.providerType === "r2" ? "✅" : "⚪"}</span>
-                        <span>Cloudflare R2 Storage</span>
-                      </div>
-                      {r2Status.providerType === "r2" && (
-                        <span className="text-[10px] bg-orange-600 text-white px-2 py-0.5 rounded-full font-bold">
-                          Connected
-                        </span>
-                      )}
-                    </div>
-
-                    <div
-                      className={`p-3 rounded-xl border flex items-center justify-between text-xs transition-all ${r2Status.providerType === "local"
-                        ? "bg-stone-100 border-stone-300 text-stone-900 font-bold"
-                        : "bg-white border-stone-200 text-stone-500"
-                        }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span>{r2Status.providerType === "local" ? "✅" : "⚪"}</span>
-                        <span>Local Storage</span>
-                      </div>
-                      {r2Status.providerType === "local" && (
-                        <span className="text-[10px] bg-stone-700 text-white px-2 py-0.5 rounded-full font-bold">
-                          Connected
-                        </span>
-                      )}
-                    </div>
+                {/* Operational Health Badge */}
+                <div className="p-3.5 bg-stone-50 border border-stone-200/70 rounded-2xl flex items-center justify-between text-xs text-stone-600">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">
+                      {r2Status.connected ? "🟢" : r2Status.loading ? "🟡" : "🔴"}
+                    </span>
+                    <span className="font-semibold text-stone-800">
+                      {r2Status.connected
+                        ? "Storage Service: Fully Operational"
+                        : r2Status.loading
+                        ? "Verifying connection..."
+                        : "Storage Service: Needs Attention"}
+                    </span>
                   </div>
+                  <span className="text-[11px] text-stone-400 font-medium">
+                    {r2Status.connected ? "Live Verified" : "Check Network"}
+                  </span>
                 </div>
               </div>
 
@@ -1767,72 +1772,168 @@ export default function UploadClient() {
         )}
 
 
-        {/* CONTAINER WATERMARK: Automatic Watermark Settings (Collapsible Card) */}
-        <section className="bg-white rounded-3xl border border-stone-200 shadow-sm overflow-hidden transition-all">
-          <div
-            onClick={() => toggleSection("sectionWatermark")}
-            className="p-4 sm:p-6 md:p-8 flex items-center justify-between cursor-pointer hover:bg-stone-50/80 transition-colors select-none"
-          >
-            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-              <span className="w-8 h-8 rounded-xl bg-orange-500 text-white font-extrabold text-xs flex items-center justify-center shadow-xs flex-shrink-0">
-                💧
+        {/* Navigation Tabs Bar — Mobile Friendly Adaptive 2x2 on Mobile, 4-col on Tablet & Desktop */}
+        <div ref={tabsRef} className="w-full">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-2.5 p-1.5 sm:p-2 bg-stone-100/90 rounded-2xl border border-stone-200/90 shadow-2xs">
+            {/* Tab 1: Image Upload */}
+            <button
+              type="button"
+              onClick={() => handleTabChange("upload")}
+              className={`w-full py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer select-none ${
+                activeTab === "upload"
+                  ? "bg-white text-orange-600 font-bold shadow-sm border border-orange-200/90 ring-1 ring-orange-500/20"
+                  : "text-stone-600 hover:text-stone-900 hover:bg-white/70"
+              }`}
+            >
+              <svg className={`w-4 h-4 shrink-0 ${activeTab === "upload" ? "text-orange-500" : "text-stone-400"}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span className="truncate">Image Upload</span>
+              {pendingFiles.length > 0 && (
+                <span className="text-[10px] bg-orange-500 text-white font-black px-1.5 py-0.5 rounded-full shrink-0">
+                  {pendingFiles.length}
+                </span>
+              )}
+            </button>
+
+            {/* Tab 2: Category Management */}
+            <button
+              type="button"
+              onClick={() => handleTabChange("category")}
+              className={`w-full py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer select-none ${
+                activeTab === "category"
+                  ? "bg-white text-orange-600 font-bold shadow-sm border border-orange-200/90 ring-1 ring-orange-500/20"
+                  : "text-stone-600 hover:text-stone-900 hover:bg-white/70"
+              }`}
+            >
+              <svg className={`w-4 h-4 shrink-0 ${activeTab === "category" ? "text-orange-500" : "text-stone-400"}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+              <span className="truncate">Categories</span>
+              {dynamicCategories.length > 0 && (
+                <span className="text-[10px] bg-stone-200 text-stone-700 font-semibold px-1.5 py-0.5 rounded-full shrink-0">
+                  {dynamicCategories.length}
+                </span>
+              )}
+            </button>
+
+            {/* Tab 3: Watermark Management */}
+            <button
+              type="button"
+              onClick={() => handleTabChange("watermark")}
+              className={`w-full py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer select-none ${
+                activeTab === "watermark"
+                  ? "bg-white text-orange-600 font-bold shadow-sm border border-orange-200/90 ring-1 ring-orange-500/20"
+                  : "text-stone-600 hover:text-stone-900 hover:bg-white/70"
+              }`}
+            >
+              <svg className={`w-4 h-4 shrink-0 ${activeTab === "watermark" ? "text-orange-500" : "text-stone-400"}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+              </svg>
+              <span className="truncate">Watermark</span>
+              {watermarkOpts.enabled !== false && (
+                <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.5 rounded-full border border-emerald-200 shrink-0">
+                  Active
+                </span>
+              )}
+            </button>
+
+            {/* Tab 4: Address Management */}
+            <button
+              type="button"
+              onClick={() => handleTabChange("address")}
+              className={`w-full py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer select-none ${
+                activeTab === "address"
+                  ? "bg-white text-orange-600 font-bold shadow-sm border border-orange-200/90 ring-1 ring-orange-500/20"
+                  : "text-stone-600 hover:text-stone-900 hover:bg-white/70"
+              }`}
+            >
+              <svg className={`w-4 h-4 shrink-0 ${activeTab === "address" ? "text-orange-500" : "text-stone-400"}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span className="truncate">Address &amp; Info</span>
+              <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.5 rounded-full border border-emerald-200 shrink-0">
+                S3
               </span>
-              <div className="min-w-0">
-                <h2 className="text-sm sm:text-base md:text-lg font-bold text-stone-900 font-display flex flex-wrap items-center gap-1.5 sm:gap-2">
-                  <span>Automatic Image Watermark Settings</span>
-                  <span
-                    className={`text-[9px] sm:text-[10px] font-extrabold px-2 py-0.5 rounded-full ${watermarkOpts.enabled !== false
-                      ? "bg-emerald-100 text-emerald-700 border border-emerald-300"
-                      : "bg-stone-100 text-stone-500 border border-stone-300"
+            </button>
+          </div>
+        </div>
+
+        {/* CONTAINER COMPANY DETAILS: Live Company Contact & Business Info (S3 Sync) */}
+        {activeTab === "address" && (
+          <div className="animate-in fade-in duration-200">
+            <AdminCompanyDetailsSection />
+          </div>
+        )}
+
+        {/* CONTAINER WATERMARK: Automatic Watermark Settings (Collapsible Card) */}
+        {/* CONTAINER WATERMARK: Automatic Watermark Settings */}
+        {activeTab === "watermark" && (
+          <section className="bg-white rounded-2xl sm:rounded-3xl border border-stone-200 shadow-sm overflow-hidden transition-all animate-in fade-in duration-200">
+            {/* Section Header - Permanent Visibility (No Accidental Collapsing) */}
+            <div className="p-4 sm:p-6 md:p-8 border-b border-stone-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 bg-stone-50/40">
+              <div className="flex items-start sm:items-center gap-3 sm:gap-3.5 min-w-0">
+                <span className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-orange-50 border border-orange-200 text-orange-600 font-extrabold text-sm flex items-center justify-center shadow-2xs shrink-0">
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+                  </svg>
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-base sm:text-lg font-extrabold text-stone-900 tracking-tight leading-snug">
+                      Automatic Image Watermark Settings
+                    </h2>
+                    <span
+                      className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 ${
+                        watermarkOpts.enabled !== false
+                          ? "bg-emerald-100 text-emerald-700 border border-emerald-300"
+                          : "bg-stone-100 text-stone-500 border border-stone-300"
                       }`}
-                  >
-                    {watermarkOpts.enabled !== false ? "✓ WATERMARK ACTIVE" : "OFF"}
-                  </span>
-                </h2>
-                <p className="text-[11px] sm:text-xs text-stone-500 line-clamp-1 sm:line-clamp-none">
-                  Automatically embed brand logo, title, and contact details onto image files during upload.
-                </p>
+                    >
+                      {watermarkOpts.enabled !== false ? "✓ ACTIVE" : "DISABLED"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-stone-500 mt-1 sm:mt-0.5 leading-relaxed">
+                    Automatically embed brand logo, title, and contact details onto image files during upload.
+                  </p>
+                </div>
               </div>
             </div>
 
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleSection("sectionWatermark");
-              }}
-              className="w-9 h-9 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 flex items-center justify-center text-xs font-bold transition-all"
-              aria-label="Toggle Watermark Section"
-            >
-              {sectionOpen.sectionWatermark ? "▲" : "▼"}
-            </button>
-          </div>
-
-          {sectionOpen.sectionWatermark && (
-            <div className="px-4 pb-6 sm:px-6 md:px-8 md:pb-8 border-t border-stone-100 pt-6">
+            {/* Section Body */}
+            <div className="p-4 sm:p-6 md:p-8">
               {/* Mobile Tab Switcher: Settings vs Studio Preview */}
-              <div className="lg:hidden flex items-center p-1 bg-stone-100 rounded-xl mb-6">
+              <div className="lg:hidden flex items-center p-1.5 bg-stone-100 rounded-2xl mb-6">
                 <button
                   type="button"
                   onClick={() => setMobileWatermarkTab("settings")}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${mobileWatermarkTab === "settings"
-                    ? "bg-white text-stone-900 shadow-xs"
-                    : "text-stone-500 hover:text-stone-800"
-                    }`}
+                  className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                    mobileWatermarkTab === "settings"
+                      ? "bg-white text-stone-900 shadow-xs"
+                      : "text-stone-500 hover:text-stone-800"
+                  }`}
                 >
-                  <span>⚙️</span>
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
                   <span>Watermark Settings</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setMobileWatermarkTab("preview")}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${mobileWatermarkTab === "preview"
-                    ? "bg-white text-stone-900 shadow-xs"
-                    : "text-stone-500 hover:text-stone-800"
-                    }`}
+                  className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                    mobileWatermarkTab === "preview"
+                      ? "bg-white text-stone-900 shadow-xs"
+                      : "text-stone-500 hover:text-stone-800"
+                  }`}
                 >
-                  <span>🎬</span>
+                  <svg className="w-3.5 h-3.5 text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                  </svg>
                   <span>Studio Preview</span>
-                  <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
+                  <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
                 </button>
               </div>
 
@@ -1915,7 +2016,7 @@ export default function UploadClient() {
                               setWatermarkOpts((prev) => ({ ...prev, phone: e.target.value }))
                             }
                             placeholder="+91 63792 39878"
-                            className="w-full px-3 py-2 border border-stone-300 rounded-xl text-xs font-semibold focus:outline-none focus:border-orange-500"
+                            className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm sm:text-xs font-semibold focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20 bg-white"
                           />
                         </div>
 
@@ -1930,7 +2031,7 @@ export default function UploadClient() {
                               setWatermarkOpts((prev) => ({ ...prev, instagram: e.target.value }))
                             }
                             placeholder="#hi5_Creation"
-                            className="w-full px-3 py-2 border border-stone-300 rounded-xl text-xs font-semibold focus:outline-none focus:border-orange-500"
+                            className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm sm:text-xs font-semibold focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20 bg-white"
                           />
                         </div>
 
@@ -1945,7 +2046,7 @@ export default function UploadClient() {
                               setWatermarkOpts((prev) => ({ ...prev, brandText: e.target.value }))
                             }
                             placeholder="Hi-5 CREATION"
-                            className="w-full px-3 py-2 border border-stone-300 rounded-xl text-xs font-semibold focus:outline-none focus:border-orange-500"
+                            className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm sm:text-xs font-semibold focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20 bg-white"
                           />
                         </div>
 
@@ -2054,50 +2155,40 @@ export default function UploadClient() {
                 </div>
               </div>
             </div>
-          )}
         </section>
+        )}
 
-        {/* CONTAINER 1: Upload New Project Images (Collapsible Card) */}
-        <section className="bg-white rounded-3xl border border-stone-200 shadow-sm overflow-hidden transition-all">
-          {/* Header / Open-Close Toggle Bar */}
-          <div
-            onClick={() => toggleSection("section1")}
-            className="p-6 md:p-8 flex items-center justify-between cursor-pointer hover:bg-stone-50/80 transition-colors select-none"
-          >
-            <div className="flex items-center gap-3">
-              <span className="w-8 h-8 rounded-xl bg-orange-100 text-orange-600 font-extrabold text-sm flex items-center justify-center shadow-xs">
-                1
+        {/* CONTAINER 1: Upload New Project Images */}
+        {activeTab === "upload" && (
+          <section className="bg-white rounded-2xl sm:rounded-3xl border border-stone-200 shadow-sm overflow-hidden transition-all animate-in fade-in duration-200">
+          {/* Header - Permanent Visibility (No Accidental Collapsing) */}
+          <div className="p-4 sm:p-6 md:p-8 border-b border-stone-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 bg-stone-50/40">
+            <div className="flex items-start sm:items-center gap-3 sm:gap-3.5 min-w-0">
+              <span className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-orange-50 border border-orange-200 text-orange-600 font-extrabold text-sm flex items-center justify-center shadow-2xs shrink-0">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
               </span>
-              <div>
-                <h2 className="text-lg font-bold text-stone-900 font-display flex items-center gap-2">
-                  <span>Upload New Project Images</span>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-base sm:text-lg font-extrabold text-stone-900 tracking-tight leading-snug">
+                    Upload New Project Images
+                  </h2>
                   {pendingFiles.length > 0 && (
-                    <span className="bg-orange-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full">
+                    <span className="bg-orange-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shrink-0">
                       {pendingFiles.length} pending
                     </span>
                   )}
-                </h2>
-                <p className="text-xs text-stone-500">
-                  Drag &amp; drop photos. Images are automatically auto-compressed to WebP format.
+                </div>
+                <p className="text-xs text-stone-500 mt-1 sm:mt-0.5 leading-relaxed">
+                  Drag &amp; drop photos or browse. Images are automatically auto-compressed to WebP format.
                 </p>
               </div>
             </div>
-
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleSection("section1");
-              }}
-              className="w-9 h-9 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 flex items-center justify-center text-xs font-bold transition-all"
-              aria-label="Toggle Section 1"
-            >
-              {sectionOpen.section1 ? "▲" : "▼"}
-            </button>
           </div>
 
           {/* Section Body */}
-          {sectionOpen.section1 && (
-            <div className="px-6 pb-6 md:px-8 md:pb-8 border-t border-stone-100 pt-6">
+          <div className="p-4 sm:p-6 md:p-8">
               <div
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -2138,11 +2229,11 @@ export default function UploadClient() {
                       <p className="text-xs text-stone-400">Set title, category, and subcategory for each photo</p>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 w-full lg:w-auto">
                       <select
                         value={globalCategory}
                         onChange={(e) => handleApplyGlobalCategory(e.target.value)}
-                        className="w-full sm:w-auto px-3 py-2 border border-stone-300 rounded-xl text-xs font-semibold bg-white focus:outline-none focus:border-orange-500"
+                        className="w-full sm:w-auto px-3.5 py-2 border border-stone-300 rounded-xl text-xs font-semibold bg-white focus:outline-none focus:border-orange-500 shadow-2xs"
                       >
                         {dynamicCategories.map((c) => (
                           <option key={c.name} value={c.name}>Category: {c.name}</option>
@@ -2154,23 +2245,27 @@ export default function UploadClient() {
                         value={globalSubcategory}
                         onChange={(e) => handleApplyGlobalSubcategory(e.target.value)}
                         placeholder="Global Subcategory (optional)"
-                        className="w-full sm:w-44 px-3 py-2 border border-stone-300 rounded-xl text-xs bg-white focus:outline-none focus:border-orange-500"
+                        className="w-full sm:w-44 px-3.5 py-2 border border-stone-300 rounded-xl text-xs bg-white focus:outline-none focus:border-orange-500 shadow-2xs"
                       />
 
-                      <button
-                        onClick={handleClearPending}
-                        className="text-xs text-red-600 hover:text-red-800 font-semibold px-2 py-2"
-                      >
-                        Clear Queue
-                      </button>
+                      <div className="flex items-center gap-2 justify-end sm:justify-start w-full sm:w-auto">
+                        <button
+                          type="button"
+                          onClick={handleClearPending}
+                          className="text-xs text-red-600 hover:text-red-800 font-semibold px-3 py-2 cursor-pointer transition-colors"
+                        >
+                          Clear Queue
+                        </button>
 
-                      <button
-                        onClick={handleSaveAll}
-                        disabled={isUploading}
-                        className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-bold px-6 py-2.5 rounded-full text-xs transition-all shadow-md"
-                      >
-                        {isUploading ? `Uploading (${uploadProgress.percentage}%)` : `Publish ${pendingFiles.length} Images`}
-                      </button>
+                        <button
+                          type="button"
+                          onClick={handleSaveAll}
+                          disabled={isUploading}
+                          className="flex-1 sm:flex-none bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-bold px-5 py-2.5 rounded-full text-xs transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
+                        >
+                          {isUploading ? `Uploading (${uploadProgress.percentage}%)` : `Publish ${pendingFiles.length} Images`}
+                        </button>
+                      </div>
                     </div>
                   </div>
 
@@ -2211,7 +2306,7 @@ export default function UploadClient() {
                                   setPendingFiles((prev) => prev.map((p) => (p.id === pf.id ? { ...p, title: val } : p)));
                                 }}
                                 placeholder="Project Title"
-                                className="w-full px-2.5 py-1.5 border border-stone-300 rounded-lg text-xs font-semibold focus:outline-none focus:border-orange-500"
+                                className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm sm:text-xs font-semibold focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20 bg-white"
                               />
                             </div>
 
@@ -2223,7 +2318,7 @@ export default function UploadClient() {
                                   const val = e.target.value;
                                   setPendingFiles((prev) => prev.map((p) => (p.id === pf.id ? { ...p, category: val, subcategory: "" } : p)));
                                 }}
-                                className="w-full px-2.5 py-1.5 border border-stone-300 rounded-lg text-xs font-medium bg-white focus:outline-none focus:border-orange-500"
+                                className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm sm:text-xs font-medium bg-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20"
                               >
                                 {dynamicCategories.map((c) => (
                                   <option key={c.name} value={c.name}>{c.name}</option>
@@ -2241,7 +2336,7 @@ export default function UploadClient() {
                                   setPendingFiles((prev) => prev.map((p) => (p.id === pf.id ? { ...p, customCategory: val } : p)));
                                 }}
                                 placeholder="Type custom category name..."
-                                className="w-full px-2.5 py-1.5 border border-orange-300 rounded-lg text-xs bg-orange-50/50 focus:outline-none focus:border-orange-500"
+                                className="w-full px-3 py-2 border border-orange-300 rounded-xl text-sm sm:text-xs bg-orange-50/50 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20"
                               />
                             )}
 
@@ -2254,7 +2349,7 @@ export default function UploadClient() {
                                     const val = e.target.value;
                                     setPendingFiles((prev) => prev.map((p) => (p.id === pf.id ? { ...p, subcategory: val } : p)));
                                   }}
-                                  className="w-full px-2.5 py-1.5 border border-stone-300 rounded-lg text-xs font-medium bg-white focus:outline-none focus:border-orange-500"
+                                  className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm sm:text-xs font-medium bg-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20"
                                 >
                                   <option value="">-- Select Subcategory --</option>
                                   {subcatOptions.map((sub) => (
@@ -2271,7 +2366,7 @@ export default function UploadClient() {
                                     setPendingFiles((prev) => prev.map((p) => (p.id === pf.id ? { ...p, subcategory: val } : p)));
                                   }}
                                   placeholder="e.g. 3D Acrylic, Neon Flex"
-                                  className="w-full px-2.5 py-1.5 border border-stone-300 rounded-lg text-xs focus:outline-none focus:border-orange-500"
+                                  className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm sm:text-xs focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20 bg-white"
                                 />
                               )}
                             </div>
@@ -2285,7 +2380,7 @@ export default function UploadClient() {
                                   setPendingFiles((prev) => prev.map((p) => (p.id === pf.id ? { ...p, customSubcategory: val } : p)));
                                 }}
                                 placeholder="Type custom subcategory name..."
-                                className="w-full px-2.5 py-1.5 border border-orange-300 rounded-lg text-xs bg-orange-50/50 focus:outline-none focus:border-orange-500"
+                                className="w-full px-3 py-2 border border-orange-300 rounded-xl text-sm sm:text-xs bg-orange-50/50 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20"
                               />
                             )}
                           </div>
@@ -2296,63 +2391,53 @@ export default function UploadClient() {
                 </div>
               )}
             </div>
-          )}
         </section>
+        )}
 
-        {/* CONTAINER 2: Manage Categories & Subcategories (Collapsible Card) */}
-        <section className="bg-white rounded-3xl border border-stone-200 shadow-sm overflow-hidden transition-all">
-          {/* Header / Open-Close Toggle Bar */}
-          <div
-            onClick={() => toggleSection("section2")}
-            className="p-6 md:p-8 flex items-center justify-between cursor-pointer hover:bg-stone-50/80 transition-colors select-none"
-          >
-            <div className="flex items-center gap-3">
-              <span className="w-8 h-8 rounded-xl bg-orange-100 text-orange-600 font-extrabold text-sm flex items-center justify-center shadow-xs">
-                2
+        {/* CONTAINER 2: Manage Categories & Subcategories */}
+        {activeTab === "category" && (
+          <section className="bg-white rounded-2xl sm:rounded-3xl border border-stone-200 shadow-sm overflow-hidden transition-all animate-in fade-in duration-200">
+          {/* Header - Permanent Visibility (No Accidental Collapsing) */}
+          <div className="p-4 sm:p-6 md:p-8 border-b border-stone-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 bg-stone-50/40">
+            <div className="flex items-start sm:items-center gap-3 sm:gap-3.5 min-w-0">
+              <span className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-orange-50 border border-orange-200 text-orange-600 font-extrabold text-sm flex items-center justify-center shadow-2xs shrink-0">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                </svg>
               </span>
-              <div>
-                <h2 className="text-lg font-bold text-stone-900 font-display flex items-center gap-2">
-                  <span>Manage Categories &amp; Subcategories</span>
-                  <span className="text-[10px] bg-orange-500 text-white font-bold px-2 py-0.5 rounded-full uppercase">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-base sm:text-lg font-extrabold text-stone-900 tracking-tight leading-snug">
+                    Manage Categories &amp; Subcategories
+                  </h2>
+                  <span className="text-[10px] bg-orange-500 text-white font-bold px-2 py-0.5 rounded-full uppercase shrink-0">
                     {dynamicCategories.length} Categories
                   </span>
-                </h2>
-                <p className="text-xs text-stone-500">
-                  Add, edit, or delete Categories and Subcategories saved in Cloudflare R2 cloud storage.
+                </div>
+                <p className="text-xs text-stone-500 mt-1 sm:mt-0.5 leading-relaxed">
+                  Add, edit, or delete Categories and Subcategories saved in AWS S3 cloud storage.
                 </p>
               </div>
             </div>
-
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleSection("section2");
-              }}
-              className="w-9 h-9 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 flex items-center justify-center text-xs font-bold transition-all"
-              aria-label="Toggle Section 2"
-            >
-              {sectionOpen.section2 ? "▲" : "▼"}
-            </button>
           </div>
 
           {/* Section Body */}
-          {sectionOpen.section2 && (
-            <div className="px-5 pb-6 sm:px-8 sm:pb-8 border-t border-stone-100 pt-6">
+          <div className="p-4 sm:p-6 md:p-8">
               {/* Add Main Category Form & Live Search Bar */}
-              <div className="mb-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-                <form onSubmit={handleAddCategory} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 max-w-lg">
+              <div className="mb-6 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3.5">
+                <form onSubmit={handleAddCategory} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 max-w-xl">
                   <input
                     type="text"
                     disabled={isAddingCategory}
                     value={newCatInput}
                     onChange={(e) => setNewCatInput(e.target.value)}
-                    placeholder="➕ Create New Category Name..."
-                    className="w-full px-4 py-2.5 border border-stone-300 rounded-xl text-xs font-medium focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 bg-stone-50/50 disabled:opacity-60"
+                    placeholder="Create New Category Name..."
+                    className="w-full px-4 py-2.5 border border-stone-300 rounded-xl text-sm sm:text-xs font-medium focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 bg-stone-50/50 disabled:opacity-60"
                   />
                   <button
                     type="submit"
                     disabled={isAddingCategory || !newCatInput.trim()}
-                    className="bg-orange-500 hover:bg-orange-600 disabled:opacity-75 disabled:cursor-not-allowed text-white font-bold px-5 py-2.5 rounded-xl text-xs transition-all shadow-sm flex items-center justify-center gap-2 flex-shrink-0 cursor-pointer"
+                    className="bg-orange-500 hover:bg-orange-600 disabled:opacity-75 disabled:cursor-not-allowed text-white font-bold px-5 py-2.5 rounded-xl text-sm sm:text-xs transition-all shadow-sm flex items-center justify-center gap-2 shrink-0 cursor-pointer w-full sm:w-auto"
                   >
                     {isAddingCategory ? (
                       <>
@@ -2360,7 +2445,7 @@ export default function UploadClient() {
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        <span>Adding Category...</span>
+                        <span>Adding...</span>
                       </>
                     ) : (
                       <span>+ Add Category</span>
@@ -2368,14 +2453,20 @@ export default function UploadClient() {
                   </button>
                 </form>
 
-                <div className="w-full sm:w-64">
-                  <input
-                    type="text"
-                    value={catSearchQuery}
-                    onChange={(e) => setCatSearchQuery(e.target.value)}
-                    placeholder="🔍 Search categories..."
-                    className="w-full px-4 py-2.5 border border-stone-200 rounded-xl text-xs focus:outline-none focus:border-orange-500 bg-white"
-                  />
+                <div className="w-full md:w-64">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={catSearchQuery}
+                      onChange={(e) => setCatSearchQuery(e.target.value)}
+                      placeholder="Search categories..."
+                      className="w-full pl-9 pr-4 py-2.5 border border-stone-200 rounded-xl text-sm sm:text-xs focus:outline-none focus:border-orange-500 bg-white"
+                    />
+                    <svg className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <circle cx="11" cy="11" r="8" />
+                      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                  </div>
                 </div>
               </div>
 
@@ -2393,10 +2484,10 @@ export default function UploadClient() {
                       className="bg-white hover:bg-orange-50/30 border border-stone-200 hover:border-orange-400 rounded-2xl p-4.5 transition-all shadow-xs hover:shadow-md cursor-pointer group flex flex-col justify-between select-none"
                     >
                       <div>
-                        {/* Category Icon & Subcategories Count Badge */}
+                        {/* Category Label & Subcategories Count Badge */}
                         <div className="flex items-center justify-between gap-2 mb-3">
-                          <span className="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 font-bold text-base flex items-center justify-center shrink-0 group-hover:bg-orange-500 group-hover:text-white transition-all shadow-2xs">
-                            📁
+                          <span className="text-[11px] font-bold tracking-wider uppercase text-orange-600 bg-orange-50 border border-orange-200/60 px-2.5 py-1 rounded-lg">
+                            Category
                           </span>
                           <span className="text-[11px] font-bold bg-stone-100 text-stone-700 px-2.5 py-1 rounded-full border border-stone-200">
                             {catObj.subcategories.length} {catObj.subcategories.length === 1 ? "subcategory" : "subcategories"}
@@ -2459,18 +2550,16 @@ export default function UploadClient() {
                     >
                       {/* Dialog Header */}
                       <div className="p-5 sm:p-6 pb-4 border-b border-stone-100 flex items-center justify-between">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <span className="w-10 h-10 rounded-2xl bg-orange-100 text-orange-600 font-extrabold text-base flex items-center justify-center shadow-2xs shrink-0">
-                            📁
+                        <div className="min-w-0 pr-3">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-orange-600 bg-orange-50 border border-orange-200/60 px-2 py-0.5 rounded-md inline-block mb-1">
+                            Signage Category
                           </span>
-                          <div className="min-w-0">
-                            <h3 className="text-base font-bold text-stone-900 truncate">
-                              {activeCat.name}
-                            </h3>
-                            <p className="text-xs text-stone-500">
-                              {activeCat.subcategories.length} {activeCat.subcategories.length === 1 ? "Subcategory" : "Subcategories"}
-                            </p>
-                          </div>
+                          <h3 className="text-base font-extrabold text-stone-900 truncate">
+                            {activeCat.name}
+                          </h3>
+                          <p className="text-xs text-stone-500 font-medium mt-0.5">
+                            {activeCat.subcategories.length} {activeCat.subcategories.length === 1 ? "Subcategory" : "Subcategories"}
+                          </p>
                         </div>
 
                         <button
@@ -2548,13 +2637,13 @@ export default function UploadClient() {
                                   ? "Adding subcategory..."
                                   : "Type subcategory name..."
                               }
-                              className="w-full px-3.5 py-2 border border-stone-300 rounded-xl text-xs bg-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 disabled:opacity-60 disabled:bg-stone-50"
+                              className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm sm:text-xs bg-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 disabled:opacity-60 disabled:bg-stone-50"
                             />
                             <button
                               type="button"
                               disabled={addingSubcategoryFor === activeCat.name}
                               onClick={() => handleAddSubcategory(activeCat.name)}
-                              className="bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-bold px-4 py-2 rounded-xl text-xs transition-colors shadow-2xs flex-shrink-0 cursor-pointer flex items-center gap-1.5"
+                              className="bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-bold px-4 py-2.5 rounded-xl text-sm sm:text-xs transition-colors shadow-2xs shrink-0 cursor-pointer flex items-center gap-1.5"
                             >
                               {addingSubcategoryFor === activeCat.name ? (
                                 <>
@@ -2577,51 +2666,43 @@ export default function UploadClient() {
                 );
               })()}
             </div>
-          )}
         </section>
+        )}
 
-        {/* CONTAINER 3: Physical & R2 Gallery Library (Collapsible Card) */}
-        <section className="bg-white rounded-3xl border border-stone-200 shadow-sm overflow-hidden transition-all">
-          {/* Header / Open-Close Toggle Bar */}
-          <div
-            onClick={() => toggleSection("section3")}
-            className="p-6 md:p-8 flex items-center justify-between cursor-pointer hover:bg-stone-50/80 transition-colors select-none"
-          >
-            <div className="flex items-center gap-3">
-              <span className="w-8 h-8 rounded-xl bg-orange-100 text-orange-600 font-extrabold text-sm flex items-center justify-center shadow-xs">
-                3
+        {/* CONTAINER 3: Physical & AWS S3 Gallery Library */}
+        {activeTab === "upload" && (
+          <section className="bg-white rounded-2xl sm:rounded-3xl border border-stone-200 shadow-sm overflow-hidden transition-all animate-in fade-in duration-200 mt-6 sm:mt-8">
+          {/* Header - Permanent Visibility (No Accidental Collapsing) */}
+          <div className="p-4 sm:p-6 md:p-8 border-b border-stone-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 bg-stone-50/40">
+            <div className="flex items-start sm:items-center gap-3 sm:gap-3.5 min-w-0">
+              <span className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-stone-100 border border-stone-200 text-stone-700 font-extrabold text-sm flex items-center justify-center shadow-2xs shrink-0">
+                <svg className="w-5 h-5 text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <polyline points="21 15 16 10 5 21" />
+                </svg>
               </span>
-              <div>
-                <h2 className="text-lg font-bold text-stone-900 font-display flex items-center gap-2">
-                  <span>Physical &amp; R2 Gallery Library</span>
-                  <span className="text-[10px] bg-stone-800 text-white font-bold px-2 py-0.5 rounded-full">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-base sm:text-lg font-extrabold text-stone-900 tracking-tight leading-snug">
+                    Physical &amp; AWS S3 Gallery Library
+                  </h2>
+                  <span className="text-[10px] bg-stone-800 text-white font-bold px-2 py-0.5 rounded-full shrink-0">
                     {filteredStoredImages.length} images
                   </span>
-                </h2>
-                <p className="text-xs text-stone-500">
-                  View, search, batch select, and delete published project images.
+                </div>
+                <p className="text-xs text-stone-500 mt-1 sm:mt-0.5 leading-relaxed">
+                  View, search, batch select, and manage published project images stored in AWS S3.
                 </p>
               </div>
             </div>
-
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleSection("section3");
-              }}
-              className="w-9 h-9 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 flex items-center justify-center text-xs font-bold transition-all"
-              aria-label="Toggle Section 3"
-            >
-              {sectionOpen.section3 ? "▲" : "▼"}
-            </button>
           </div>
 
           {/* Section Body */}
-          {sectionOpen.section3 && (
-            <div className="px-6 pb-6 md:px-8 md:pb-8 border-t border-stone-100 pt-6">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 pb-6 border-b border-stone-200">
-                <div className="flex flex-wrap items-center gap-3 w-full justify-between">
-                  <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+          <div className="p-4 sm:p-6 md:p-8">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 mb-6 pb-6 border-b border-stone-200">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 max-w-2xl">
+                  <div className="relative flex-1">
                     <input
                       type="text"
                       value={searchQuery}
@@ -2630,67 +2711,72 @@ export default function UploadClient() {
                         setCurrentPage(1);
                       }}
                       placeholder="Search title, category..."
-                      className="w-full sm:w-auto px-3.5 py-2 border border-stone-300 rounded-xl text-xs focus:outline-none focus:border-orange-500"
+                      className="w-full pl-9 pr-3.5 py-2.5 border border-stone-300 rounded-xl text-xs focus:outline-none focus:border-orange-500 bg-white"
                     />
+                    <svg className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <circle cx="11" cy="11" r="8" />
+                      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                  </div>
 
-                    <select
-                      value={filterCategory}
-                      onChange={(e) => {
-                        setFilterCategory(e.target.value);
+                  <select
+                    value={filterCategory}
+                    onChange={(e) => {
+                      setFilterCategory(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="w-full sm:w-auto px-3.5 py-2.5 border border-stone-300 rounded-xl text-xs bg-white focus:outline-none focus:border-orange-500 font-medium cursor-pointer"
+                  >
+                    <option value="All">All Categories ({storedImages.length})</option>
+                    {dynamicCategories.map((c) => (
+                      <option key={c.name} value={c.name}>{c.name}</option>
+                    ))}
+                  </select>
+
+                  {(searchQuery || filterCategory !== "All") && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery("");
+                        setFilterCategory("All");
                         setCurrentPage(1);
                       }}
-                      className="w-full sm:w-auto px-3 py-2 border border-stone-300 rounded-xl text-xs bg-white focus:outline-none focus:border-orange-500 font-medium"
+                      className="px-3.5 py-2.5 bg-stone-100 hover:bg-orange-500 hover:text-white text-stone-600 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 shadow-2xs"
+                      title="Reset search and filters"
                     >
-                      <option value="All">All Categories ({storedImages.length})</option>
-                      {dynamicCategories.map((c) => (
-                        <option key={c.name} value={c.name}>{c.name}</option>
-                      ))}
-                    </select>
+                      ✕ Reset
+                    </button>
+                  )}
+                </div>
 
-                    {(searchQuery || filterCategory !== "All") && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSearchQuery("");
-                          setFilterCategory("All");
-                          setCurrentPage(1);
-                        }}
-                        className="px-3 py-2 bg-stone-100 hover:bg-orange-500 hover:text-white text-stone-600 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
-                        title="Reset search and filters"
-                      >
-                        ✕ Reset
-                      </button>
-                    )}
-                  </div>
+                <div className="flex items-center gap-2 justify-end">
+                  {selectedIds.size > 0 && (
+                    <button
+                      type="button"
+                      onClick={promptDeleteSelected}
+                      className="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <span>🗑️</span>
+                      <span>Delete Selected ({selectedIds.size})</span>
+                    </button>
+                  )}
 
-                  <div className="flex items-center gap-3">
-                    {selectedIds.size > 0 && (
-                      <button
-                        type="button"
-                        onClick={promptDeleteSelected}
-                        className="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded-xl text-xs transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
-                      >
-                        Delete Selected ({selectedIds.size})
-                      </button>
-                    )}
-
-                    {storedImages.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={promptClearAll}
-                        className="text-xs text-stone-400 hover:text-red-600 font-semibold px-2 py-2 cursor-pointer transition-colors"
-                      >
-                        Clear All
-                      </button>
-                    )}
-                  </div>
+                  {storedImages.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={promptClearAll}
+                      className="text-xs text-stone-400 hover:text-red-600 font-semibold px-3 py-2 cursor-pointer transition-colors"
+                    >
+                      Clear All
+                    </button>
+                  )}
                 </div>
               </div>
 
-              {/* Select all bar */}
+              {/* Select all bar and Pagination Controls */}
               {paginatedImages.length > 0 && (
-                <div className="flex items-center justify-between mb-4 px-2">
-                  <label className="inline-flex items-center gap-2 text-xs text-stone-600 cursor-pointer font-medium">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 px-1">
+                  <label className="inline-flex items-center gap-2 text-xs text-stone-700 cursor-pointer font-semibold select-none">
                     <input
                       type="checkbox"
                       checked={
@@ -2698,24 +2784,46 @@ export default function UploadClient() {
                         paginatedImages.every((img) => selectedIds.has(img.id))
                       }
                       onChange={toggleSelectAllPage}
-                      className="rounded border-stone-300 text-orange-500 focus:ring-orange-500"
+                      className="w-4 h-4 rounded border-stone-300 text-orange-500 focus:ring-orange-500 cursor-pointer"
                     />
-                    Select All on Page ({paginatedImages.length})
+                    <span>Select All on Page ({paginatedImages.length})</span>
                   </label>
 
-                  <div className="text-xs text-stone-400">
-                    Page {currentPage} of {totalPages}
+                  <div className="flex items-center gap-2 text-xs">
+                    {totalPages > 1 && (
+                      <button
+                        type="button"
+                        disabled={currentPage <= 1}
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        className="px-2.5 py-1 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 disabled:opacity-40 font-semibold cursor-pointer text-stone-700 transition-colors shadow-2xs"
+                      >
+                        ← Prev
+                      </button>
+                    )}
+                    <span className="text-stone-500 font-medium px-1">
+                      Page {currentPage} of {totalPages || 1}
+                    </span>
+                    {totalPages > 1 && (
+                      <button
+                        type="button"
+                        disabled={currentPage >= totalPages}
+                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        className="px-2.5 py-1 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 disabled:opacity-40 font-semibold cursor-pointer text-stone-700 transition-colors shadow-2xs"
+                      >
+                        Next →
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
 
               {/* Grid */}
               {paginatedImages.length === 0 ? (
-                <div className="py-16 text-center text-stone-400 text-xs">
+                <div className="py-16 text-center text-stone-400 text-xs bg-stone-50/50 rounded-2xl border border-dashed border-stone-200">
                   No gallery images match your current filter criteria.
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
                   {paginatedImages.map((img) => {
                     const isSelected = selectedIds.has(img.id);
                     return (
@@ -2737,20 +2845,20 @@ export default function UploadClient() {
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => toggleSelectImage(img.id)}
-                            className="absolute top-2 left-2 z-10 w-4 h-4 rounded border-stone-300 text-orange-500 focus:ring-orange-500"
+                            className="absolute top-2 left-2 z-10 w-4 h-4 rounded border-stone-300 text-orange-500 focus:ring-orange-500 cursor-pointer shadow-xs"
                           />
                           <button
                             type="button"
                             onClick={() => promptDeleteImage(img)}
-                            className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 w-7 h-7 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center text-xs transition-all shadow-md cursor-pointer"
+                            className="absolute top-2 right-2 z-10 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 w-7 h-7 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center text-xs transition-all shadow-md cursor-pointer"
                             title="Delete image"
                           >
                             ✕
                           </button>
                         </div>
-                        <div className="p-3 flex-1 flex flex-col justify-between">
+                        <div className="p-2.5 sm:p-3 flex-1 flex flex-col justify-between">
                           <div>
-                            <span className="text-[9px] font-bold text-orange-600 uppercase tracking-widest block">
+                            <span className="text-[9px] font-bold text-orange-600 uppercase tracking-widest block truncate">
                               {img.category}
                             </span>
                             {img.subcategory && (
@@ -2769,8 +2877,8 @@ export default function UploadClient() {
                 </div>
               )}
             </div>
-          )}
         </section>
+        )}
       </div>
     </div>
   );

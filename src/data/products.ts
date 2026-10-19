@@ -314,20 +314,21 @@ export const INTERIOR_PRODUCTS: SignageProduct[] = [
 
   {
     id: "int-7",
-    name: "Room & Door Plaques",
+    name: "Acrylic LED Sign Boards",
     category: "interior",
-    subtitle: "Architectural Door & Office Markers",
+    subtitle: "Luminous Edge-Lit & 3D Acrylic Displays",
     description:
-      "Consistent, modular room number plates and designation markers crafted from brushed metal, frosted acrylic, and hardwood accents.",
-    image: "/assets/Room & Door Plaques.png",
+      "Crystal-clear optical-grade cast acrylic sign boards featuring precision laser-cut 3D lettering and concealed micro-LED illumination for modern reception lobbies, boutique counters, and executive suites.",
+    image: "/assets/Acrylic LED Sign Boards Indoor.png",
     specs: [
-      "Quick-Change Paper Insert",
-      "Tamper-Resistant Hardware",
-      "Brushed Metallic Anodized",
+      "Virgin Optical Cast Acrylic",
+      "Concealed Standoff / Wall Mount",
+      "Uniform Edge & Halo Illumination",
     ],
     applications:
-      "Hotels, Apartment Complexes, Corporate Campuses, Clinics",
-    galleryCategory: "Inshop Branding",
+      "Executive Receptions, Tech Offices, Dental & Medical Clinics, Luxury Spas",
+    badge: "Executive Choice",
+    galleryCategory: "Acrylic Signage",
   },
 
   {
@@ -386,20 +387,21 @@ export const INTERIOR_PRODUCTS: SignageProduct[] = [
 
   {
     id: "int-11",
-    name: "Meeting Room Privacy Sliders",
+    name: "Lollipop Projecting Signs",
     category: "interior",
-    subtitle: "Occupied / Vacant Status Indicators",
+    subtitle: "Double-Sided Corridor & Arcade Blade Signs",
     description:
-      "Executive conference room markers with smooth glide privacy sliders indicating 'In Use' or 'Available' with precision brushed aluminum frames.",
-    image: "/assets/Meeting Room Privacy Sliders.png",
+      "Double-sided illuminated circular projecting blade signs engineered with reinforced mounting brackets to capture corridor foot traffic and pedestrian sightlines across shopping arcades and commercial hallways.",
+    image: "/assets/Lollipop Projecting Signs Indoor.png",
     specs: [
-      "Precision Metal Slider",
-      "Laser-Engraved Text",
-      "Damage-Free 3M Mounting",
+      "Double-Sided 360° Visibility",
+      "Sturdy Heavy-Duty Wall Arm",
+      "Even Edge-to-Edge Backlight",
     ],
     applications:
-      "Corporate Boardrooms, Audio Studios, Private Consultation Rooms",
-    galleryCategory: "Inshop Branding",
+      "Shopping Arcades, Indoor Corridors, Coffee Shops, Boutiques, Bakeries",
+    badge: "High Footfall",
+    galleryCategory: "Lighting & Glow",
   },
 
   {
@@ -441,56 +443,59 @@ export const INTERIOR_PRODUCTS: SignageProduct[] = [
 
   {
     id: "int-14",
-    name: "Pillar & Column Brand Wraps",
+    name: "Aluminium Channel Letters",
     category: "interior",
-    subtitle: "360-Degree Brand Visual Coverage",
+    subtitle: "Architectural Indoor 3D Profile Letters",
     description:
-      "Custom curved cladding and lighted graphics fitted seamlessly around structural concrete columns in retail spaces and mall atriums.",
-    image: "/assets/interior-products.png",
+      "Lightweight precision-bent aluminium channel letters with crisp acrylic faces and energy-efficient LED modules, tailored for showroom focal walls, corporate interiors, and atrium brand displays.",
+    image: "/assets/Aluminium Channel Letters Indoor.png",
     specs: [
-      "Curved CNC Fabrication",
-      "Perimeter Halo Glow",
-      "Scratch-Resistant Coating",
+      "Powder-Coated Aluminium Returns",
+      "Cast Acrylic Face Diffusion",
+      "High-CRI Warm/Cool LED Modules",
     ],
     applications:
-      "Shopping Mall Corridors, Department Stores, Event Arenas",
-    galleryCategory: "Inshop Branding",
+      "Showrooms, Flagship Boutiques, Corporate Atriums, Retail Chains",
+    badge: "Architectural 3D",
+    galleryCategory: "LED Sign Board",
   },
 
   {
     id: "int-15",
-    name: "Directional Floor Graphics",
+    name: "Neon LED Signage",
     category: "interior",
-    subtitle: "Anti-Slip Footfall Navigation",
+    subtitle: "Custom Flexible Silicone Neon Displays",
     description:
-      "Heavy-duty anti-slip textured floor wayfinding graphics and premium brushed metal roll-up standees for flexible directional communication.",
-    image: "/assets/Directional Floor Graphics.png",
+      "Vibrant custom-crafted silicone neon LED signage delivering eye-catching brilliance, touch-safe low-voltage operation, and modern atmospheric lighting for retail spaces, cafe walls, and hospitality lounges.",
+    image: "/assets/Neon LED Signage Indoor.png",
     specs: [
-      "R10 Certified Anti-Slip",
-      "Tear-Proof Vinyl Base",
-      "Residue-Free Clean Removal",
+      "Food-Grade Silicone Tubing",
+      "Dimmable Driver & Controller",
+      "50,000+ Hours Rated Lifespan",
     ],
     applications:
-      "Trade Expos, Product Launches, Hospital Clinics, Tech Summits",
-    galleryCategory: "Inshop Branding",
+      "Cafes, Restaurants, Lounges, Creative Studios, Boutiques",
+    badge: "Trending Interior",
+    galleryCategory: "Neon & LED Boards",
   },
 
   {
     id: "int-16",
-    name: "Restroom Pictogram Markers",
+    name: "Outdoor LED Video Walls (indoor LED Video)",
     category: "interior",
-    subtitle: "High-Design Facility Identification",
+    subtitle: "High-Definition Commercial Modular Screen Displays",
     description:
-      "Minimalist 3D pictogram markers crafted from matte black acrylic, brushed champagne gold metal, or natural timber for luxury commercial interiors.",
-    image: "/assets/Restroom Pictogram Markers.png",
+      "Ultra-fine pixel pitch modular LED video walls delivering seamless bezel-free high-definition visuals, ultra-high refresh rates, and dynamic digital signage for corporate atriums, malls, and entertainment venues.",
+    image: "/assets/Indoor LED Video Walls.png",
     specs: [
-      "Minimalist Pictograms",
-      "Concealed Standoff Mount",
-      "Metallic Palette Options",
+      "Fine Pitch P1.5 to P3.9 Modules",
+      "Seamless Bezel-Free Array",
+      "Smart Cloud CMS Sync",
     ],
     applications:
-      "Luxury Restaurants, Hotel Suites, Corporate Executive Floors",
-    galleryCategory: "Inshop Branding",
+      "Corporate HQs, Atriums, Shopping Malls, Command Centers, Showrooms",
+    badge: "High Tech Display",
+    galleryCategory: "Scrolling LED & Videowall",
   },
 ];
 

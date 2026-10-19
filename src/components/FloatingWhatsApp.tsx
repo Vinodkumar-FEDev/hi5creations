@@ -1,10 +1,13 @@
-const WHATSAPP_URL =
-  "https://wa.me/916379239878?text=Hi%20Hi%205%20Creation%2C%20I'm%20interested%20in%20your%20signage%20services.%20I'd%20like%20to%20discuss%20my%20requirement.";
+"use client";
+
+import { useCompanyDetails } from "@/src/context/CompanyDetailsContext";
 
 export default function FloatingWhatsApp() {
+  const { whatsappUrl } = useCompanyDetails();
+
   return (
     <a
-      href={WHATSAPP_URL}
+      href={whatsappUrl}
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Chat on WhatsApp"

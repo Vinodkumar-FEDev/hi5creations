@@ -4,6 +4,7 @@ import HomeGallerySection from "@/src/components/HomeGallerySection";
 import HomeServicesSection from "@/src/components/HomeServicesSection";
 import FullHeroSlider from "@/src/components/FullHeroSlider";
 import HomeFaqSection from "@/src/components/HomeFaqSection";
+import HomeContactSection from "@/src/components/HomeContactSection";
 import { FAQ_ITEMS } from "@/src/data/faq";
 
 export const metadata: Metadata = {
@@ -296,31 +297,11 @@ export default function HomePage() {
                 We Turn Empty Spaces Into Brand Statements.
               </h2>
               <p className="text-stone-600 leading-relaxed mb-4 text-base">
-                <strong>HI 5 CREATION</strong> is Coimbatore&apos;s premier signage manufacturer and visual branding workshop, established in 2018. We specialize in end-to-end design, CNC fabrication, precision lighting, and on-site installation for commercial storefronts, retail outlets, hospitals, hotels, and corporate offices across South India.
+                <strong>HI 5 CREATION</strong> is a Coimbatore-based signage and visual branding company focused on creating impactful signage for businesses of every scale.
               </p>
-              <p className="text-stone-500 leading-relaxed mb-6 text-sm">
-                Combining architectural-grade materials (cast acrylic, Aludecor ACP, SS 304 steel, and IP67 waterproof Samsung/Osram LEDs) with master craftsmanship, we turn empty facades into luminous, unforgettable brand statements.
-              </p>
+              <p className="text-stone-500 leading-relaxed mb-6 text-base">
+                From concept and design to fabrication and installation, we create signage solutions that help businesses become more visible, recognizable and memorable — combining craft, materials and precision lighting into work that lasts.              </p>
 
-              {/* Entity Fast Facts Grid for AEO & GEO Answer Extraction */}
-              <div className="grid grid-cols-2 gap-3 mb-6 bg-stone-50 border border-stone-200/80 rounded-2xl p-4 text-xs">
-                <div>
-                  <span className="text-stone-400 block font-semibold uppercase tracking-wider text-[10px]">Headquarters &amp; Workshop</span>
-                  <span className="text-stone-800 font-bold">Kuniyamuthur, Coimbatore</span>
-                </div>
-                <div>
-                  <span className="text-stone-400 block font-semibold uppercase tracking-wider text-[10px]">Active Since</span>
-                  <span className="text-stone-800 font-bold">2018 (7+ Years Craftsmanship)</span>
-                </div>
-                <div>
-                  <span className="text-stone-400 block font-semibold uppercase tracking-wider text-[10px]">Service Area</span>
-                  <span className="text-stone-800 font-bold">Tamil Nadu, Kerala &amp; South India</span>
-                </div>
-                <div>
-                  <span className="text-stone-400 block font-semibold uppercase tracking-wider text-[10px]">Turnaround</span>
-                  <span className="text-stone-800 font-bold">24-hr Quote &middot; On-site Installation</span>
-                </div>
-              </div>
 
               <div className="flex flex-wrap gap-2.5 mb-8">
                 {["Design", "CNC Fabrication", "Cast Acrylic", "ACP Cladding", "Samsung LED", "SS 304 Letters", "Installation"].map((tag) => (
@@ -580,82 +561,7 @@ export default function HomePage() {
       </section>
 
       {/* CONTACT / LOCATION */}
-      <section className="py-24 lg:py-32 bg-[#faf9f7]">
-        <div className="max-w-7xl mx-auto px-5 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-16 items-start">
-            <div>
-              <p className="text-xs font-bold tracking-[0.2em] text-orange-500 uppercase mb-4">CONTACT US</p>
-              <h2 className="text-3xl lg:text-4xl xl:text-5xl font-extrabold text-stone-900 leading-tight tracking-tight mb-6 font-display">
-                Let&apos;s Build Something That Gets Noticed.
-              </h2>
-              <p className="text-stone-500 leading-relaxed mb-10">
-                Have a storefront, office, clinic, retail space or business that needs better visibility? Talk to Hi 5 Creation about your next signage project.
-              </p>
-
-              <a
-                href={WHATSAPP_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white font-semibold px-7 py-3.5 rounded-full transition-all hover:shadow-lg text-sm mb-12"
-              >
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                  <path d="M12.012 2c-5.506 0-9.989 4.478-9.989 9.984 0 1.758.459 3.474 1.33 4.982l-1.413 5.161 5.283-1.386a9.927 9.927 0 004.789 1.226h.004c5.505 0 9.988-4.478 9.988-9.984 0-2.667-1.039-5.174-2.924-7.06A9.914 9.914 0 0012.012 2zm5.828 14.195c-.244.688-1.414 1.316-1.979 1.401-.527.076-1.17.108-1.876-.118-.429-.135-.978-.318-1.68-.621-2.96-1.278-4.892-4.256-5.04-4.453-.146-.197-1.203-1.599-1.203-3.049 0-1.45.762-2.161 1.033-2.455.27-.295.589-.368.785-.368.196 0 .393.002.564.01.18.009.423-.068.662.506.245.59.835 2.04.908 2.188.074.148.123.32.025.516-.098.196-.147.319-.294.492-.147.172-.31.385-.443.518-.147.147-.301.307-.129.601.172.295.764 1.261 1.641 2.043 1.127 1.003 2.078 1.314 2.373 1.462.294.147.467.123.639-.074.172-.197.737-.86 1.031-1.154.294-.294.589-.245.884-.138.294.108 1.86.877 2.179 1.036.319.16.533.236.607.36.074.124.074.715-.17 1.403z" />
-                </svg>
-                Talk to an Expert on WhatsApp
-              </a>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div>
-                  <p className="text-xs font-bold text-stone-400 tracking-widest uppercase mb-2">Phone</p>
-                  <a href="tel:6379239878" className="block text-stone-700 hover:text-orange-500 font-medium text-sm transition-colors">+91 63792 39878</a>
-                  <a href="tel:7845363330" className="block text-stone-700 hover:text-orange-500 font-medium text-sm transition-colors">+91 78453 63330</a>
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-stone-400 tracking-widest uppercase mb-2">Email</p>
-                  <a href="mailto:hi5creationbe@gmail.com" className="text-stone-700 hover:text-orange-500 font-medium text-sm transition-colors break-all">
-                    hi5creationbe@gmail.com
-                  </a>
-                </div>
-                <div className="sm:col-span-2">
-                  <p className="text-xs font-bold text-stone-400 tracking-widest uppercase mb-2">Address</p>
-                  <address className="not-italic text-stone-600 text-sm leading-relaxed">
-                    No. 437, Kumaran Garden, Pooja Marbles Opp,<br />
-                    Idayarpalayam Pirivu, Kuniyamuthur,<br />
-                    Coimbatore – 641 008.
-                  </address>
-                </div>
-              </div>
-            </div>
-
-            {/* Map */}
-            <div>
-              <div className="rounded-2xl overflow-hidden border border-stone-200 shadow-sm aspect-[4/3] bg-stone-100">
-                <iframe
-                  title="Hi 5 Creation location map"
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3916.979037178012!2d76.9419!3d10.9912!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTDCsDU5JzI4LjMiTiA3NsKwNTYnMzEuMSJF!5e0!3m2!1sen!2sin!4v1692000000000"
-                  width="100%"
-                  height="100%"
-                  style={{ border: 0 }}
-                  allowFullScreen
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                />
-              </div>
-              <a
-                href="https://maps.google.com/?q=No.+437+Kumaran+Garden+Kuniyamuthur+Coimbatore+641008"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-orange-500 font-semibold text-sm mt-4 hover:gap-3 transition-all group"
-              >
-                Get Directions
-                <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
+      <HomeContactSection />
 
       {/* SEO FAQ SECTION (Triggers Schema.org FAQ Rich Snippets) */}
       <HomeFaqSection />

@@ -3,12 +3,12 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useCompanyDetails } from "@/src/context/CompanyDetailsContext";
 
-const WHATSAPP_URL =
-  "https://wa.me/916379239878?text=Hi%20Hi%205%20Creation%2C%20I'm%20interested%20in%20your%20signage%20services.%20I'd%20like%20to%20discuss%20my%20requirement.";
 const GOOGLE_REVIEWS_URL = "https://share.google/DioyICsZPa8S9QXpo";
 
 export default function Navbar() {
+  const { details, telPrimary, whatsappUrl } = useCompanyDetails();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
@@ -60,7 +60,7 @@ export default function Navbar() {
           {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
             <a
-              href="tel:+916379239878"
+              href={telPrimary}
               className={`flex items-center gap-1.5 transition-colors font-bold text-sm ${isTransparent
                   ? "text-white/90 hover:text-orange-400"
                   : "text-stone-800 hover:text-orange-500"
@@ -69,7 +69,7 @@ export default function Navbar() {
               <svg className="w-3.5 h-3.5 fill-current text-orange-500" viewBox="0 0 24 24">
                 <path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
               </svg>
-              +91 63792 39878
+              {details.primaryPhone}
             </a>
 
             <a
@@ -122,7 +122,7 @@ export default function Navbar() {
             </a>
 
             <a
-              href={WHATSAPP_URL}
+              href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-full text-sm font-semibold transition-all hover:shadow-md hover:shadow-orange-500/25 flex items-center gap-1.5"
@@ -137,7 +137,7 @@ export default function Navbar() {
           {/* Mobile: WhatsApp + Hamburger */}
           <div className="flex md:hidden items-center gap-3">
             <a
-              href="tel:+916379239878"
+              href={telPrimary}
               className="text-xs font-extrabold text-orange-500 bg-orange-50 px-2.5 py-1 rounded-full border border-orange-200 flex items-center gap-1"
             >
               <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
@@ -146,7 +146,7 @@ export default function Navbar() {
               Call
             </a>
             <a
-              href={WHATSAPP_URL}
+              href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="bg-orange-500 text-white p-2 rounded-full"
@@ -177,13 +177,13 @@ export default function Navbar() {
       {menuOpen && (
         <div className="md:hidden bg-stone-950 text-white border-t border-stone-800 px-5 py-4 flex flex-col gap-4">
           <a
-            href="tel:+916379239878"
+            href={telPrimary}
             className="flex items-center gap-2 text-orange-400 font-extrabold text-sm"
           >
             <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
               <path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
             </svg>
-            +91 63792 39878
+            {details.primaryPhone}
           </a>
           <a
             href={GOOGLE_REVIEWS_URL}

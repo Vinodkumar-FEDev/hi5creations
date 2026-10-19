@@ -9,7 +9,7 @@ const nextConfig = {
     NEXT_PUBLIC_AWS_REGION: process.env.NEXT_PUBLIC_AWS_REGION || process.env.AWS_REGION || "eu-north-1",
     NEXT_PUBLIC_R2_BUCKET_NAME: process.env.R2_BUCKET_NAME || "",
   },
-  ...(isStaticExport ? { output: "export", trailingSlash: true } : {}),
+  ...(isStaticExport ? { output: "export", trailingSlash: true, distDir: ".next-export" } : {}),
   images: {
     unoptimized: true,
     remotePatterns: [

@@ -1,6 +1,10 @@
+"use client";
+
 import Link from "next/link";
+import { useCompanyDetails } from "@/src/context/CompanyDetailsContext";
 
 export default function Footer() {
+  const { details, telPrimary, telSecondary } = useCompanyDetails();
   return (
     <footer className="bg-stone-950 text-white pt-16 pb-8">
       <div className="max-w-7xl mx-auto px-5 lg:px-8">
@@ -53,14 +57,19 @@ export default function Footer() {
           <div>
             <h3 className="text-xs font-semibold text-stone-400 uppercase tracking-widest mb-5">Contact</h3>
             <div className="space-y-3 text-sm text-stone-400">
-              <a href="tel:6379239878" className="block hover:text-orange-400 transition-colors">+91 63792 39878</a>
-              <a href="tel:7845363330" className="block hover:text-orange-400 transition-colors">+91 78453 63330</a>
-              <a href="mailto:hi5creationbe@gmail.com" className="block hover:text-orange-400 transition-colors">hi5creationbe@gmail.com</a>
-              <address className="not-italic leading-relaxed text-stone-500 mt-4">
-                No. 437, Kumaran Garden,<br />
-                Pooja Marbles Opp,<br />
-                Idayarpalayam Pirivu,<br />
-                Kuniyamuthur, Coimbatore – 641 008.
+              <a href={telPrimary} className="block hover:text-orange-400 transition-colors">
+                {details.primaryPhone}
+              </a>
+              {details.secondaryPhone && telSecondary && (
+                <a href={telSecondary} className="block hover:text-orange-400 transition-colors">
+                  {details.secondaryPhone}
+                </a>
+              )}
+              <a href={`mailto:${details.email}`} className="block hover:text-orange-400 transition-colors break-all">
+                {details.email}
+              </a>
+              <address className="not-italic leading-relaxed text-stone-400 mt-4 whitespace-pre-line text-xs sm:text-sm">
+                {details.address}
               </address>
             </div>
           </div>

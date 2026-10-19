@@ -2,18 +2,21 @@
 
 import React, { useState } from "react";
 import { FAQ_ITEMS } from "@/src/data/faq";
+import { useCompanyDetails } from "@/src/context/CompanyDetailsContext";
 
 export { FAQ_ITEMS };
 
-const WHATSAPP_URL =
-  "https://wa.me/916379239878?text=Hi%20Hi%205%20Creation%2C%20I%20have%20a%20question%20regarding%20signage%20and%20LED%20boards.";
-
 export default function HomeFaqSection() {
+  const { details, getWhatsAppUrlWithText } = useCompanyDetails();
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   const toggleFaq = (idx: number) => {
     setOpenIndex(openIndex === idx ? null : idx);
   };
+
+  const faqWhatsAppUrl = getWhatsAppUrlWithText(
+    "Hi Hi 5 Creation, I have a question regarding signage and LED boards."
+  );
 
   return (
     <section id="faq" className="py-20 lg:py-28 bg-white border-t border-stone-200/80">
@@ -39,7 +42,7 @@ export default function HomeFaqSection() {
                 Speak directly with our fabrication engineers for technical advice and pricing.
               </p>
               <a
-                href={WHATSAPP_URL}
+                href={faqWhatsAppUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold px-5 py-2.5 rounded-full text-xs sm:text-sm transition-all hover:shadow-md"
@@ -99,7 +102,11 @@ export default function HomeFaqSection() {
 
                   {isOpen && (
                     <div className="pl-10 sm:pl-13 pr-6 pb-6 text-stone-600 text-sm sm:text-base leading-relaxed animate-fade-up">
-                      <p>{item.a}</p>
+                      <p>
+                        {item.q.toLowerCase().includes("located")
+                          ? `Hi5 Creation is located at ${details.address} Customers can call or WhatsApp ${details.primaryPhone}${details.secondaryPhone ? ` / ${details.secondaryPhone}` : ""}, or email ${details.email}. Workshop hours are Monday to Saturday, 9:00 AM to 8:00 PM, with on-site consultation and installation across South India.`
+                          : item.a}
+                      </p>
                     </div>
                   )}
                 </div>

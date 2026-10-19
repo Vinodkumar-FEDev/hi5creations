@@ -45,7 +45,7 @@ export default function HomeGallerySection() {
     setIsMounted(true);
     getStoredGalleryImages()
       .then((data) => setImages(data))
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const displayItems = images.length > 0 ? images.slice(0, 6) : [];
@@ -62,7 +62,7 @@ export default function HomeGallerySection() {
               Real Signage &amp; Branding Projects
             </h2>
           </div>
-          <Link
+          {/* <Link
             href="/gallery"
             className="inline-flex items-center gap-2 border border-stone-300 text-stone-700 hover:border-orange-400 hover:text-orange-500 font-semibold px-6 py-3 rounded-full transition-all text-sm group"
           >
@@ -76,7 +76,7 @@ export default function HomeGallerySection() {
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
             </svg>
-          </Link>
+          </Link> */}
         </div>
 
         {/* Dynamic Image Grid — Images with Categories & Badges (Image Name Removed) */}

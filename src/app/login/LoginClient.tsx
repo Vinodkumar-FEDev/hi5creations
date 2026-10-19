@@ -4,6 +4,20 @@ import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+const CLIENT_AUTH_SALT = "hi5_signage_auth_secure_salt_2026";
+
+async function hashPasswordClient(password: string): Promise<string> {
+  try {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(`${CLIENT_AUTH_SALT}:${password.trim()}`);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  } catch {
+    return "";
+  }
+}
+
 export default function LoginClient() {
   const router = useRouter();
   const [username, setUsername] = useState("");
@@ -17,15 +31,24 @@ export default function LoginClient() {
     setIsLoading(true);
 
     try {
+      const encryptedHash = await hashPasswordClient(password);
+
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({
+          username,
+          password,
+          passwordHash: encryptedHash,
+        }),
       });
 
       const data = await res.json();
 
       if (res.ok && data.success) {
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("hi5_login_flash", "granted");
+        }
         router.push("/gallery/upload");
       } else {
         setErrorMsg(data.error || "Invalid credentials. Please try again.");

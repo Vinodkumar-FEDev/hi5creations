@@ -4,10 +4,10 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { EXTERIOR_PRODUCTS, INTERIOR_PRODUCTS, SignageProduct } from "@/src/data/products";
-
-const WHATSAPP_BASE = "https://wa.me/916379239878?text=";
+import { useCompanyDetails } from "@/src/context/CompanyDetailsContext";
 
 export default function ProductsClient() {
+  const { details, telPrimary, getWhatsAppUrlWithText } = useCompanyDetails();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
 
@@ -37,10 +37,9 @@ export default function ProductsClient() {
   });
 
   const getWhatsAppProductUrl = (product: SignageProduct) => {
-    const text = encodeURIComponent(
+    return getWhatsAppUrlWithText(
       `Hi Hi 5 Creation, I would like to inquire about ${product.name} (${product.subtitle}). Could you share estimated pricing, material options and fabrication timelines?`
     );
-    return `${WHATSAPP_BASE}${text}`;
   };
 
   return (
@@ -296,7 +295,9 @@ export default function ProductsClient() {
 
             <div className="flex flex-wrap items-center gap-4">
               <a
-                href="https://wa.me/916379239878?text=Hi%20Hi%205%20Creation%2C%20I%20have%20a%20custom%20signage%20project%20and%20need%20a%20quotation."
+                href={getWhatsAppUrlWithText(
+                  "Hi Hi 5 Creation, I have a custom signage project and need a quotation."
+                )}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-7 py-3 rounded-full text-sm transition-all hover:shadow-lg hover:shadow-orange-500/25 inline-flex items-center gap-2"
@@ -308,10 +309,10 @@ export default function ProductsClient() {
               </a>
 
               <a
-                href="tel:+916379239878"
+                href={telPrimary}
                 className="border border-stone-700 hover:border-stone-500 text-stone-300 hover:text-white font-semibold px-6 py-3 rounded-full text-sm transition-all"
               >
-                Call: +91 63792 39878
+                Call: {details.primaryPhone}
               </a>
             </div>
           </div>
