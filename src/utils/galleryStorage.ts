@@ -20,7 +20,28 @@ export interface StoredImage {
 export interface CategoryData {
   name: string;
   subcategories: string[];
+  imageUrl?: string;
 }
+
+export const DEFAULT_CATEGORY_IMAGES: Record<string, string> = {
+  "Vinyl Sign Boards": "/assets/Shop Sign Boards.png",
+  "Building Signage": "/assets/Building Identity Signage.png",
+  "Neon & LED Boards": "/assets/Neon LED Signage.png",
+  "Acrylic Signage": "/assets/Acrylic LED Sign Boards.png",
+  "Lighting & Glow": "/assets/Glow Sign Boards.png",
+  "LED Sign Board": "/assets/Shop Sign Boards.png",
+  "ACP Elevation": "/assets/ACP Elevation & Cladding.png",
+  "Trimcap Letters": "/assets/Aluminium Channel Letters.png",
+  "Multicolor LED Board": "/assets/Indoor LED Video Walls.png",
+  "Pole Sign Board": "/assets/Pylon & Monolith Signage.png",
+  "Inshop Branding": "/assets/Reception & Lobby Boards.png",
+  "Backlight Board": "/assets/Frameless Fabric Lightboxes (SEG).png",
+  "Acrylic & ACP Board": "/assets/Acrylic LED Sign Boards Indoor.png",
+  "Totem Pylon Board": "/assets/Indoor Totem Directories.png",
+  "Programming LED Board": "/assets/LED Message Tickers.png",
+  "Scrolling LED & Videowall": "/assets/Outdoor LED Video Walls.png",
+  "SS & Titanium Letters": "/assets/SS & Titanium 3D Letters.png",
+};
 
 export const MAX_GALLERY_IMAGES = 2000;
 
@@ -223,6 +244,14 @@ const S3_PUBLIC_BASE = `https://${S3_BUCKET_NAME}.s3.${S3_REGION}.amazonaws.com`
 
 let categoriesCache: CategoryData[] | null = null;
 
+export function normalizeCategoryData(cats: CategoryData[]): CategoryData[] {
+  return cats.map((cat) => ({
+    name: cat.name,
+    subcategories: Array.isArray(cat.subcategories) ? cat.subcategories : [],
+    imageUrl: cat.imageUrl || DEFAULT_CATEGORY_IMAGES[cat.name] || "/assets/Shop Sign Boards.png",
+  }));
+}
+
 export async function fetchDynamicCategories(forceRefresh = false): Promise<CategoryData[]> {
   if (categoriesCache && !forceRefresh) {
     return categoriesCache;
@@ -238,8 +267,9 @@ export async function fetchDynamicCategories(forceRefresh = false): Promise<Cate
       if (contentType.includes("application/json")) {
         const data = await res.json().catch(() => null);
         if (Array.isArray(data) && data.length > 0) {
-          categoriesCache = data;
-          return data;
+          const normalized = normalizeCategoryData(data);
+          categoriesCache = normalized;
+          return normalized;
         }
       }
     }
@@ -253,8 +283,9 @@ export async function fetchDynamicCategories(forceRefresh = false): Promise<Cate
       if (contentType.includes("application/json")) {
         const data = await phpRes.json().catch(() => null);
         if (Array.isArray(data) && data.length > 0) {
-          categoriesCache = data;
-          return data;
+          const normalized = normalizeCategoryData(data);
+          categoriesCache = normalized;
+          return normalized;
         }
       }
     }
@@ -266,8 +297,9 @@ export async function fetchDynamicCategories(forceRefresh = false): Promise<Cate
     if (s3Res && s3Res.ok) {
       const s3Data = await s3Res.json().catch(() => null);
       if (Array.isArray(s3Data) && s3Data.length > 0) {
-        categoriesCache = s3Data;
-        return s3Data;
+        const normalized = normalizeCategoryData(s3Data);
+        categoriesCache = normalized;
+        return normalized;
       }
     }
   } catch (_) { }
@@ -278,8 +310,9 @@ export async function fetchDynamicCategories(forceRefresh = false): Promise<Cate
     if (staticRes && staticRes.ok) {
       const staticData = await staticRes.json().catch(() => null);
       if (Array.isArray(staticData) && staticData.length > 0) {
-        categoriesCache = staticData;
-        return staticData;
+        const normalized = normalizeCategoryData(staticData);
+        categoriesCache = normalized;
+        return normalized;
       }
     }
   } catch (_) { }
@@ -287,12 +320,14 @@ export async function fetchDynamicCategories(forceRefresh = false): Promise<Cate
   // 4. Fallback to locally saved categories if user added any on static hosting
   const localCats = getLocalCustomCategories();
   if (localCats && localCats.length > 0) {
-    categoriesCache = localCats;
-    return localCats;
+    const normalized = normalizeCategoryData(localCats);
+    categoriesCache = normalized;
+    return normalized;
   }
 
-  categoriesCache = DEFAULT_CATEGORY_DATA;
-  return DEFAULT_CATEGORY_DATA;
+  const defaultNormalized = normalizeCategoryData(DEFAULT_CATEGORY_DATA);
+  categoriesCache = defaultNormalized;
+  return defaultNormalized;
 }
 
 /**

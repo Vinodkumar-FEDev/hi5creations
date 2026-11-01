@@ -14,6 +14,7 @@ import {
   clearAllStoredImages,
   StoredImage,
   CategoryData,
+  DEFAULT_CATEGORY_IMAGES,
   fetchDynamicCategories,
   saveLocalCustomCategories,
 } from "@/src/utils/galleryStorage";
@@ -277,7 +278,7 @@ function WatermarkPreviewCanvas({ options }: { options: WatermarkOptions }) {
       logoImg.onerror = () => {
         drawWatermarkOnCanvas(ctx, width, height, options);
       };
-      logoImg.src = options.logoUrl || "/assets/logo.png";
+      logoImg.src = encodeURI(options.logoUrl || "/assets/New Watermark.png");
     } else {
       // Disabled notice badge
       ctx.save();
@@ -572,7 +573,7 @@ export default function UploadClient() {
     phone: "+91 63792 39878",
     instagram: "#hi5_Creation",
     brandText: "",
-    logoUrl: "/assets/logo.png",
+    logoUrl: "/assets/New Watermark.png",
     position: "corners",
     style: "corners",
     opacity: 0.9,
@@ -612,19 +613,38 @@ export default function UploadClient() {
   }>({ loading: false });
 
   const [newCatInput, setNewCatInput] = useState("");
+  const [newCatImageFile, setNewCatImageFile] = useState<File | null>(null);
+  const [newCatImagePreview, setNewCatImagePreview] = useState<string | null>(null);
+  const newCatImageInputRef = useRef<HTMLInputElement>(null);
   const [catSearchQuery, setCatSearchQuery] = useState("");
   const [subCatInputs, setSubCatInputs] = useState<Record<string, string>>({});
   const [selectedCategoryModal, setSelectedCategoryModal] = useState<string | null>(null);
+  const [editingCategoryImage, setEditingCategoryImage] = useState<{
+    categoryName: string;
+    currentImageUrl?: string;
+  } | null>(null);
+  const [editCatImageFile, setEditCatImageFile] = useState<File | null>(null);
+  const [editCatImagePreview, setEditCatImagePreview] = useState<string | null>(null);
+  const editCatImageInputRef = useRef<HTMLInputElement>(null);
+  const [isUpdatingCatImage, setIsUpdatingCatImage] = useState(false);
+  const [isAddCatExpanded, setIsAddCatExpanded] = useState(true);
 
-  // Escape key closes Category Subcategories Dialog
+  // Escape key closes Category Subcategories Dialog or Update Image Dialog
   useEffect(() => {
-    if (!selectedCategoryModal) return;
+    if (!selectedCategoryModal && !editingCategoryImage) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setSelectedCategoryModal(null);
+      if (e.key === "Escape") {
+        setSelectedCategoryModal(null);
+        if (!isUpdatingCatImage) {
+          setEditingCategoryImage(null);
+          setEditCatImageFile(null);
+          setEditCatImagePreview(null);
+        }
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedCategoryModal]);
+  }, [selectedCategoryModal, editingCategoryImage, isUpdatingCatImage]);
 
   const [globalCategory, setGlobalCategory] = useState("");
   const [globalSubcategory, setGlobalSubcategory] = useState("");
@@ -788,18 +808,38 @@ export default function UploadClient() {
     if (!name || isAddingCategory) return;
 
     setIsAddingCategory(true);
-    setActionLoading({ loading: true, message: `Adding Category "${name}" to AWS S3...` });
+    setActionLoading({
+      loading: true,
+      message: newCatImageFile
+        ? `Uploading image & adding Category "${name}"...`
+        : `Adding Category "${name}"...`,
+    });
     try {
-      const res = await fetch("/api/categories", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "add_category", categoryName: name }),
-      });
+      let res: Response;
+      if (newCatImageFile) {
+        const formData = new FormData();
+        formData.append("action", "add_category");
+        formData.append("categoryName", name);
+        formData.append("file", newCatImageFile);
+        res = await fetch("/api/categories", {
+          method: "POST",
+          body: formData,
+        });
+      } else {
+        res = await fetch("/api/categories", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "add_category", categoryName: name }),
+        });
+      }
+
       const contentType = res.headers.get("content-type") || "";
       if (contentType.includes("application/json")) {
         const data = await res.json().catch(() => ({}));
         if (res.ok && data.success) {
           setNewCatInput("");
+          setNewCatImageFile(null);
+          setNewCatImagePreview(null);
           showToast("success", `Category "${name}" added successfully!`);
           await loadCategories();
           return;
@@ -809,11 +849,13 @@ export default function UploadClient() {
       // Static Hosting / LocalStorage fallback
       const currentCats = await fetchDynamicCategories(true);
       if (!currentCats.some((c) => c.name.toLowerCase() === name.toLowerCase())) {
-        // Prepend new category so latest appears on top
-        const updated = [{ name, subcategories: [] }, ...currentCats];
+        const fallbackImg = newCatImagePreview || DEFAULT_CATEGORY_IMAGES[name] || "/assets/Shop Sign Boards.png";
+        const updated = [{ name, subcategories: [], imageUrl: fallbackImg }, ...currentCats];
         saveLocalCustomCategories(updated);
         setDynamicCategories(updated);
         setNewCatInput("");
+        setNewCatImageFile(null);
+        setNewCatImagePreview(null);
         showToast("success", `Category "${name}" added successfully!`);
       } else {
         showToast("info", `Category "${name}" already exists.`);
@@ -826,6 +868,63 @@ export default function UploadClient() {
     }
   };
 
+  const handleUpdateCategoryImage = async (categoryName: string, file: File): Promise<boolean> => {
+    if (!file) return false;
+    setActionLoading({
+      loading: true,
+      message: `Uploading & saving category image for "${categoryName}"...`,
+    });
+    try {
+      const formData = new FormData();
+      formData.append("action", "update_category_image");
+      formData.append("categoryName", categoryName);
+      formData.append("file", file);
+
+      const res = await fetch("/api/categories", {
+        method: "POST",
+        body: formData,
+      });
+
+      const contentType = res.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
+          showToast("success", `Image for "${categoryName}" updated successfully!`);
+          await loadCategories();
+          return true;
+        }
+      }
+
+      // LocalStorage / Data URL Fallback
+      return new Promise<boolean>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = async () => {
+          const dataUrl = reader.result as string;
+          const currentCats = await fetchDynamicCategories(true);
+          const updated = currentCats.map((c) =>
+            c.name.toLowerCase() === categoryName.toLowerCase()
+              ? { ...c, imageUrl: dataUrl }
+              : c
+          );
+          saveLocalCustomCategories(updated);
+          setDynamicCategories(updated);
+          showToast("success", `Image for "${categoryName}" updated!`);
+          resolve(true);
+        };
+        reader.onerror = () => {
+          showToast("error", `Failed to read image file.`);
+          resolve(false);
+        };
+        reader.readAsDataURL(file);
+      });
+    } catch (_) {
+      showToast("error", `Failed to upload image for category "${categoryName}".`);
+      return false;
+    } finally {
+      setActionLoading({ loading: false });
+    }
+  };
+
   const promptDeleteCategory = (categoryName: string) => {
     const cat = dynamicCategories.find((c) => c.name === categoryName);
     const subCount = cat?.subcategories?.length || 0;
@@ -833,8 +932,8 @@ export default function UploadClient() {
       type: "category",
       title: `Delete Category "${categoryName}"`,
       description: subCount > 0
-        ? `Are you sure you want to permanently delete category "${categoryName}" and all of its ${subCount} subcategory items from AWS S3 cloud storage?`
-        : `Are you sure you want to permanently delete category "${categoryName}" from AWS S3 cloud storage?`,
+        ? `Are you sure you want to permanently delete category "${categoryName}" and all of its ${subCount} subcategory items?`
+        : `Are you sure you want to permanently delete category "${categoryName}"?`,
       categoryName,
     });
   };
@@ -896,7 +995,7 @@ export default function UploadClient() {
     setDeleteConfirm({
       type: "subcategory",
       title: `Delete Subcategory "${subcategoryName}"`,
-      description: `Are you sure you want to delete subcategory "${subcategoryName}" under category "${categoryName}" from AWS S3 cloud storage?`,
+      description: `Are you sure you want to delete subcategory "${subcategoryName}" under category "${categoryName}"?`,
       categoryName,
       subcategoryName,
     });
@@ -1047,7 +1146,7 @@ export default function UploadClient() {
     setDeleteConfirm({
       type: "image",
       title: `Delete Photo "${img.title}"`,
-      description: `Are you sure you want to permanently delete this signage project photo from AWS S3 cloud storage?`,
+      description: `Are you sure you want to permanently delete this signage project photo? This action cannot be undone.`,
       imageId: img.id || img.key,
       imageTitle: img.title,
       imageThumbnail: img.imageDataUrl,
@@ -1061,7 +1160,7 @@ export default function UploadClient() {
     setDeleteConfirm({
       type: "selected-images",
       title: `Delete ${selectedIds.size} Selected Images`,
-      description: `Are you sure you want to permanently delete ${selectedIds.size} selected image(s) from AWS S3 cloud storage? This action cannot be undone.`,
+      description: `Are you sure you want to permanently delete ${selectedIds.size} selected image(s)? This action cannot be undone.`,
       count: selectedIds.size,
     });
   };
@@ -1071,7 +1170,7 @@ export default function UploadClient() {
     setDeleteConfirm({
       type: "clear-all",
       title: "Clear All Gallery Images",
-      description: `WARNING: This will permanently delete ALL ${storedImages.length} gallery images from AWS S3 cloud storage and local disks. This action cannot be undone.`,
+      description: `WARNING: This will permanently delete ALL ${storedImages.length} gallery images. This action cannot be undone.`,
       count: storedImages.length,
     });
   };
@@ -1083,7 +1182,7 @@ export default function UploadClient() {
     try {
       if (deleteConfirm.type === "category" && deleteConfirm.categoryName) {
         const catName = deleteConfirm.categoryName;
-        setActionLoading({ loading: true, message: `Deleting Category "${catName}" from AWS S3...` });
+        setActionLoading({ loading: true, message: `Deleting Category "${catName}"...` });
         try {
           const res = await fetch("/api/categories", {
             method: "DELETE",
@@ -1116,7 +1215,7 @@ export default function UploadClient() {
       } else if (deleteConfirm.type === "subcategory" && deleteConfirm.categoryName && deleteConfirm.subcategoryName) {
         const catName = deleteConfirm.categoryName;
         const subName = deleteConfirm.subcategoryName;
-        setActionLoading({ loading: true, message: `Deleting Subcategory "${subName}" from AWS S3...` });
+        setActionLoading({ loading: true, message: `Deleting Subcategory "${subName}"...` });
         try {
           const res = await fetch("/api/categories", {
             method: "DELETE",
@@ -1154,7 +1253,7 @@ export default function UploadClient() {
         showToast("info", `Subcategory "${subName}" deleted.`);
       } else if (deleteConfirm.type === "image" && deleteConfirm.imageId) {
         const imgId = deleteConfirm.imageId;
-        setActionLoading({ loading: true, message: "Deleting photo from AWS S3 cloud storage..." });
+        setActionLoading({ loading: true, message: "Deleting photo..." });
         const success = await deleteStoredImage(imgId);
         if (success) {
           showToast("info", "Image deleted successfully.");
@@ -1164,7 +1263,7 @@ export default function UploadClient() {
         }
       } else if (deleteConfirm.type === "selected-images") {
         const count = selectedIds.size;
-        setActionLoading({ loading: true, message: `Deleting ${count} selected image(s) from AWS S3...` });
+        setActionLoading({ loading: true, message: `Deleting ${count} selected image(s)...` });
         const success = await deleteMultipleStoredImages(Array.from(selectedIds));
         if (success) {
           showToast("info", `Deleted ${count} image(s).`);
@@ -1174,7 +1273,7 @@ export default function UploadClient() {
           showToast("error", "Failed to delete selected images.");
         }
       } else if (deleteConfirm.type === "clear-all") {
-        setActionLoading({ loading: true, message: "Clearing all gallery images from AWS S3..." });
+        setActionLoading({ loading: true, message: "Clearing all gallery images..." });
         const success = await clearAllStoredImages();
         if (success) {
           showToast("info", "All gallery images have been cleared.");
@@ -1487,23 +1586,21 @@ export default function UploadClient() {
           className="fixed top-6 right-6 z-[100002] max-w-sm sm:max-w-md w-full pointer-events-auto transition-all duration-300 animate-in slide-in-from-top-4 fade-in-50"
         >
           <div
-            className={`p-4 rounded-2xl shadow-2xl backdrop-blur-md border flex items-center justify-between gap-3 text-xs font-semibold ${
-              toastMessage.type === "success"
-                ? "bg-emerald-950/95 text-emerald-100 border-emerald-500/40 shadow-emerald-950/40"
-                : toastMessage.type === "error"
-                  ? "bg-red-950/95 text-red-100 border-red-500/40 shadow-red-950/40"
-                  : "bg-stone-900/95 text-stone-100 border-stone-700/60 shadow-stone-950/40"
-            }`}
+            className={`p-4 rounded-2xl shadow-2xl backdrop-blur-md border flex items-center justify-between gap-3 text-xs font-semibold ${toastMessage.type === "success"
+              ? "bg-emerald-950/95 text-emerald-100 border-emerald-500/40 shadow-emerald-950/40"
+              : toastMessage.type === "error"
+                ? "bg-red-950/95 text-red-100 border-red-500/40 shadow-red-950/40"
+                : "bg-stone-900/95 text-stone-100 border-stone-700/60 shadow-stone-950/40"
+              }`}
           >
             <div className="flex items-center gap-3 min-w-0">
               <span
-                className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 ${
-                  toastMessage.type === "success"
-                    ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                    : toastMessage.type === "error"
-                      ? "bg-red-500/20 text-red-400 border border-red-500/30"
-                      : "bg-orange-500/20 text-orange-400 border border-orange-500/30"
-                }`}
+                className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 ${toastMessage.type === "success"
+                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                  : toastMessage.type === "error"
+                    ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                    : "bg-orange-500/20 text-orange-400 border border-orange-500/30"
+                  }`}
               >
                 {toastMessage.type === "success" ? "✓" : toastMessage.type === "error" ? "✕" : "ℹ"}
               </span>
@@ -1644,42 +1741,39 @@ export default function UploadClient() {
               <div className="p-6 space-y-4">
                 {/* Primary Connection Status Card */}
                 <div
-                  className={`p-5 rounded-2xl border transition-all ${
-                    r2Status.loading
-                      ? "bg-amber-50/80 border-amber-200"
-                      : r2Status.connected
+                  className={`p-5 rounded-2xl border transition-all ${r2Status.loading
+                    ? "bg-amber-50/80 border-amber-200"
+                    : r2Status.connected
                       ? "bg-emerald-50/80 border-emerald-200"
                       : "bg-rose-50/80 border-rose-200"
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center justify-between gap-2 mb-2.5">
                     <span className="text-xs font-bold uppercase tracking-wider text-stone-700">
                       Connection Status
                     </span>
                     <span
-                      className={`text-xs font-extrabold uppercase px-3 py-1 rounded-full flex items-center gap-1.5 shadow-2xs ${
-                        r2Status.loading
-                          ? "bg-amber-500 text-white"
-                          : r2Status.connected
+                      className={`text-xs font-extrabold uppercase px-3 py-1 rounded-full flex items-center gap-1.5 shadow-2xs ${r2Status.loading
+                        ? "bg-amber-500 text-white"
+                        : r2Status.connected
                           ? "bg-emerald-600 text-white"
                           : "bg-rose-600 text-white"
-                      }`}
+                        }`}
                     >
                       <span
-                        className={`w-2 h-2 rounded-full ${
-                          r2Status.loading
-                            ? "bg-white animate-pulse"
-                            : r2Status.connected
+                        className={`w-2 h-2 rounded-full ${r2Status.loading
+                          ? "bg-white animate-pulse"
+                          : r2Status.connected
                             ? "bg-white animate-pulse"
                             : "bg-white"
-                        }`}
+                          }`}
                       />
                       <span>
                         {r2Status.loading
                           ? "Checking..."
                           : r2Status.connected
-                          ? "Connected"
-                          : "Not Connected"}
+                            ? "Connected"
+                            : "Not Connected"}
                       </span>
                     </span>
                   </div>
@@ -1736,8 +1830,8 @@ export default function UploadClient() {
                       {r2Status.connected
                         ? "Storage Service: Fully Operational"
                         : r2Status.loading
-                        ? "Verifying connection..."
-                        : "Storage Service: Needs Attention"}
+                          ? "Verifying connection..."
+                          : "Storage Service: Needs Attention"}
                     </span>
                   </div>
                   <span className="text-[11px] text-stone-400 font-medium">
@@ -1779,11 +1873,10 @@ export default function UploadClient() {
             <button
               type="button"
               onClick={() => handleTabChange("upload")}
-              className={`w-full py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer select-none ${
-                activeTab === "upload"
-                  ? "bg-white text-orange-600 font-bold shadow-sm border border-orange-200/90 ring-1 ring-orange-500/20"
-                  : "text-stone-600 hover:text-stone-900 hover:bg-white/70"
-              }`}
+              className={`w-full py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer select-none ${activeTab === "upload"
+                ? "bg-white text-orange-600 font-bold shadow-sm border border-orange-200/90 ring-1 ring-orange-500/20"
+                : "text-stone-600 hover:text-stone-900 hover:bg-white/70"
+                }`}
             >
               <svg className={`w-4 h-4 shrink-0 ${activeTab === "upload" ? "text-orange-500" : "text-stone-400"}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -1800,11 +1893,10 @@ export default function UploadClient() {
             <button
               type="button"
               onClick={() => handleTabChange("category")}
-              className={`w-full py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer select-none ${
-                activeTab === "category"
-                  ? "bg-white text-orange-600 font-bold shadow-sm border border-orange-200/90 ring-1 ring-orange-500/20"
-                  : "text-stone-600 hover:text-stone-900 hover:bg-white/70"
-              }`}
+              className={`w-full py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer select-none ${activeTab === "category"
+                ? "bg-white text-orange-600 font-bold shadow-sm border border-orange-200/90 ring-1 ring-orange-500/20"
+                : "text-stone-600 hover:text-stone-900 hover:bg-white/70"
+                }`}
             >
               <svg className={`w-4 h-4 shrink-0 ${activeTab === "category" ? "text-orange-500" : "text-stone-400"}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
@@ -1821,11 +1913,10 @@ export default function UploadClient() {
             <button
               type="button"
               onClick={() => handleTabChange("watermark")}
-              className={`w-full py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer select-none ${
-                activeTab === "watermark"
-                  ? "bg-white text-orange-600 font-bold shadow-sm border border-orange-200/90 ring-1 ring-orange-500/20"
-                  : "text-stone-600 hover:text-stone-900 hover:bg-white/70"
-              }`}
+              className={`w-full py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer select-none ${activeTab === "watermark"
+                ? "bg-white text-orange-600 font-bold shadow-sm border border-orange-200/90 ring-1 ring-orange-500/20"
+                : "text-stone-600 hover:text-stone-900 hover:bg-white/70"
+                }`}
             >
               <svg className={`w-4 h-4 shrink-0 ${activeTab === "watermark" ? "text-orange-500" : "text-stone-400"}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
@@ -1842,25 +1933,21 @@ export default function UploadClient() {
             <button
               type="button"
               onClick={() => handleTabChange("address")}
-              className={`w-full py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer select-none ${
-                activeTab === "address"
-                  ? "bg-white text-orange-600 font-bold shadow-sm border border-orange-200/90 ring-1 ring-orange-500/20"
-                  : "text-stone-600 hover:text-stone-900 hover:bg-white/70"
-              }`}
+              className={`w-full py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer select-none ${activeTab === "address"
+                ? "bg-white text-orange-600 font-bold shadow-sm border border-orange-200/90 ring-1 ring-orange-500/20"
+                : "text-stone-600 hover:text-stone-900 hover:bg-white/70"
+                }`}
             >
               <svg className={`w-4 h-4 shrink-0 ${activeTab === "address" ? "text-orange-500" : "text-stone-400"}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
               <span className="truncate">Address &amp; Info</span>
-              <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.5 rounded-full border border-emerald-200 shrink-0">
-                S3
-              </span>
             </button>
           </div>
         </div>
 
-        {/* CONTAINER COMPANY DETAILS: Live Company Contact & Business Info (S3 Sync) */}
+        {/* CONTAINER COMPANY DETAILS: Live Company Contact & Business Info */}
         {activeTab === "address" && (
           <div className="animate-in fade-in duration-200">
             <AdminCompanyDetailsSection />
@@ -1885,11 +1972,10 @@ export default function UploadClient() {
                       Automatic Image Watermark Settings
                     </h2>
                     <span
-                      className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 ${
-                        watermarkOpts.enabled !== false
-                          ? "bg-emerald-100 text-emerald-700 border border-emerald-300"
-                          : "bg-stone-100 text-stone-500 border border-stone-300"
-                      }`}
+                      className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 ${watermarkOpts.enabled !== false
+                        ? "bg-emerald-100 text-emerald-700 border border-emerald-300"
+                        : "bg-stone-100 text-stone-500 border border-stone-300"
+                        }`}
                     >
                       {watermarkOpts.enabled !== false ? "✓ ACTIVE" : "DISABLED"}
                     </span>
@@ -1908,11 +1994,10 @@ export default function UploadClient() {
                 <button
                   type="button"
                   onClick={() => setMobileWatermarkTab("settings")}
-                  className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                    mobileWatermarkTab === "settings"
-                      ? "bg-white text-stone-900 shadow-xs"
-                      : "text-stone-500 hover:text-stone-800"
-                  }`}
+                  className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${mobileWatermarkTab === "settings"
+                    ? "bg-white text-stone-900 shadow-xs"
+                    : "text-stone-500 hover:text-stone-800"
+                    }`}
                 >
                   <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
@@ -1923,11 +2008,10 @@ export default function UploadClient() {
                 <button
                   type="button"
                   onClick={() => setMobileWatermarkTab("preview")}
-                  className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                    mobileWatermarkTab === "preview"
-                      ? "bg-white text-stone-900 shadow-xs"
-                      : "text-stone-500 hover:text-stone-800"
-                  }`}
+                  className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${mobileWatermarkTab === "preview"
+                    ? "bg-white text-stone-900 shadow-xs"
+                    : "text-stone-500 hover:text-stone-800"
+                    }`}
                 >
                   <svg className="w-3.5 h-3.5 text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <polygon points="5 3 19 12 5 21 5 3" />
@@ -2055,13 +2139,13 @@ export default function UploadClient() {
                             Official Brand Watermark Logo
                           </label>
                           <div className="flex items-center gap-3 p-3 bg-stone-50 border border-stone-200 rounded-xl">
-                            <div className="w-12 h-10 bg-white border border-stone-200 rounded-lg p-1 flex items-center justify-center shadow-xs shrink-0">
-                              <img src="/assets/logo.svg" alt="HI 5 CREATION Official Logo" className="max-h-full max-w-full object-contain" />
+                            <div className="w-12 h-12 bg-white border border-stone-200 rounded-lg p-1 flex items-center justify-center shadow-xs shrink-0">
+                              <img src="/assets/New Watermark.png" alt="HI 5 CREATION Official Logo" className="max-h-full max-w-full object-contain" />
                             </div>
                             <div>
                               <span className="text-xs font-bold text-stone-900 block">Official Hi-5 Creation Logo</span>
                               <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
-                                ✓ Permanently integrated — automatically applied to all uploads
+                                ✓ Permanently integrated (New Watermark.png) — automatically applied to all uploads
                               </span>
                             </div>
                           </div>
@@ -2155,40 +2239,40 @@ export default function UploadClient() {
                 </div>
               </div>
             </div>
-        </section>
+          </section>
         )}
 
         {/* CONTAINER 1: Upload New Project Images */}
         {activeTab === "upload" && (
           <section className="bg-white rounded-2xl sm:rounded-3xl border border-stone-200 shadow-sm overflow-hidden transition-all animate-in fade-in duration-200">
-          {/* Header - Permanent Visibility (No Accidental Collapsing) */}
-          <div className="p-4 sm:p-6 md:p-8 border-b border-stone-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 bg-stone-50/40">
-            <div className="flex items-start sm:items-center gap-3 sm:gap-3.5 min-w-0">
-              <span className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-orange-50 border border-orange-200 text-orange-600 font-extrabold text-sm flex items-center justify-center shadow-2xs shrink-0">
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                </svg>
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-base sm:text-lg font-extrabold text-stone-900 tracking-tight leading-snug">
-                    Upload New Project Images
-                  </h2>
-                  {pendingFiles.length > 0 && (
-                    <span className="bg-orange-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shrink-0">
-                      {pendingFiles.length} pending
-                    </span>
-                  )}
+            {/* Header - Permanent Visibility (No Accidental Collapsing) */}
+            <div className="p-4 sm:p-6 md:p-8 border-b border-stone-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 bg-stone-50/40">
+              <div className="flex items-start sm:items-center gap-3 sm:gap-3.5 min-w-0">
+                <span className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-orange-50 border border-orange-200 text-orange-600 font-extrabold text-sm flex items-center justify-center shadow-2xs shrink-0">
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-base sm:text-lg font-extrabold text-stone-900 tracking-tight leading-snug">
+                      Upload New Project Images
+                    </h2>
+                    {pendingFiles.length > 0 && (
+                      <span className="bg-orange-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shrink-0">
+                        {pendingFiles.length} pending
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-stone-500 mt-1 sm:mt-0.5 leading-relaxed">
+                    Drag &amp; drop photos or browse. Images are automatically auto-compressed to WebP format.
+                  </p>
                 </div>
-                <p className="text-xs text-stone-500 mt-1 sm:mt-0.5 leading-relaxed">
-                  Drag &amp; drop photos or browse. Images are automatically auto-compressed to WebP format.
-                </p>
               </div>
             </div>
-          </div>
 
-          {/* Section Body */}
-          <div className="p-4 sm:p-6 md:p-8">
+            {/* Section Body */}
+            <div className="p-4 sm:p-6 md:p-8">
               <div
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -2391,145 +2475,572 @@ export default function UploadClient() {
                 </div>
               )}
             </div>
-        </section>
+          </section>
         )}
 
         {/* CONTAINER 2: Manage Categories & Subcategories */}
         {activeTab === "category" && (
           <section className="bg-white rounded-2xl sm:rounded-3xl border border-stone-200 shadow-sm overflow-hidden transition-all animate-in fade-in duration-200">
-          {/* Header - Permanent Visibility (No Accidental Collapsing) */}
-          <div className="p-4 sm:p-6 md:p-8 border-b border-stone-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 bg-stone-50/40">
-            <div className="flex items-start sm:items-center gap-3 sm:gap-3.5 min-w-0">
-              <span className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-orange-50 border border-orange-200 text-orange-600 font-extrabold text-sm flex items-center justify-center shadow-2xs shrink-0">
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-                </svg>
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-base sm:text-lg font-extrabold text-stone-900 tracking-tight leading-snug">
-                    Manage Categories &amp; Subcategories
-                  </h2>
-                  <span className="text-[10px] bg-orange-500 text-white font-bold px-2 py-0.5 rounded-full uppercase shrink-0">
-                    {dynamicCategories.length} Categories
-                  </span>
+            {/* Header - Permanent Visibility (No Accidental Collapsing) */}
+            <div className="p-4 sm:p-6 md:p-8 border-b border-stone-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 bg-stone-50/40">
+              <div className="flex items-start sm:items-center gap-3 sm:gap-3.5 min-w-0">
+                <span className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-orange-50 border border-orange-200 text-orange-600 font-extrabold text-sm flex items-center justify-center shadow-2xs shrink-0">
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                  </svg>
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-base sm:text-lg font-extrabold text-stone-900 tracking-tight leading-snug">
+                      Manage Categories &amp; Subcategories
+                    </h2>
+                    <span className="text-[10px] bg-orange-500 text-white font-bold px-2 py-0.5 rounded-full uppercase shrink-0">
+                      {dynamicCategories.length} Categories
+                    </span>
+                  </div>
+                  <p className="text-xs text-stone-500 mt-1 sm:mt-0.5 leading-relaxed">
+                    Add, edit, or delete Categories and Subcategories saved.
+                  </p>
                 </div>
-                <p className="text-xs text-stone-500 mt-1 sm:mt-0.5 leading-relaxed">
-                  Add, edit, or delete Categories and Subcategories saved in AWS S3 cloud storage.
-                </p>
               </div>
             </div>
-          </div>
 
-          {/* Section Body */}
-          <div className="p-4 sm:p-6 md:p-8">
-              {/* Add Main Category Form & Live Search Bar */}
-              <div className="mb-6 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3.5">
-                <form onSubmit={handleAddCategory} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 max-w-xl">
+            {/* Section Body */}
+            <div className="p-4 sm:p-6 md:p-8">
+              {/* Category Management Action Bar: Search & Toggle Add Form */}
+              <div className="mb-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                {/* Search Bar */}
+                <div className="relative flex-1 max-w-md">
                   <input
                     type="text"
-                    disabled={isAddingCategory}
-                    value={newCatInput}
-                    onChange={(e) => setNewCatInput(e.target.value)}
-                    placeholder="Create New Category Name..."
-                    className="w-full px-4 py-2.5 border border-stone-300 rounded-xl text-sm sm:text-xs font-medium focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 bg-stone-50/50 disabled:opacity-60"
+                    value={catSearchQuery}
+                    onChange={(e) => setCatSearchQuery(e.target.value)}
+                    placeholder="Search categories (e.g. Neon, Acrylic)..."
+                    className="w-full pl-10 pr-4 py-2.5 sm:py-3 border border-stone-200 rounded-2xl text-sm focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 bg-white shadow-2xs"
                   />
-                  <button
-                    type="submit"
-                    disabled={isAddingCategory || !newCatInput.trim()}
-                    className="bg-orange-500 hover:bg-orange-600 disabled:opacity-75 disabled:cursor-not-allowed text-white font-bold px-5 py-2.5 rounded-xl text-sm sm:text-xs transition-all shadow-sm flex items-center justify-center gap-2 shrink-0 cursor-pointer w-full sm:w-auto"
-                  >
-                    {isAddingCategory ? (
-                      <>
-                        <svg className="animate-spin h-3.5 w-3.5 text-white" viewBox="0 0 24 24" fill="none">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        <span>Adding...</span>
-                      </>
-                    ) : (
-                      <span>+ Add Category</span>
-                    )}
-                  </button>
-                </form>
-
-                <div className="w-full md:w-64">
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={catSearchQuery}
-                      onChange={(e) => setCatSearchQuery(e.target.value)}
-                      placeholder="Search categories..."
-                      className="w-full pl-9 pr-4 py-2.5 border border-stone-200 rounded-xl text-sm sm:text-xs focus:outline-none focus:border-orange-500 bg-white"
-                    />
-                    <svg className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                      <circle cx="11" cy="11" r="8" />
-                      <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                    </svg>
-                  </div>
+                  <svg className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                  {catSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setCatSearchQuery("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 text-xs font-bold"
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
+
+                {/* Mobile / Desktop Toggle Button for Add Form */}
+                <button
+                  type="button"
+                  onClick={() => setIsAddCatExpanded(!isAddCatExpanded)}
+                  className={`px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer active:scale-98 touch-manipulation ${isAddCatExpanded
+                    ? "bg-stone-900 text-white hover:bg-stone-800"
+                    : "bg-orange-500 text-white hover:bg-orange-600 shadow-orange-500/20"
+                    }`}
+                >
+                  <span className="text-base leading-none">{isAddCatExpanded ? "✕" : "✨"}</span>
+                  <span>{isAddCatExpanded ? "Hide Add Form" : "+ Create New Category"}</span>
+                </button>
               </div>
 
-              {/* Categories Grid - Mobile Responsive */}
+              {/* Collapsible Mobile-First "Add New Category" Card */}
+              {isAddCatExpanded && (
+                <div className="mb-8 bg-gradient-to-br from-stone-50 via-white to-orange-50/30 rounded-3xl border border-orange-200/80 shadow-md p-4 sm:p-6 md:p-7 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="flex items-center justify-between pb-4 mb-4 border-b border-stone-200/60">
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-8 h-8 rounded-xl bg-orange-500 text-white flex items-center justify-center font-bold text-sm shadow-2xs">
+                        +
+                      </span>
+                      <div>
+                        <h3 className="text-sm sm:text-base font-extrabold text-stone-900 font-display">
+                          Create New Signage Category
+                        </h3>
+                        <p className="text-[11px] sm:text-xs text-stone-500">
+                          Upload a category cover photo directly &amp; showcase on Homepage
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleAddCategory} className="space-y-4 sm:space-y-5">
+                    {/* Step 1: Category Name Input */}
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-stone-700 mb-1.5 flex items-center justify-between">
+                        <span>1. Category Name <span className="text-orange-500">*</span></span>
+                        <span className="text-[10px] text-stone-400 font-normal">e.g. LED Neon Boards</span>
+                      </label>
+                      <input
+                        type="text"
+                        disabled={isAddingCategory}
+                        value={newCatInput}
+                        onChange={(e) => setNewCatInput(e.target.value)}
+                        placeholder="Type category name..."
+                        className="w-full px-4 py-3 border border-stone-300 rounded-2xl text-base sm:text-sm font-semibold focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 bg-white disabled:opacity-60 shadow-2xs"
+                      />
+
+                      {/* Quick Suggestion Chips for Fast Mobile Entry */}
+                      <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 mr-1">
+                          Suggestions:
+                        </span>
+                        {[
+                          "LED Neon Signs",
+                          "3D Acrylic Letters",
+                          "Metal Brass Letters",
+                          "LED Video Display",
+                          "Directional Signage",
+                          "Pylon & Monolith",
+                        ].map((sug) => (
+                          <button
+                            key={sug}
+                            type="button"
+                            onClick={() => setNewCatInput(sug)}
+                            className="px-2.5 py-1 rounded-xl bg-stone-100 hover:bg-orange-100 hover:text-orange-700 text-stone-600 text-[11px] font-semibold transition-all cursor-pointer active:scale-95 touch-manipulation"
+                          >
+                            + {sug}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Step 2: Touch-Friendly Category Cover Image Upload Zone */}
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-stone-700 mb-1.5 flex items-center justify-between">
+                        <span>2. Category Cover Photo <span className="text-stone-400 font-normal text-[11px]">(Recommended for Homepage)</span></span>
+                      </label>
+
+                      <input
+                        ref={newCatImageInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setNewCatImageFile(file);
+                            setNewCatImagePreview(URL.createObjectURL(file));
+                          }
+                        }}
+                      />
+
+                      {newCatImagePreview ? (
+                        /* Selected Image Preview with Actions */
+                        <div className="relative aspect-video sm:aspect-21/9 w-full rounded-2xl overflow-hidden bg-stone-900 border-2 border-orange-400 shadow-md group">
+                          <img
+                            src={newCatImagePreview}
+                            alt="Category Preview"
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-stone-950/80 via-transparent to-black/30" />
+
+                          {/* Live Preview Watermark Label */}
+                          <div className="absolute bottom-3 left-3.5 right-3.5 flex items-center justify-between text-white">
+                            <div>
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-orange-400 bg-orange-950/80 px-2 py-0.5 rounded-md inline-block mb-0.5">
+                                Live Preview
+                              </span>
+                              <h4 className="text-sm sm:text-base font-extrabold truncate drop-shadow-sm font-display">
+                                {newCatInput.trim() || "Your Category Title"}
+                              </h4>
+                            </div>
+
+                          </div>
+
+                          {/* Top-Right Quick Actions */}
+                          <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => newCatImageInputRef.current?.click()}
+                              className="px-3 py-1.5 rounded-xl bg-black/70 hover:bg-orange-500 text-white text-xs font-bold backdrop-blur-md transition-all shadow-md flex items-center gap-1 cursor-pointer active:scale-95 touch-manipulation"
+                            >
+                              <span>🔄</span>
+                              <span>Change</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setNewCatImageFile(null);
+                                setNewCatImagePreview(null);
+                                if (newCatImageInputRef.current) newCatImageInputRef.current.value = "";
+                              }}
+                              className="w-8 h-8 rounded-xl bg-black/70 hover:bg-red-600 text-white flex items-center justify-center text-xs font-bold backdrop-blur-md transition-all shadow-md cursor-pointer active:scale-95 touch-manipulation"
+                              title="Remove photo"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        /* Empty State: Large Touch Dropzone for Mobile & Desktop */
+                        <div
+                          onClick={() => newCatImageInputRef.current?.click()}
+                          className="w-full p-6 sm:p-8 rounded-2xl border-2 border-dashed border-stone-300 hover:border-orange-500 bg-white hover:bg-orange-50/40 text-stone-700 flex flex-col items-center justify-center gap-2.5 cursor-pointer transition-all shadow-2xs active:scale-[0.99] touch-manipulation group"
+                        >
+                          <div className="w-12 h-12 rounded-2xl bg-orange-100 group-hover:bg-orange-500 text-orange-600 group-hover:text-white flex items-center justify-center text-xl transition-all shadow-2xs">
+                            📷
+                          </div>
+                          <div className="text-center">
+                            <p className="text-sm font-bold text-stone-900 group-hover:text-orange-600 transition-colors">
+                              Tap to choose Category Cover Photo
+                            </p>
+                            <p className="text-xs text-stone-500 mt-0.5">
+                              Take a photo with camera or choose from gallery • JPG, PNG, WebP up to 10MB
+                            </p>
+                          </div>
+
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Step 3: Touch-Optimized Submit Button */}
+                    <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNewCatInput("");
+                          setNewCatImageFile(null);
+                          setNewCatImagePreview(null);
+                          setIsAddCatExpanded(false);
+                        }}
+                        className="px-5 py-3 rounded-2xl border border-stone-300 text-stone-700 text-xs sm:text-sm font-bold hover:bg-stone-100 transition-colors cursor-pointer text-center"
+                      >
+                        Cancel
+                      </button>
+
+                      <button
+                        type="submit"
+                        disabled={isAddingCategory || !newCatInput.trim()}
+                        className="bg-orange-500 hover:bg-orange-600 disabled:opacity-60 disabled:cursor-not-allowed text-white font-extrabold px-6 py-3.5 rounded-2xl text-sm transition-all shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 cursor-pointer active:scale-98 touch-manipulation"
+                      >
+                        {isAddingCategory ? (
+                          <>
+                            <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span>Creating &amp; Uploading...</span>
+                          </>
+                        ) : (
+                          <>
+
+                            <span>Create Category</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {/* Categories Grid - Mobile Responsive with Clear Touch Targets */}
               {filteredCategories.length === 0 ? (
                 <div className="py-12 text-center text-stone-400 text-xs bg-stone-50 rounded-2xl border border-dashed border-stone-200">
                   No categories found matching &quot;{catSearchQuery}&quot;
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
                   {filteredCategories.map((catObj) => (
                     <div
                       key={catObj.name}
                       onClick={() => setSelectedCategoryModal(catObj.name)}
-                      className="bg-white hover:bg-orange-50/30 border border-stone-200 hover:border-orange-400 rounded-2xl p-4.5 transition-all shadow-xs hover:shadow-md cursor-pointer group flex flex-col justify-between select-none"
+                      className="bg-white hover:bg-orange-50/20 border border-stone-200 hover:border-orange-400 rounded-3xl overflow-hidden transition-all shadow-xs hover:shadow-md cursor-pointer group flex flex-col justify-between select-none"
                     >
                       <div>
-                        {/* Category Label & Subcategories Count Badge */}
-                        <div className="flex items-center justify-between gap-2 mb-3">
-                          <span className="text-[11px] font-bold tracking-wider uppercase text-orange-600 bg-orange-50 border border-orange-200/60 px-2.5 py-1 rounded-lg">
+                        {/* Category Image Cover Banner with High-Visibility Touch Edit Button */}
+                        <div className="relative w-full h-36 sm:h-40 bg-stone-100 overflow-hidden">
+                          <img
+                            src={catObj.imageUrl || DEFAULT_CATEGORY_IMAGES[catObj.name] || "/assets/Shop Sign Boards.png"}
+                            alt={catObj.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            loading="lazy"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-stone-950/70 via-stone-950/10 to-black/20" />
+
+                          {/* Category Badge on Top-Left */}
+                          <span className="absolute top-2.5 left-2.5 text-[10px] font-bold tracking-wider uppercase text-white bg-stone-900/80 backdrop-blur-xs px-2.5 py-1 rounded-lg shadow-xs">
                             Category
                           </span>
-                          <span className="text-[11px] font-bold bg-stone-100 text-stone-700 px-2.5 py-1 rounded-full border border-stone-200">
-                            {catObj.subcategories.length} {catObj.subcategories.length === 1 ? "subcategory" : "subcategories"}
+
+                          {/* High-Visibility, Touch-Friendly "Edit Photo" Button on Top-Right */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingCategoryImage({
+                                categoryName: catObj.name,
+                                currentImageUrl: catObj.imageUrl || DEFAULT_CATEGORY_IMAGES[catObj.name] || "/assets/Shop Sign Boards.png",
+                              });
+                            }}
+                            className="absolute top-2.5 right-2.5 bg-stone-900/85 hover:bg-orange-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl backdrop-blur-md flex items-center gap-1.5 cursor-pointer transition-all shadow-md active:scale-95 touch-manipulation z-10"
+                            title={`Update cover photo for ${catObj.name}`}
+                          >
+                            <span>📷</span>
+                            <span>Edit Photo</span>
+                          </button>
+
+                          {/* Subcategory Count Badge on Bottom-Right */}
+                          <span className="absolute bottom-2.5 right-2.5 text-[10px] font-bold bg-white/90 text-stone-800 backdrop-blur-xs px-2 py-0.5 rounded-md shadow-xs">
+                            {catObj.subcategories.length} {catObj.subcategories.length === 1 ? "option" : "options"}
                           </span>
                         </div>
 
-                        {/* Category Name */}
-                        <h3 className="text-sm font-extrabold text-stone-900 group-hover:text-orange-600 transition-colors line-clamp-1 mb-1">
-                          {catObj.name}
-                        </h3>
-                        <p className="text-[11px] text-stone-400 line-clamp-1">
-                          {catObj.subcategories.length > 0
-                            ? catObj.subcategories.slice(0, 3).join(", ") + (catObj.subcategories.length > 3 ? "..." : "")
-                            : "Click to add subcategories"}
-                        </p>
+                        {/* Category Info */}
+                        <div className="p-4 sm:p-5">
+                          <h3 className="text-base font-extrabold text-stone-900 group-hover:text-orange-600 transition-colors line-clamp-1 mb-1 font-display">
+                            {catObj.name}
+                          </h3>
+                          <p className="text-xs text-stone-400 line-clamp-1">
+                            {catObj.subcategories.length > 0
+                              ? catObj.subcategories.slice(0, 3).join(", ") + (catObj.subcategories.length > 3 ? "..." : "")
+                              : "Click to manage subcategories"}
+                          </p>
+                        </div>
                       </div>
 
-                      {/* Card Footer: Action Link & Clearly Identifiable Red Delete button */}
-                      <div className="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between gap-2">
-                        <span className="text-xs font-bold text-orange-600 group-hover:text-orange-700 flex items-center gap-1">
+                      {/* Card Footer: Action Link & Clearly Identifiable Touch Actions */}
+                      <div className="px-4 pb-4 pt-2.5 flex items-center justify-between gap-2 border-t border-stone-100 mt-2">
+                        <span className="text-xs font-bold text-stone-700 group-hover:text-orange-600 flex items-center gap-1 transition-colors">
+                          <span>📂</span>
                           <span>Subcategories</span>
-                          <span className="group-hover:translate-x-0.5 transition-transform font-mono">→</span>
+                          <span className="font-mono text-orange-500 group-hover:translate-x-0.5 transition-transform">→</span>
                         </span>
 
-                        {/* Conspicuous, High-Visibility Red Delete Button */}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            promptDeleteCategory(catObj.name);
-                          }}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-600 text-red-600 hover:text-white border border-red-200 hover:border-red-600 text-xs font-bold transition-all shadow-2xs cursor-pointer"
-                          title={`Delete Category "${catObj.name}"`}
-                          aria-label={`Delete category ${catObj.name}`}
-                        >
-                          <span className="text-xs">🗑️</span>
-                          <span>Delete</span>
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          {/* Quick Photo update trigger on mobile */}
+                          {/* <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingCategoryImage({
+                                categoryName: catObj.name,
+                                currentImageUrl: catObj.imageUrl || DEFAULT_CATEGORY_IMAGES[catObj.name] || "/assets/Shop Sign Boards.png",
+                              });
+                            }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-orange-50 hover:bg-orange-500 hover:text-white text-orange-600 text-xs font-bold transition-all shadow-2xs cursor-pointer active:scale-95 touch-manipulation"
+                            title={`Change photo for ${catObj.name}`}
+                          >
+                            <span>📷</span>
+                            <span className="hidden sm:inline">Photo</span>
+                          </button> */}
+
+                          {/* Delete Category Button */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              promptDeleteCategory(catObj.name);
+                            }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-red-50 hover:bg-red-600 text-red-600 hover:text-white border border-red-200 hover:border-red-600 text-xs font-bold transition-all shadow-2xs cursor-pointer active:scale-95 touch-manipulation"
+                            title={`Delete Category "${catObj.name}"`}
+                            aria-label={`Delete category ${catObj.name}`}
+                          >
+                            <span className="text-xs">🗑️</span>
+                            <span className="hidden sm:inline">Delete</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
+              )}
+
+              {/* Dedicated User-Friendly "Update Category Cover Photo" Modal Dialog */}
+              {editingCategoryImage && typeof document !== "undefined" && createPortal(
+                <div
+                  role="dialog"
+                  aria-modal="true"
+                  className="fixed inset-0 z-[99999] bg-stone-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-150"
+                  onClick={() => {
+                    if (!isUpdatingCatImage) {
+                      setEditingCategoryImage(null);
+                      setEditCatImageFile(null);
+                      setEditCatImagePreview(null);
+                    }
+                  }}
+                >
+                  <div
+                    className="bg-white rounded-3xl border border-stone-200 shadow-2xl max-w-lg w-full overflow-hidden my-auto animate-in zoom-in-95 duration-150"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {/* Modal Header */}
+                    <div className="p-5 sm:p-6 pb-4 border-b border-stone-100 flex items-center justify-between">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center text-lg font-bold shrink-0">
+                          📷
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="text-base sm:text-lg font-extrabold text-stone-900 truncate font-display">
+                            Update Category Cover Photo
+                          </h3>
+                          <p className="text-xs text-stone-500 truncate">
+                            Category: <span className="font-bold text-stone-800">{editingCategoryImage.categoryName}</span>
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={isUpdatingCatImage}
+                        onClick={() => {
+                          setEditingCategoryImage(null);
+                          setEditCatImageFile(null);
+                          setEditCatImagePreview(null);
+                        }}
+                        className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 flex items-center justify-center text-sm font-bold transition-all cursor-pointer"
+                        aria-label="Close dialog"
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    {/* Modal Body */}
+                    <div className="p-5 sm:p-6 space-y-4 sm:space-y-5">
+                      {/* Side-by-side: Current Photo vs New Selected Photo */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {/* Current Photo */}
+                        <div>
+                          <label className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block mb-1.5">
+                            Current Cover Photo
+                          </label>
+                          <div className="relative aspect-video rounded-2xl overflow-hidden bg-stone-100 border border-stone-200">
+                            <img
+                              src={editingCategoryImage.currentImageUrl || DEFAULT_CATEGORY_IMAGES[editingCategoryImage.categoryName] || "/assets/Shop Sign Boards.png"}
+                              alt="Current Category Photo"
+                              className="w-full h-full object-cover"
+                            />
+                            <span className="absolute bottom-1.5 left-1.5 bg-black/75 text-white text-[10px] font-bold px-2 py-0.5 rounded-md backdrop-blur-xs">
+                              Current
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* New Photo Preview */}
+                        <div>
+                          <label className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block mb-1.5">
+                            New Photo Preview
+                          </label>
+                          {editCatImagePreview ? (
+                            <div className="relative aspect-video rounded-2xl overflow-hidden bg-stone-100 border-2 border-orange-500 shadow-xs">
+                              <img
+                                src={editCatImagePreview}
+                                alt="New Category Preview"
+                                className="w-full h-full object-cover"
+                              />
+                              <span className="absolute bottom-1.5 left-1.5 bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-md backdrop-blur-xs">
+                                ✓ New Photo Selected
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditCatImageFile(null);
+                                  setEditCatImagePreview(null);
+                                  if (editCatImageInputRef.current) editCatImageInputRef.current.value = "";
+                                }}
+                                className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/70 hover:bg-red-600 text-white flex items-center justify-center text-xs transition-colors cursor-pointer"
+                                title="Remove chosen photo"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="aspect-video rounded-2xl border-2 border-dashed border-stone-200 bg-stone-50 flex flex-col items-center justify-center text-stone-400 p-2 text-center">
+                              <span className="text-2xl mb-1">🖼️</span>
+                              <span className="text-[11px] font-medium">No new image selected yet</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Touch-Friendly Image Picker */}
+                      <div>
+                        <input
+                          ref={editCatImageInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setEditCatImageFile(file);
+                              setEditCatImagePreview(URL.createObjectURL(file));
+                            }
+                          }}
+                        />
+
+                        <button
+                          type="button"
+                          onClick={() => editCatImageInputRef.current?.click()}
+                          className="w-full p-4 sm:p-5 rounded-2xl border-2 border-dashed border-orange-300 hover:border-orange-500 bg-orange-50/50 hover:bg-orange-50 text-stone-700 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.99] touch-manipulation group"
+                        >
+                          <div className="w-10 h-10 rounded-xl bg-white shadow-xs text-orange-600 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
+                            📷
+                          </div>
+                          <div className="text-center">
+                            <span className="text-xs sm:text-sm font-bold text-stone-900 block group-hover:text-orange-600 transition-colors">
+                              {editCatImageFile ? "Tap to Choose a Different Photo" : "Tap to Choose New Photo from Camera or Gallery"}
+                            </span>
+                            <span className="text-[11px] text-stone-500 mt-0.5 block">
+                              PNG, JPG, WebP up to 10MB • Replaces image
+                            </span>
+                          </div>
+                        </button>
+                      </div>
+
+                      {/* Modal Footer Actions */}
+                      <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2.5">
+                        <button
+                          type="button"
+                          disabled={isUpdatingCatImage}
+                          onClick={() => {
+                            setEditingCategoryImage(null);
+                            setEditCatImageFile(null);
+                            setEditCatImagePreview(null);
+                          }}
+                          className="px-5 py-2.5 rounded-2xl border border-stone-300 text-stone-700 text-xs font-bold hover:bg-stone-50 transition-colors cursor-pointer text-center"
+                        >
+                          Cancel
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={!editCatImageFile || isUpdatingCatImage}
+                          onClick={async () => {
+                            if (!editCatImageFile || !editingCategoryImage) return;
+                            setIsUpdatingCatImage(true);
+                            const ok = await handleUpdateCategoryImage(editingCategoryImage.categoryName, editCatImageFile);
+                            setIsUpdatingCatImage(false);
+                            if (ok) {
+                              setEditingCategoryImage(null);
+                              setEditCatImageFile(null);
+                              setEditCatImagePreview(null);
+                            }
+                          }}
+                          className="px-6 py-2.5 rounded-2xl bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-extrabold transition-all shadow-md shadow-orange-500/25 flex items-center justify-center gap-2 cursor-pointer active:scale-98 touch-manipulation"
+                        >
+                          {isUpdatingCatImage ? (
+                            <>
+                              <svg className="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                              </svg>
+                              <span>Uploading...</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>🚀</span>
+                              <span>Save &amp; Update Photo</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>,
+                document.body
               )}
 
               {/* Small Dialog Modal for Subcategories */}
@@ -2541,35 +3052,60 @@ export default function UploadClient() {
                   <div
                     role="dialog"
                     aria-modal="true"
-                    className="fixed inset-0 z-[99999] bg-stone-950/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-150"
+                    className="fixed inset-0 z-[99999] bg-stone-950/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-150"
                     onClick={() => setSelectedCategoryModal(null)}
                   >
                     <div
                       className="bg-white rounded-3xl border border-stone-200 shadow-2xl max-w-md w-full overflow-hidden my-8 animate-in zoom-in-95 duration-150"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {/* Dialog Header */}
-                      <div className="p-5 sm:p-6 pb-4 border-b border-stone-100 flex items-center justify-between">
-                        <div className="min-w-0 pr-3">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-orange-600 bg-orange-50 border border-orange-200/60 px-2 py-0.5 rounded-md inline-block mb-1">
-                            Signage Category
-                          </span>
-                          <h3 className="text-base font-extrabold text-stone-900 truncate">
-                            {activeCat.name}
-                          </h3>
-                          <p className="text-xs text-stone-500 font-medium mt-0.5">
-                            {activeCat.subcategories.length} {activeCat.subcategories.length === 1 ? "Subcategory" : "Subcategories"}
-                          </p>
-                        </div>
+                      {/* Dialog Header with Category Cover Image */}
+                      <div className="relative h-44 sm:h-48 w-full bg-stone-900 overflow-hidden group">
+                        <img
+                          src={activeCat.imageUrl || DEFAULT_CATEGORY_IMAGES[activeCat.name] || "/assets/Shop Sign Boards.png"}
+                          alt={activeCat.name}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-stone-950/90 via-stone-950/40 to-black/30" />
 
+                        {/* Close button top right */}
                         <button
                           type="button"
                           onClick={() => setSelectedCategoryModal(null)}
-                          className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 flex items-center justify-center text-sm font-bold transition-all cursor-pointer"
+                          className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 hover:bg-black/75 text-white flex items-center justify-center text-sm font-bold transition-all cursor-pointer backdrop-blur-xs z-10"
                           aria-label="Close dialog"
                         >
                           ✕
                         </button>
+
+                        {/* Edit Category Image Button inside Dialog (triggers the dedicated Update Image Modal) */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingCategoryImage({
+                              categoryName: activeCat.name,
+                              currentImageUrl: activeCat.imageUrl || DEFAULT_CATEGORY_IMAGES[activeCat.name] || "/assets/Shop Sign Boards.png",
+                            });
+                          }}
+                          className="absolute top-3 left-3 bg-stone-900/80 hover:bg-orange-600 text-white text-xs font-bold px-3.5 py-1.5 rounded-full flex items-center gap-1.5 cursor-pointer backdrop-blur-xs transition-colors shadow-md active:scale-95 touch-manipulation z-10"
+                        >
+                          <span>📷 Change Cover Photo</span>
+                        </button>
+
+                        {/* Category Name & Meta in bottom of cover banner */}
+                        <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-5 text-white">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-orange-400 bg-orange-950/80 border border-orange-500/40 px-2 py-0.5 rounded-md inline-block mb-1">
+                            Signage Category
+                          </span>
+                          <h3 className="text-lg sm:text-xl font-extrabold text-white truncate drop-shadow-sm font-display">
+                            {activeCat.name}
+                          </h3>
+                          <p className="text-xs text-stone-300 font-medium mt-0.5 flex items-center gap-2">
+                            <span>{activeCat.subcategories.length} {activeCat.subcategories.length === 1 ? "Subcategory" : "Subcategories"}</span>
+                            <span>•</span>
+                            <span className="text-emerald-400">Synced</span>
+                          </p>
+                        </div>
                       </div>
 
                       {/* Dialog Body */}
@@ -2666,40 +3202,40 @@ export default function UploadClient() {
                 );
               })()}
             </div>
-        </section>
+          </section>
         )}
 
-        {/* CONTAINER 3: Physical & AWS S3 Gallery Library */}
+        {/* CONTAINER 3: Signage Gallery Library */}
         {activeTab === "upload" && (
           <section className="bg-white rounded-2xl sm:rounded-3xl border border-stone-200 shadow-sm overflow-hidden transition-all animate-in fade-in duration-200 mt-6 sm:mt-8">
-          {/* Header - Permanent Visibility (No Accidental Collapsing) */}
-          <div className="p-4 sm:p-6 md:p-8 border-b border-stone-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 bg-stone-50/40">
-            <div className="flex items-start sm:items-center gap-3 sm:gap-3.5 min-w-0">
-              <span className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-stone-100 border border-stone-200 text-stone-700 font-extrabold text-sm flex items-center justify-center shadow-2xs shrink-0">
-                <svg className="w-5 h-5 text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                  <circle cx="8.5" cy="8.5" r="1.5" />
-                  <polyline points="21 15 16 10 5 21" />
-                </svg>
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-base sm:text-lg font-extrabold text-stone-900 tracking-tight leading-snug">
-                    Physical &amp; AWS S3 Gallery Library
-                  </h2>
-                  <span className="text-[10px] bg-stone-800 text-white font-bold px-2 py-0.5 rounded-full shrink-0">
-                    {filteredStoredImages.length} images
-                  </span>
+            {/* Header - Permanent Visibility (No Accidental Collapsing) */}
+            <div className="p-4 sm:p-6 md:p-8 border-b border-stone-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 bg-stone-50/40">
+              <div className="flex items-start sm:items-center gap-3 sm:gap-3.5 min-w-0">
+                <span className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-stone-100 border border-stone-200 text-stone-700 font-extrabold text-sm flex items-center justify-center shadow-2xs shrink-0">
+                  <svg className="w-5 h-5 text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <polyline points="21 15 16 10 5 21" />
+                  </svg>
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-base sm:text-lg font-extrabold text-stone-900 tracking-tight leading-snug">
+                      Signage Gallery Library
+                    </h2>
+                    <span className="text-[10px] bg-stone-800 text-white font-bold px-2 py-0.5 rounded-full shrink-0">
+                      {filteredStoredImages.length} images
+                    </span>
+                  </div>
+                  <p className="text-xs text-stone-500 mt-1 sm:mt-0.5 leading-relaxed">
+                    View, search, batch select, and manage published project images.
+                  </p>
                 </div>
-                <p className="text-xs text-stone-500 mt-1 sm:mt-0.5 leading-relaxed">
-                  View, search, batch select, and manage published project images stored in AWS S3.
-                </p>
               </div>
             </div>
-          </div>
 
-          {/* Section Body */}
-          <div className="p-4 sm:p-6 md:p-8">
+            {/* Section Body */}
+            <div className="p-4 sm:p-6 md:p-8">
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 mb-6 pb-6 border-b border-stone-200">
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 max-w-2xl">
                   <div className="relative flex-1">
@@ -2877,7 +3413,7 @@ export default function UploadClient() {
                 </div>
               )}
             </div>
-        </section>
+          </section>
         )}
       </div>
     </div>

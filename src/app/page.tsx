@@ -5,7 +5,9 @@ import HomeServicesSection from "@/src/components/HomeServicesSection";
 import FullHeroSlider from "@/src/components/FullHeroSlider";
 import HomeFaqSection from "@/src/components/HomeFaqSection";
 import HomeContactSection from "@/src/components/HomeContactSection";
+import AeoGeoKnowledgeSection from "@/src/components/AeoGeoKnowledgeSection";
 import { FAQ_ITEMS } from "@/src/data/faq";
+import { TARGET_SIGNAGE_KEYWORDS } from "@/src/data/keywords";
 
 export const metadata: Metadata = {
   title: {
@@ -14,50 +16,12 @@ export const metadata: Metadata = {
   description:
     "Hi5 Creation is Coimbatore's premier manufacturer of Shop Sign Boards, 3D Lettering Signage, Pylon Signage, Acrylic & Neon LED Boards, Aluminium Channel Letters, and Commercial Storefront Branding across South India.",
   keywords: [
-    "Hi5Creation",
-    "Hi5 Creation",
-    "Shop Sign Board",
-    "3D Lettering Signage",
-    "3D Signage",
-    "Pylon Signage Design",
-    "Pylon Signage",
-    "Retail Digital Signage",
-    "Retail Signage",
-    "Bank Signage",
-    "Bank Sign Board",
-    "Restaurant Led Board",
-    "Restaurant Signage",
-    "Real Estate Sign Board",
-    "Real Estate Signage",
-    "Hotel Led Board Design",
-    "Hotel Sign Board",
-    "Led Sign Board",
-    "LED Sign Board",
-    "Hospital Wayfinding Signage",
-    "Hospital Signage",
-    "Office Sign Board Design",
-    "Office Sign Board",
-    "Acrylic LED Sign Board",
-    "Acrylic LED Signage",
-    "Neon Led Signage",
-    "Neon LED Signage",
-    "Aluminium Channel Letters",
-    "Aluminum Channel Letters",
-    "Glow Signage",
-    "Glow Sign Board",
-    "Lollipop & Pylon Signage",
-    "wayfinding signages",
-    "Wayfinding Signages",
-    "Directional Signages",
-    "Custom Braille Signs",
-    "Braille Signages",
-    "Outdoor Signage Design",
-    "Outdoor Signages",
-    "safety signage",
-    "Safety Signages",
-    "indoor sign board",
-    "Indoor Sign Board",
-    "Indoor Signages",
+    ...TARGET_SIGNAGE_KEYWORDS,
+    "LED sign board manufacturer Coimbatore",
+    "ACP elevation cladding Coimbatore",
+    "Sign board makers Kuniyamuthur",
+    "Sign board shop near me",
+    "Signage manufacturers in Coimbatore",
   ],
   alternates: {
     canonical: "https://hi5creation.in",
@@ -235,19 +199,64 @@ const WHY = [
 
 const TESTIMONIALS = [
   {
-    text: "Hi 5 Creation built our storefront LED sign board in Kuniyamuthur. Exceptional build quality and brightness!",
-    name: "Rajesh Kumar",
-    biz: "Studio 7 Retail, Coimbatore",
+    name: "Vijayalakshmi Vijayalakshmi",
+    tag: "2 reviews",
+    time: "a month ago",
+    text: "I got my calendar printing done at High5 Prints and was happy with the result. The print quality was clear, colours looked good, and the finishing was neat. The work was completed on time at a reasonable price.",
+    profileUrl: "https://www.google.com/maps/contrib/111967910881359888247/reviews?hl=en-GB",
+    isLocalGuide: false,
+    avatarBg: "bg-blue-600 text-white",
+    reaction: "",
   },
   {
-    text: "The ACP cladding and 3D acrylic letters gave our clinic facade a modern, premium corporate look.",
-    name: "Dr. Ananya",
-    biz: "Hexa Clinic, Coimbatore",
+    name: "Bala Sam",
+    tag: "Local Guide · 49 reviews · 154 photos",
+    time: "4 months ago",
+    text: "Excellent work and reasonable price and great timing",
+    profileUrl: "https://www.google.com/maps/contrib/108597609261562654910/reviews?hl=en-GB",
+    isLocalGuide: true,
+    avatarBg: "bg-amber-600 text-white",
+    reaction: "",
   },
   {
-    text: "Prompt delivery, transparent pricing, and robust installation. Best signage company in Coimbatore.",
-    name: "Suresh Babu",
-    biz: "Coffee 4 U, Coimbatore",
+    name: "SV Gamer",
+    tag: "Local Guide · 11 reviews · 3 photos",
+    time: "4 years ago",
+    text: "Recently approached them to get a sign board for a shop... They really deserve this 5 star rating. The staffs are very friendly and welcoming. Their work speaks even louder than them. The product was outstanding and they managed to do that very soon... I really loved the experience with them and the board... 💯",
+    profileUrl: "https://www.google.com/maps/contrib/111651759715206065984/reviews?hl=en-GB",
+    isLocalGuide: true,
+    avatarBg: "bg-purple-600 text-white",
+    reaction: "🙏❤️ 3",
+  },
+  {
+    name: "mkarthik gptece",
+    tag: "5 reviews · 5 photos",
+    time: "2 years ago",
+    text: "Best LED board manufacturers in Coimbatore. The output of their work is awesome. I have done 2 LED boards for my shop. Am really happy with their service.",
+    profileUrl: "https://www.google.com/maps/contrib/102278098729695329155/reviews?hl=en-GB",
+    isLocalGuide: false,
+    avatarBg: "bg-emerald-600 text-white",
+    reaction: "❤️ 1",
+  },
+  {
+    name: "T. RAGHUL",
+    tag: "4 reviews · 3 photos",
+    time: "2 years ago",
+    text: "We ordered sign board for our shop and at Hi 5 creation and they absolution LED name board maker really awesome design board",
+    profileUrl: "https://www.google.com/maps/contrib/109349095198131666799/reviews?hl=en-GB",
+    isLocalGuide: false,
+    avatarBg: "bg-rose-600 text-white",
+    reaction: "❤️ 1",
+  },
+  {
+    name: "Bindhu Sri",
+    tag: "3 reviews · 5 photos",
+    time: "a year ago",
+    text: "I would like to share a genuine feedback about the work . The work was fantastic and so heart full. I definitely would recommend my other colleagues. Wishing you get more successful 🙏",
+    profileUrl: "https://www.google.com/maps/contrib/105937594287475270682/reviews?hl=en-GB",
+    isLocalGuide: false,
+    avatarBg: "bg-teal-600 text-white",
+    reaction: "❤️ 1",
   },
 ];
 
@@ -297,15 +306,43 @@ export default function HomePage() {
                 We Turn Empty Spaces Into Brand Statements.
               </h2>
               <p className="text-stone-600 leading-relaxed mb-4 text-base">
-                <strong>HI 5 CREATION</strong> is a Coimbatore-based signage and visual branding company focused on creating impactful signage for businesses of every scale.
+                <strong>HI 5 CREATION</strong> is Coimbatore&apos;s premier signage manufacturer and visual branding workshop, established in 2018. We specialize in end-to-end design, CNC fabrication, precision lighting, and on-site installation for commercial storefronts, retail outlets, hospitals, hotels, and corporate offices across South India.
               </p>
-              <p className="text-stone-500 leading-relaxed mb-6 text-base">
-                From concept and design to fabrication and installation, we create signage solutions that help businesses become more visible, recognizable and memorable — combining craft, materials and precision lighting into work that lasts.              </p>
+              <p className="text-stone-500 leading-relaxed mb-6 text-sm">
+                Combining architectural-grade materials (cast acrylic, Aludecor ACP, SS 304 stainless steel, and IP67 waterproof Samsung/Osram LEDs) with master craftsmanship, we turn empty facades into luminous, unforgettable brand statements.
+              </p>
 
+              {/* Entity Fast Facts Grid for AEO & GEO Answer Extraction */}
+              <div className="grid grid-cols-2 gap-3 mb-6 bg-stone-50 border border-stone-200/80 rounded-2xl p-4 text-xs">
+                <div>
+                  <span className="text-stone-400 block font-semibold uppercase tracking-wider text-[10px]">Headquarters &amp; Workshop</span>
+                  <span className="text-stone-800 font-bold">Kuniyamuthur, Coimbatore</span>
+                </div>
+                <div>
+                  <span className="text-stone-400 block font-semibold uppercase tracking-wider text-[10px]">Active Craftsmanship</span>
+                  <span className="text-stone-800 font-bold">Since 2018 (7+ Years)</span>
+                </div>
+                <div>
+                  <span className="text-stone-400 block font-semibold uppercase tracking-wider text-[10px]">Industrial Materials</span>
+                  <span className="text-stone-800 font-bold">SS 304, Cast Acrylic, ACP &amp; IP67 LEDs</span>
+                </div>
+                <div>
+                  <span className="text-stone-400 block font-semibold uppercase tracking-wider text-[10px]">Coverage</span>
+                  <span className="text-stone-800 font-bold">Tamil Nadu, Kerala &amp; South India</span>
+                </div>
+              </div>
 
-              <div className="flex flex-wrap gap-2.5 mb-8">
-                {["Design", "CNC Fabrication", "Cast Acrylic", "ACP Cladding", "Samsung LED", "SS 304 Letters", "Installation"].map((tag) => (
-                  <span key={tag} className="border border-stone-200 text-stone-600 text-xs font-semibold px-3 py-1 rounded-full bg-white shadow-2xs">
+              <div className="flex flex-wrap gap-2 mb-8">
+                {[
+                  "Shop Sign Boards",
+                  "3D Lettering Signage",
+                  "Aluminium Channel Letters",
+                  "Pylon Signage Design",
+                  "Acrylic LED Sign Boards",
+                  "Hospital Wayfinding",
+                  "Custom Braille Signs",
+                ].map((tag) => (
+                  <span key={tag} className="border border-stone-200 text-stone-700 text-xs font-semibold px-3 py-1 rounded-full bg-white shadow-2xs">
                     {tag}
                   </span>
                 ))}
@@ -515,50 +552,166 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* TESTIMONIALS */}
-      <section className="py-24 lg:py-32 bg-white">
-        <div className="max-w-7xl mx-auto px-5 lg:px-8">
-          <div className="max-w-xl mb-14">
-            <p className="text-xs font-bold tracking-[0.2em] text-orange-500 uppercase mb-4">TESTIMONIALS</p>
-            <h2 className="text-3xl lg:text-4xl font-extrabold text-stone-900 leading-tight tracking-tight font-display">
-              What Our Customers Say
-            </h2>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-            {TESTIMONIALS.map((t, i) => (
-              <div key={i} className="border border-stone-200 rounded-xl p-6 hover:border-orange-200 hover:shadow-sm transition-all">
-                <div className="flex gap-0.5 mb-4">
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <svg key={s} className="w-4 h-4 fill-amber-400" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                  ))}
+      {/* TESTIMONIALS - CONTINUOUS MARQUEE CAROUSEL (Like TRUSTED BY BUSINESSES) */}
+      <section className="py-10 lg:py-10 bg-stone-50 border-t border-stone-200 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-5 lg:px-8 mb-10">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="max-w-xl">
+              <div className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest text-orange-500 uppercase mb-3">
+                <span>⭐</span>
+                <span>AUTHENTIC GOOGLE REVIEWS</span>
+              </div>
+              <h2 className="text-3xl lg:text-4xl font-extrabold text-stone-900 leading-tight tracking-tight font-display">
+                What Our Customers Say
+              </h2>
+              <p className="text-sm text-stone-500 mt-2">
+                Real feedback from verified clients and Local Guides on Google Maps
+              </p>
+            </div>
+
+            {/* Google Rating Summary Badge */}
+            {/* <div className="inline-flex items-center gap-3.5 bg-white px-5 py-3 rounded-2xl border border-stone-200 shadow-2xs shrink-0">
+              <svg viewBox="0 0 24 24" className="w-7 h-7 shrink-0" aria-hidden="true">
+                <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z" />
+                <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.27 21.41 7.33 24 12 24z" />
+                <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z" />
+                <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.27 2.59 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z" />
+              </svg>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-extrabold text-stone-900 text-sm">4.9 / 5.0</span>
+                  <div className="flex text-amber-400">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <svg key={s} className="w-3.5 h-3.5 fill-amber-400" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                    ))}
+                  </div>
                 </div>
-                <p className="text-stone-500 text-sm leading-relaxed mb-5 italic">&quot;{t.text}&quot;</p>
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-stone-100 rounded-full flex items-center justify-center text-xs font-bold text-stone-500">
-                    {t.name[0]}
+                <span className="text-[11px] text-stone-500 font-medium">Verified Google Reviews</span>
+              </div>
+            </div> */}
+          </div>
+        </div>
+
+        {/* Continuous Moving Reviews Marquee */}
+        <div className="relative overflow-hidden w-full py-2 mb-10">
+          {/* Edge gradient fade masks */}
+          <div className="absolute left-0 top-0 bottom-0 w-12 sm:w-28 bg-gradient-to-r from-stone-50 to-transparent z-10 pointer-events-none" />
+          <div className="absolute right-0 top-0 bottom-0 w-12 sm:w-28 bg-gradient-to-l from-stone-50 to-transparent z-10 pointer-events-none" />
+
+          {/* Infinite sliding row */}
+          <div
+            className="flex gap-6 animate-marquee whitespace-normal hover:[animation-play-state:paused]"
+            style={{ animationDuration: "35s" }}
+          >
+            {[...TESTIMONIALS, ...TESTIMONIALS].map((t, i) => (
+              <div
+                key={i}
+                className="w-[320px] sm:w-[380px] shrink-0 bg-white border border-stone-200/90 rounded-2xl p-6 hover:border-orange-400 hover:shadow-xl transition-all duration-300 flex flex-col justify-between select-none"
+              >
+                <div>
+                  {/* Top: Avatar, Name, Tag & Google icon */}
+                  <div className="flex items-start justify-between gap-3 mb-3.5">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-full ${t.avatarBg} flex items-center justify-center font-bold text-sm shrink-0 shadow-2xs`}>
+                        {t.name[0]}
+                      </div>
+                      <div className="min-w-0">
+                        <a
+                          href={t.profileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm font-bold text-stone-900 hover:text-orange-600 transition-colors block leading-tight truncate"
+                        >
+                          {t.name}
+                        </a>
+                        <div className="flex items-center gap-1.5 text-[11px] text-stone-400 mt-0.5">
+                          {t.isLocalGuide ? (
+                            <span className="text-orange-600 font-semibold flex items-center gap-0.5">
+                              <span>★</span> Local Guide
+                            </span>
+                          ) : (
+                            <span className="truncate">{t.tag}</span>
+                          )}
+                          <span>•</span>
+                          <span className="shrink-0">{t.time}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Small Google G */}
+                    <div className="w-5 h-5 shrink-0 opacity-75 hover:opacity-100 transition-opacity">
+                      <svg viewBox="0 0 24 24" className="w-full h-full">
+                        <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z" />
+                        <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.27 21.41 7.33 24 12 24z" />
+                        <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z" />
+                        <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.27 2.59 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z" />
+                      </svg>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-semibold text-stone-800">{t.name}</p>
-                    <p className="text-xs text-stone-400">{t.biz}</p>
+
+                  {/* Stars */}
+                  <div className="flex gap-1 mb-3">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <svg key={s} className="w-4 h-4 fill-amber-400" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                    ))}
                   </div>
+
+                  {/* Review Text */}
+                  <p className="text-stone-700 text-xs sm:text-sm leading-relaxed mb-4 line-clamp-4">
+                    &ldquo;{t.text}&rdquo;
+                  </p>
+                </div>
+
+                {/* Bottom Row */}
+                <div className="pt-3 border-t border-stone-100 flex items-center justify-between text-[11px]">
+                  {t.reaction ? (
+                    <span className="inline-flex items-center gap-1 text-stone-600 bg-stone-100 px-2 py-0.5 rounded-md font-medium">
+                      <span>{t.reaction}</span>
+                    </span>
+                  ) : (
+                    <span className="text-stone-400 truncate max-w-[140px]">{t.tag}</span>
+                  )}
+                  <a
+                    href={t.profileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-orange-600 hover:text-orange-700 font-semibold flex items-center gap-1 hover:underline shrink-0"
+                  >
+                    <span>Google Review</span>
+                    <span>↗</span>
+                  </a>
                 </div>
               </div>
             ))}
           </div>
-          <div className="text-center">
-            <a
-              href={GOOGLE_REVIEWS_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-stone-700 hover:text-orange-500 font-semibold transition-colors text-sm"
-            >
-              View All Google Reviews ↗
-            </a>
-          </div>
+        </div>
+
+        {/* Bottom CTA to View All on Google Maps */}
+        <div className="max-w-7xl mx-auto px-5 lg:px-8 text-center">
+          <a
+            href={GOOGLE_REVIEWS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2.5 bg-white hover:bg-stone-900 hover:text-white text-stone-800 border border-stone-300 font-bold px-7 py-3.5 rounded-full shadow-2xs transition-all text-xs sm:text-sm cursor-pointer hover:shadow-md hover:scale-102"
+          >
+            <svg viewBox="0 0 24 24" className="w-4 h-4 shrink-0">
+              <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z" />
+              <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.27 21.41 7.33 24 12 24z" />
+              <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z" />
+              <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.27 2.59 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z" />
+            </svg>
+            <span>View All Google Reviews on Maps</span>
+            <span className="font-mono text-orange-500">↗</span>
+          </a>
         </div>
       </section>
+
+      {/* AEO & GEO SIGNAGE DIRECTORY & CAPABILITIES */}
+      <AeoGeoKnowledgeSection />
 
       {/* CONTACT / LOCATION */}
       <HomeContactSection />

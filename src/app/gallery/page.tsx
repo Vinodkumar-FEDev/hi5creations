@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import GalleryClient from "./GalleryClient";
+import { TARGET_SIGNAGE_KEYWORDS } from "@/src/data/keywords";
 
 export const metadata: Metadata = {
   title: {
@@ -8,47 +9,10 @@ export const metadata: Metadata = {
   description:
     "Explore our extensive portfolio of custom signage projects: Shop Sign Boards, 3D Lettering Signage, Pylon Signage, Acrylic LED Sign Boards, Aluminium Channel Letters, and Hospital & Hotel Signage in Coimbatore.",
   keywords: [
-    "Hi5Creation",
-    "Hi5 Creation",
-    "Shop Sign Board",
-    "3D Lettering Signage",
-    "3D Signage",
-    "Pylon Signage Design",
-    "Pylon Signage",
-    "Retail Digital Signage",
-    "Retail Signage",
-    "Bank Signage",
-    "Bank Sign Board",
-    "Restaurant Led Board",
-    "Restaurant Signage",
-    "Real Estate Sign Board",
-    "Real Estate Signage",
-    "Hotel Led Board Design",
-    "Hotel Sign Board",
-    "Led Sign Board",
-    "Hospital Wayfinding Signage",
-    "Hospital Signage",
-    "Office Sign Board Design",
-    "Office Sign Board",
-    "Acrylic LED Sign Board",
-    "Acrylic LED Signage",
-    "Neon Led Signage",
-    "Neon LED Signage",
-    "Aluminium Channel Letters",
-    "Aluminum Channel Letters",
-    "Glow Signage",
-    "Glow Sign Board",
-    "Lollipop & Pylon Signage",
-    "Wayfinding Signages",
-    "Directional Signages",
-    "Custom Braille Signs",
-    "Braille Signages",
-    "Outdoor Signage Design",
-    "Outdoor Signages",
-    "Safety Signages",
-    "Indoor Sign Board",
-    "Indoor Signages",
+    ...TARGET_SIGNAGE_KEYWORDS,
     "Signage Project Gallery Coimbatore",
+    "Sign Board Photos Coimbatore",
+    "LED Board Installation Gallery",
   ],
   alternates: {
     canonical: "https://hi5creation.in/gallery",

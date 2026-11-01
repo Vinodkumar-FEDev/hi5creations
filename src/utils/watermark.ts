@@ -17,7 +17,7 @@ export const DEFAULT_WATERMARK_OPTIONS: WatermarkOptions = {
   phone: "+91 63792 39878",
   instagram: "#hi5_Creation",
   brandText: "",
-  logoUrl: "/assets/logo.png",
+  logoUrl: "/assets/New Watermark.png",
   position: "corners",
   style: "corners",
   opacity: 0.95,
@@ -116,12 +116,18 @@ function drawHi5OfficialLogo(
   const logoScale = scale * 0.78;
 
   if (customLogoImg) {
-    const w = Math.round(180 * logoScale);
-    const h = Math.round(
-      ((customLogoImg.naturalHeight || customLogoImg.height) /
-        (customLogoImg.naturalWidth || customLogoImg.width)) *
-        w
-    );
+    const natW = customLogoImg.naturalWidth || customLogoImg.width || 1;
+    const natH = customLogoImg.naturalHeight || customLogoImg.height || 1;
+    const aspect = natH / natW;
+
+    // Support both wide banners and square/tall badges (e.g. New Watermark.png)
+    let w = Math.round(180 * logoScale);
+    let h = Math.round(aspect * w);
+    const maxH = Math.round(140 * logoScale);
+    if (h > maxH) {
+      h = maxH;
+      w = Math.round(h / aspect);
+    }
 
     if (whiteBackground) {
       const padX = Math.round(12 * logoScale);
@@ -453,8 +459,8 @@ export function applyWatermarkToImageFile(
       // Draw base image
       ctx.drawImage(img, 0, 0, width, height);
 
-      // Load official logo image (defaults to /assets/logo.png)
-      const targetLogoUrl = opts.logoUrl || "/assets/logo.png";
+      // Load official logo image (defaults to /assets/New Watermark.png)
+      const targetLogoUrl = opts.logoUrl || "/assets/New Watermark.png";
       let logoImg: HTMLImageElement | undefined = undefined;
       if (targetLogoUrl) {
         try {
@@ -463,7 +469,7 @@ export function applyWatermarkToImageFile(
             lImg.crossOrigin = "anonymous";
             lImg.onload = () => resLogo(lImg);
             lImg.onerror = () => rejLogo();
-            lImg.src = targetLogoUrl;
+            lImg.src = encodeURI(targetLogoUrl);
           });
         } catch {}
       }

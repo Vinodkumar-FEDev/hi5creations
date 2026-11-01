@@ -3,32 +3,18 @@ import type { Metadata } from "next";
 import ProductsClient from "./ProductsClient";
 import { EXTERIOR_PRODUCTS, INTERIOR_PRODUCTS } from "@/src/data/products";
 
+import { TARGET_SIGNAGE_KEYWORDS } from "@/src/data/keywords";
+
 export const metadata: Metadata = {
   title: {
-    absolute: "Signage Products — Exterior & Interior Commercial Signage | Hi5 Creation",
+    absolute: "Signage Products — Exterior & Interior Commercial Signage | Hi5 Creation Coimbatore",
   },
   description:
     "Explore our complete range of precision-crafted exterior and interior commercial signage products: Shop Sign Boards, 3D Lettering Signage, Pylon Signage, ACP Elevation, Acrylic & Neon LED Boards, Aluminium Channel Letters, and Hospital & Hotel Signage.",
   keywords: [
-    "Hi5Creation",
-    "Hi5 Creation Signage Products",
-    "Exterior Products",
-    "Interior Products",
-    "Shop Sign Board",
-    "3D Lettering Signage",
-    "Pylon Signage Design",
-    "Retail Digital Signage",
-    "Bank Signage",
-    "Restaurant Led Board",
-    "Hospital Wayfinding Signage",
-    "Acrylic LED Sign Board",
-    "Neon Led Signage",
-    "Aluminium Channel Letters",
-    "Glow Sign Board",
-    "Directional Signages",
-    "Custom Braille Signs",
-    "Outdoor Signage Design",
-    "Indoor Sign Board",
+    ...TARGET_SIGNAGE_KEYWORDS,
+    "Signage Products Coimbatore",
+    "Commercial Signage Products",
     "Signage Manufacturers Coimbatore",
   ],
   alternates: {

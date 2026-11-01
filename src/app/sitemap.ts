@@ -15,6 +15,11 @@ const CATEGORIES = [
   "Programming LED Board",
   "Scrolling LED & Videowall",
   "SS & Titanium Letters",
+  "Vinyl Sign Boards",
+  "Building Signage",
+  "Neon & LED Boards",
+  "Acrylic Signage",
+  "Lighting & Glow",
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -25,8 +30,26 @@ export default function sitemap(): MetadataRoute.Sitemap {
     {
       url: baseUrl,
       lastModified: now,
-      changeFrequency: "weekly",
+      changeFrequency: "daily",
       priority: 1.0,
+    },
+    {
+      url: `${baseUrl}/products`,
+      lastModified: now,
+      changeFrequency: "daily",
+      priority: 0.95,
+    },
+    {
+      url: `${baseUrl}/products?tab=exterior`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/products?tab=interior`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.9,
     },
     {
       url: `${baseUrl}/gallery`,
@@ -40,7 +63,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     url: `${baseUrl}/gallery?category=${encodeURIComponent(cat)}`,
     lastModified: now,
     changeFrequency: "weekly",
-    priority: 0.8,
+    priority: 0.85,
   }));
 
   return [...staticRoutes, ...categoryRoutes];

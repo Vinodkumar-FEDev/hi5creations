@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useSearchParams } from "next/navigation";
-import { VirtuosoGrid } from "react-virtuoso";
 import LoadingSpinner from "@/src/components/LoadingSpinner";
 import {
   getStoredGalleryImages,
@@ -15,22 +14,8 @@ import {
 const WHATSAPP_URL =
   "https://wa.me/916379239878?text=Hi%20Hi%205%20Creation%2C%20I'm%20interested%20in%20your%20signage%20services.%20I'd%20like%20to%20discuss%20my%20requirement.";
 
-const forwardRefGridList = React.forwardRef<HTMLDivElement, any>(
-  ({ children, ...props }, ref) => (
-    <div
-      ref={ref}
-      {...props}
-      className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
-    >
-      {children}
-    </div>
-  )
-);
-forwardRefGridList.displayName = "forwardRefGridList";
-
-const GridItemWrapper: React.FC<any> = ({ children, ...props }) => (
-  <div {...props}>{children}</div>
-);
+const INITIAL_BATCH_COUNT = 24;
+const BATCH_INCREMENT = 16;
 
 export default function GalleryClient() {
   const searchParams = useSearchParams();
@@ -42,6 +27,10 @@ export default function GalleryClient() {
   const [categoriesData, setCategoriesData] = useState<CategoryData[]>(DEFAULT_CATEGORY_DATA);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [visibleCount, setVisibleCount] = useState(INITIAL_BATCH_COUNT);
+  const [layoutMode, setLayoutMode] = useState<"masonry" | "grid">("masonry");
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -98,6 +87,15 @@ export default function GalleryClient() {
       loadGalleryData();
     }
   }, [isMounted, loadGalleryData]);
+
+  // Back to top floating button scroll listener
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowBackToTop(window.scrollY > 500);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   // Dynamically extract categories from JSON + stored images
   const categoriesList = useMemo(() => {
@@ -180,6 +178,37 @@ export default function GalleryClient() {
       });
   }, [allItems, activeCategory, activeSubCategory, searchQuery]);
 
+  // Reset pagination batch when active filters or search change
+  useEffect(() => {
+    setVisibleCount(INITIAL_BATCH_COUNT);
+  }, [activeCategory, activeSubCategory, searchQuery]);
+
+  // Sliced items visible on screen (progressive Pinterest-style loading)
+  const displayedItems = useMemo(() => {
+    return filteredItems.slice(0, visibleCount);
+  }, [filteredItems, visibleCount]);
+
+  const hasMore = visibleCount < filteredItems.length;
+
+  // Infinite scroll observer on single window scroll
+  useEffect(() => {
+    if (!hasMore) return;
+    const observerTarget = sentinelRef.current;
+    if (!observerTarget) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount((prev) => Math.min(prev + BATCH_INCREMENT, filteredItems.length));
+        }
+      },
+      { rootMargin: "450px" } // trigger 450px before reaching the bottom
+    );
+
+    observer.observe(observerTarget);
+    return () => observer.disconnect();
+  }, [hasMore, filteredItems.length]);
+
   const selectedImage =
     selectedIndex !== null && filteredItems[selectedIndex]
       ? filteredItems[selectedIndex]
@@ -195,9 +224,13 @@ export default function GalleryClient() {
   const handleNext = useCallback(() => {
     setSelectedIndex((prev) => {
       if (prev === null || filteredItems.length === 0) return null;
-      return prev < filteredItems.length - 1 ? prev + 1 : 0;
+      const next = prev < filteredItems.length - 1 ? prev + 1 : 0;
+      if (next >= visibleCount) {
+        setVisibleCount((vc) => Math.max(vc, next + 8));
+      }
+      return next;
     });
-  }, [filteredItems.length]);
+  }, [filteredItems.length, visibleCount]);
 
   // Keyboard navigation for Lightbox
   useEffect(() => {
@@ -214,14 +247,14 @@ export default function GalleryClient() {
   return (
     <div className="pt-16 min-h-screen bg-[#faf9f7]">
       {/* Header */}
-      <section className="py-16 lg:py-24 border-b border-stone-200 bg-white">
-        <div className="max-w-7xl mx-auto px-5 lg:px-8">
+      <section className="py-14 lg:py-20 border-b border-stone-200 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-8 items-end">
             <div>
               <p className="text-xs font-bold tracking-[0.2em] text-orange-500 uppercase mb-3">
                 PROJECT GALLERY ({allItems.length} IMAGES)
               </p>
-              <h1 className="text-4xl lg:text-5xl font-extrabold text-stone-900 leading-tight tracking-tight font-display">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-stone-900 leading-tight tracking-tight font-display">
                 Our Work, Built to Last.
               </h1>
             </div>
@@ -246,8 +279,8 @@ export default function GalleryClient() {
 
       {/* Category, Subcategory & Global Search Sticky Bar */}
       <div id="gallery-grid" className="sticky top-16 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200 shadow-xs space-y-2 py-3">
-        <div className="max-w-7xl mx-auto px-5 lg:px-8 space-y-3">
-          {/* Row 1: Global Search Bar + Reset Button + Live Result Count */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-3">
+          {/* Row 1: Global Search Bar + Reset Button + Layout Switcher + Live Result Count */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2 flex-1 max-w-lg">
               <div className="relative flex-1">
@@ -288,11 +321,10 @@ export default function GalleryClient() {
                       setSelectedIndex(null);
                     }}
                     disabled={!hasFilters}
-                    className={`px-3.5 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 select-none ${
-                      hasFilters
-                        ? "bg-orange-500 hover:bg-orange-600 text-white shadow-xs cursor-pointer active:scale-95"
-                        : "bg-stone-100 text-stone-400 border border-stone-200/80 cursor-not-allowed opacity-60"
-                    }`}
+                    className={`px-3.5 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 select-none ${hasFilters
+                      ? "bg-orange-500 hover:bg-orange-600 text-white shadow-xs cursor-pointer active:scale-95"
+                      : "bg-stone-100 text-stone-400 border border-stone-200/80 cursor-not-allowed opacity-60"
+                      }`}
                     title={hasFilters ? "Reset all filters and search" : "No filters active"}
                   >
                     <svg
@@ -314,12 +346,50 @@ export default function GalleryClient() {
               })()}
             </div>
 
-            <div className="flex items-center gap-2 text-xs text-stone-500 font-medium shrink-0">
-              <span>Showing</span>
-              <span className="font-bold text-stone-900 bg-stone-100 px-2 py-0.5 rounded-full font-mono text-[11px]">
-                {filteredItems.length}
-              </span>
-              <span>of {allItems.length} images</span>
+            {/* Layout Mode (Masonry Pinterest vs Grid) & Result Counter */}
+            <div className="flex items-center gap-3 shrink-0">
+              {/* Layout Switcher */}
+              {/* <div className="flex items-center bg-stone-100 p-0.5 rounded-full border border-stone-200">
+                <button
+                  type="button"
+                  onClick={() => setLayoutMode("masonry")}
+                  className={`px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    layoutMode === "masonry"
+                      ? "bg-white text-stone-900 shadow-2xs"
+                      : "text-stone-500 hover:text-stone-800"
+                  }`}
+                  title="Pinterest-style fluid masonry layout"
+                >
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M4 4h7v10H4zm9 0h7v6h-7zm0 8h7v8h-7zm-9 4h7v4H4z" />
+                  </svg>
+                  <span>Pinterest</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLayoutMode("grid")}
+                  className={`px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    layoutMode === "grid"
+                      ? "bg-white text-stone-900 shadow-2xs"
+                      : "text-stone-500 hover:text-stone-800"
+                  }`}
+                  title="Equal grid layout"
+                >
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M4 4h7v7H4zm9 0h7v7h-7zm-9 9h7v7H4zm9 0h7v7h-7z" />
+                  </svg>
+                  <span>Grid</span>
+                </button>
+              </div> */}
+
+              {/* Counter */}
+              <div className="flex items-center gap-1.5 text-xs text-stone-500 font-medium">
+                <span>Showing</span>
+                <span className="font-bold text-stone-900 bg-stone-100 px-2 py-0.5 rounded-full font-mono text-[11px]">
+                  {displayedItems.length}
+                </span>
+                <span>of {filteredItems.length}</span>
+              </div>
             </div>
           </div>
 
@@ -377,11 +447,10 @@ export default function GalleryClient() {
                       setActiveSubCategory(subcat);
                       setSelectedIndex(null);
                     }}
-                    className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-                      isSubActive
-                        ? "bg-stone-900 text-white shadow-xs ring-2 ring-stone-900/25"
-                        : "bg-stone-100 text-stone-600 hover:bg-stone-200"
-                    }`}
+                    className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${isSubActive
+                      ? "bg-stone-900 text-white shadow-xs ring-2 ring-stone-900/25"
+                      : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+                      }`}
                   >
                     {subcat}
                   </button>
@@ -392,10 +461,10 @@ export default function GalleryClient() {
         </div>
       </div>
 
-      {/* Gallery Content Area - Lazy Loading Grid */}
-      <div className="max-w-7xl mx-auto px-5 lg:px-8 py-10">
+      {/* Gallery Content Area - Single Page Natural Scroll (Pinterest Style) */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {!isMounted || isLoading ? (
-          <div className="py-20 flex justify-center items-center">
+          <div className="py-24 flex justify-center items-center">
             <LoadingSpinner size="lg" text="Loading Gallery Portfolio & Categories..." />
           </div>
         ) : allItems.length === 0 ? (
@@ -471,33 +540,26 @@ export default function GalleryClient() {
             </div>
           </div>
         ) : (
-          <div className="min-h-[600px]">
-            <VirtuosoGrid
-              style={{ height: "800px" }}
-              totalCount={filteredItems.length}
-              components={{
-                List: forwardRefGridList,
-                Item: GridItemWrapper,
-              }}
-              itemContent={(index) => {
-                const img = filteredItems[index];
-                if (!img) return null;
-                return (
+          <div>
+            {/* Gallery Layout */}
+            {layoutMode === "masonry" ? (
+              /* PINTEREST MASONRY COLUMNS */
+              <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-4 space-y-4">
+                {displayedItems.map((img, index) => (
                   <figure
+                    key={img.id || index}
                     onClick={() => setSelectedIndex(index)}
-                    className="group relative rounded-xl overflow-hidden bg-stone-100 border border-stone-200/80 cursor-pointer shadow-sm hover:shadow-md transition-all h-64"
+                    className="break-inside-avoid mb-4 group relative rounded-2xl overflow-hidden bg-white border border-stone-200/90 shadow-2xs hover:shadow-xl transition-all duration-300 cursor-pointer block"
                   >
                     <img
                       src={img.imageDataUrl}
                       alt={`${img.title} — ${img.category} by Hi5 Creation Coimbatore`}
-                      width={400}
-                      height={300}
                       loading="lazy"
                       decoding="async"
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-[1.03] block"
                     />
 
-                    {/* Hover Overlay without image title/name */}
+                    {/* Subtle Hover Overlay without image title/name */}
                     <div className="absolute inset-0 bg-stone-950/25 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
                       <span className="w-10 h-10 rounded-full bg-black/60 backdrop-blur-xs text-white flex items-center justify-center text-sm shadow-md transform scale-90 group-hover:scale-100 transition-transform">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -506,12 +568,82 @@ export default function GalleryClient() {
                       </span>
                     </div>
                   </figure>
-                );
-              }}
-            />
+                ))}
+              </div>
+            ) : (
+              /* UNIFORM GRID */
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {displayedItems.map((img, index) => (
+                  <figure
+                    key={img.id || index}
+                    onClick={() => setSelectedIndex(index)}
+                    className="group relative rounded-2xl overflow-hidden bg-white border border-stone-200/90 cursor-pointer shadow-2xs hover:shadow-xl transition-all duration-300 h-64 sm:h-72"
+                  >
+                    <img
+                      src={img.imageDataUrl}
+                      alt={`${img.title} — ${img.category} by Hi5 Creation Coimbatore`}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                    />
+
+                    {/* Subtle Hover Overlay without image title/name */}
+                    <div className="absolute inset-0 bg-stone-950/25 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
+                      <span className="w-10 h-10 rounded-full bg-black/60 backdrop-blur-xs text-white flex items-center justify-center text-sm shadow-md transform scale-90 group-hover:scale-100 transition-transform">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
+                        </svg>
+                      </span>
+                    </div>
+                  </figure>
+                ))}
+              </div>
+            )}
+
+            {/* Infinite Scroll Sentinel / Loading More & End of Gallery Indicator */}
+            {hasMore ? (
+              <div ref={sentinelRef} className="py-12 flex justify-center items-center">
+                <div className="inline-flex items-center gap-2.5 text-stone-600 text-xs font-bold bg-white border border-stone-200 px-5 py-2.5 rounded-full shadow-2xs">
+                  <span className="w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                  <span>Loading more projects ({displayedItems.length} of {filteredItems.length})...</span>
+                </div>
+              </div>
+            ) : (
+              <div className="py-12 text-center border-t border-stone-200/80 mt-12">
+                <div className="inline-flex items-center gap-2 bg-white border border-stone-200 text-stone-700 text-xs font-bold px-5 py-2.5 rounded-full shadow-2xs">
+                  <span className="text-emerald-500 text-sm">✓</span>
+                  <span>All {filteredItems.length} projects displayed</span>
+                </div>
+                <div className="mt-4">
+                  <button
+                    type="button"
+                    onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-orange-600 hover:text-orange-700 hover:underline cursor-pointer"
+                  >
+                    <span>Back to Top</span>
+                    <span>↑</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
+
+      {/* Floating Back to Top Button */}
+      {showBackToTop && (
+        <button
+          type="button"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          aria-label="Scroll back to top"
+          className="fixed bottom-6 right-6 z-40 bg-stone-900/90 hover:bg-orange-500 text-white p-3 rounded-full shadow-lg backdrop-blur-xs transition-all hover:scale-110 active:scale-95 cursor-pointer flex items-center justify-center"
+          title="Back to Top"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+          </svg>
+        </button>
+      )}
 
       {/* Lightbox Modal */}
       {selectedImage && (
@@ -525,7 +657,7 @@ export default function GalleryClient() {
           >
             <button
               onClick={() => setSelectedIndex(null)}
-              className="absolute top-4 right-4 z-10 w-9 h-9 bg-black/60 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-colors text-sm"
+              className="absolute top-4 right-4 z-10 w-9 h-9 bg-black/60 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-colors text-sm cursor-pointer"
             >
               ✕
             </button>
@@ -538,7 +670,6 @@ export default function GalleryClient() {
                 decoding="async"
                 className="max-h-[75vh] w-auto object-contain"
               />
-
             </div>
 
             <div className="p-6 bg-stone-900 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-t border-stone-800">
@@ -575,3 +706,4 @@ export default function GalleryClient() {
     </div>
   );
 }
+

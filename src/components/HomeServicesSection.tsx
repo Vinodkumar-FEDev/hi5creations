@@ -7,6 +7,7 @@ import {
   getStoredGalleryImages,
   CategoryData,
   DEFAULT_CATEGORY_DATA,
+  DEFAULT_CATEGORY_IMAGES,
 } from "@/src/utils/galleryStorage";
 
 interface FeaturedService {
@@ -162,6 +163,7 @@ export default function HomeServicesSection() {
         return {
           name: cat.name,
           subcategories: combinedSubs,
+          imageUrl: cat.imageUrl || DEFAULT_CATEGORY_IMAGES[cat.name] || "/assets/Shop Sign Boards.png",
         };
       });
 
@@ -191,9 +193,13 @@ export default function HomeServicesSection() {
               .filter((s): s is string => Boolean(s && s.trim()))
           )
         );
+        const matchingImg = storedImages.find(
+          (i) => i.category && i.category.toLowerCase() === extraName.toLowerCase()
+        );
         merged.push({
           name: extraName,
           subcategories: subs,
+          imageUrl: matchingImg?.imageDataUrl || matchingImg?.url || DEFAULT_CATEGORY_IMAGES[extraName] || "/assets/Shop Sign Boards.png",
         });
       }
 
@@ -297,37 +303,68 @@ export default function HomeServicesSection() {
           </p>
         </div>
 
-        {/* 5-Column Horizontal Cards Container matching reference design */}
+        {/* 5-Column Horizontal Cards Container with Category Images */}
         <div className="border border-stone-200/90 rounded-2xl bg-white shadow-xs overflow-hidden grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 divide-y md:divide-y-0 md:divide-x divide-stone-200">
-          {FEATURED_SERVICES.map((service) => (
-            <div
-              key={service.number}
-              onClick={() => openModalForCategory(service.targetCategoryName)}
-              className="p-6 lg:p-7 flex flex-col justify-start group cursor-pointer transition-all hover:bg-orange-50/20"
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  openModalForCategory(service.targetCategoryName);
-                }
-              }}
-            >
-              {/* Number in Orange */}
-              <div className="text-[#ff5722] font-bold text-xs sm:text-sm font-mono tracking-wider mb-6 lg:mb-8">
-                {service.number}
+          {FEATURED_SERVICES.map((service) => {
+            const catObj = categories.find(
+              (c) =>
+                c.name.toLowerCase() === service.targetCategoryName.toLowerCase() ||
+                c.name.toLowerCase().includes(service.targetCategoryName.toLowerCase()) ||
+                service.targetCategoryName.toLowerCase().includes(c.name.toLowerCase())
+            );
+            const catImage =
+              catObj?.imageUrl ||
+              DEFAULT_CATEGORY_IMAGES[service.targetCategoryName] ||
+              "/assets/Shop Sign Boards.png";
+
+            return (
+              <div
+                key={service.number}
+                onClick={() => openModalForCategory(service.targetCategoryName)}
+                className="p-5 lg:p-6 flex flex-col justify-between group cursor-pointer transition-all hover:bg-orange-50/25 select-none"
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    openModalForCategory(service.targetCategoryName);
+                  }
+                }}
+              >
+                <div>
+                  {/* Category Image Preview Container */}
+                  <div className="relative w-full aspect-[16/11] rounded-xl overflow-hidden bg-stone-100 mb-4 border border-stone-200/70 shadow-2xs">
+                    <img
+                      src={catImage}
+                      alt={service.cardTitle}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-stone-950/60 via-transparent to-transparent opacity-40 group-hover:opacity-60 transition-opacity" />
+                    {/* Number badge on image */}
+                    <div className="absolute top-2.5 left-2.5 bg-stone-950/80 backdrop-blur-xs text-[#ff5722] font-bold text-[11px] font-mono px-2 py-0.5 rounded-md shadow-xs border border-white/10">
+                      {service.number}
+                    </div>
+                  </div>
+
+                  {/* Card Title */}
+                  <h3 className="text-base font-bold text-stone-900 mb-2 font-display group-hover:text-[#ff5722] transition-colors leading-snug">
+                    {service.cardTitle}
+                  </h3>
+
+                  {/* Card Description */}
+                  <p className="text-xs text-stone-500 leading-relaxed line-clamp-3">
+                    {service.cardDesc}
+                  </p>
+                </div>
+
+                {/* Explore link hint */}
+                <div className="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between text-xs font-bold text-[#ff5722] group-hover:translate-x-0.5 transition-transform">
+                  <span>Explore Options</span>
+                  <span>→</span>
+                </div>
               </div>
-
-              {/* Card Title */}
-              <h3 className="text-base lg:text-[17px] font-bold text-stone-900 mb-2.5 font-display group-hover:text-[#ff5722] transition-colors leading-snug">
-                {service.cardTitle}
-              </h3>
-
-              {/* Card Description */}
-              <p className="text-xs sm:text-[13px] text-stone-500 leading-relaxed">
-                {service.cardDesc}
-              </p>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Centered "View All Services >" Button */}
@@ -485,30 +522,38 @@ export default function HomeServicesSection() {
                             : "border-stone-200/90 shadow-2xs hover:border-stone-300"
                         }`}
                       >
-                        {/* Prominent Category Header Button - Bold, Highly Visible, No Icons */}
+                        {/* Prominent Category Header Button with Image Thumbnail */}
                         <button
                           type="button"
                           onClick={() => toggleMobileCategory(cat.name)}
-                          className="w-full p-4 flex items-center justify-between text-left cursor-pointer transition-colors active:bg-orange-50/40 select-none"
+                          className="w-full p-3.5 sm:p-4 flex items-center justify-between text-left cursor-pointer transition-colors active:bg-orange-50/40 select-none gap-3"
                         >
-                          <div className="min-w-0 pr-3">
-                            <h4
-                              className={`text-sm sm:text-base font-extrabold tracking-tight leading-snug ${
-                                isExpanded ? "text-orange-600" : "text-stone-900"
-                              }`}
-                            >
-                              {cat.name}
-                            </h4>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-[11px] font-semibold text-stone-500 bg-stone-100 px-2.5 py-0.5 rounded-md">
-                                {cat.subcategories.length}{" "}
-                                {cat.subcategories.length === 1 ? "Option" : "Options"}
-                              </span>
-                              {isExpanded && (
-                                <span className="text-[10px] font-bold text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full">
-                                  Expanded
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <img
+                              src={cat.imageUrl || DEFAULT_CATEGORY_IMAGES[cat.name] || "/assets/Shop Sign Boards.png"}
+                              alt=""
+                              className="w-11 h-11 rounded-xl object-cover shrink-0 border border-stone-200 shadow-2xs"
+                              loading="lazy"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <h4
+                                className={`text-sm sm:text-base font-extrabold tracking-tight leading-snug truncate ${
+                                  isExpanded ? "text-orange-600" : "text-stone-900"
+                                }`}
+                              >
+                                {cat.name}
+                              </h4>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className="text-[11px] font-semibold text-stone-500 bg-stone-100 px-2.5 py-0.5 rounded-md">
+                                  {cat.subcategories.length}{" "}
+                                  {cat.subcategories.length === 1 ? "Option" : "Options"}
                                 </span>
-                              )}
+                                {isExpanded && (
+                                  <span className="text-[10px] font-bold text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full">
+                                    Expanded
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
 
@@ -592,13 +637,21 @@ export default function HomeServicesSection() {
                       key={cat.name}
                       type="button"
                       onClick={() => setSelectedCategoryName(cat.name)}
-                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer text-left ${
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer text-left ${
                         isActive
                           ? "bg-orange-50/90 text-orange-600 font-bold border border-orange-200 shadow-2xs"
                           : "text-stone-700 hover:bg-stone-100/80 hover:text-stone-900 border border-transparent"
                       }`}
                     >
-                      <span className="truncate pr-2">{cat.name}</span>
+                      <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                        <img
+                          src={cat.imageUrl || DEFAULT_CATEGORY_IMAGES[cat.name] || "/assets/Shop Sign Boards.png"}
+                          alt=""
+                          className="w-7 h-7 rounded-lg object-cover shrink-0 border border-stone-200"
+                          loading="lazy"
+                        />
+                        <span className="truncate">{cat.name}</span>
+                      </div>
                       <span
                         className={`text-xs px-2.5 py-0.5 rounded-full font-bold shrink-0 transition-colors ${
                           isActive
@@ -615,19 +668,32 @@ export default function HomeServicesSection() {
 
               {/* Right Column (Subcategories Grid - Desktop) */}
               <div className="flex-1 p-5 sm:p-7 overflow-y-auto bg-white flex flex-col h-full scroll-smooth">
-                {/* Active Category Header */}
-                <div className="mb-5 sm:mb-6 pb-4 border-b border-stone-100 shrink-0">
-                  <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
-                    <h4 className="text-xl sm:text-2xl font-extrabold text-stone-900 font-display tracking-tight">
-                      {activeCategory.name}
-                    </h4>
-                    <span className="text-xs px-2.5 py-0.5 rounded-full bg-orange-50 text-orange-600 font-bold border border-orange-200/60">
-                      {activeCategory.subcategories.length} Subcategories
-                    </span>
+                {/* Active Category Header with Cover Image Banner */}
+                <div className="mb-5 sm:mb-6 shrink-0">
+                  <div className="relative w-full h-40 sm:h-48 rounded-2xl overflow-hidden mb-4 bg-stone-900 shadow-sm">
+                    <img
+                      src={activeCategory.imageUrl || DEFAULT_CATEGORY_IMAGES[activeCategory.name] || "/assets/Shop Sign Boards.png"}
+                      alt={activeCategory.name}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-stone-950/90 via-stone-950/40 to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-5 text-white">
+                      <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                        <span className="text-[10px] font-bold uppercase tracking-wider bg-orange-500 text-white px-2.5 py-0.5 rounded-full shadow-xs">
+                          Category
+                        </span>
+                        <span className="text-[11px] bg-stone-900/80 backdrop-blur-xs text-stone-200 border border-white/20 px-2.5 py-0.5 rounded-full font-medium">
+                          {activeCategory.subcategories.length} Subcategories
+                        </span>
+                      </div>
+                      <h4 className="text-xl sm:text-2xl font-extrabold text-white font-display tracking-tight drop-shadow-sm">
+                        {activeCategory.name}
+                      </h4>
+                      <p className="text-xs sm:text-sm text-stone-200/90 leading-relaxed mt-1 line-clamp-2">
+                        {activeCategoryDesc}
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-xs sm:text-sm text-stone-500 leading-relaxed">
-                    {activeCategoryDesc}
-                  </p>
                 </div>
 
                 {/* Subcategories Grid */}

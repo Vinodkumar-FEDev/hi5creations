@@ -19,7 +19,7 @@ export const EXTERIOR_PRODUCTS: SignageProduct[] = [
     subtitle: "Retail Storefront LED Name Boards",
     description: "Custom illuminated shop name boards engineered for street-front clarity, high footfall visibility, and enduring weather resistance.",
     image: "/assets/Shop Sign Boards.png",
-    specs: ["Weatherproof IP67 LED", "Cast Acrylic / ACP", "MS Steel Sub-Frame"],
+    specs: ["Aluminum Channel", "Cast Acrylic / ACP", "MS Steel Sub-Frame"],
     applications: "Retail Outlets, Bakeries, Boutiques, Showrooms, Pharmacies",
     badge: "Most Popular",
     galleryCategory: "LED Sign Board",
@@ -31,7 +31,7 @@ export const EXTERIOR_PRODUCTS: SignageProduct[] = [
     subtitle: "Illuminated 3D Raised Letters",
     description: "Laser-cut 3D letters with front-lit, halo-backlit, or dual-lit illumination delivering striking depth and brand prestige.",
     image: "/assets/3D Lettering Signage.png",
-    specs: ["Precision CNC Route Cut", "High-Grade Metal Return", "Uniform Diffusion"],
+    specs: ["High-Grade Metal Return", "Uniform Diffusion"],
     applications: "Corporate Facades, Flagship Retail Stores, Hospitality",
     badge: "Architectural",
     galleryCategory: "3D Letters",
@@ -52,10 +52,10 @@ export const EXTERIOR_PRODUCTS: SignageProduct[] = [
     id: "ext-4",
     name: "Aluminium Channel Letters",
     category: "exterior",
-    subtitle: "Durable Lightweight Metal Letters",
+    subtitle: "Durable Lightweight Letters",
     description: "Precision-bent aluminium channel letters with acrylic faces and internal LED lighting, offering rust-free longevity and sleek profiles.",
     image: "/assets/Aluminium Channel Letters.png",
-    specs: ["Powder-Coated Aluminium", "UV-Resistant Cast Acrylic", "Samsung LED Chips"],
+    specs: ["Powder-Coated Aluminium", "UV-Resistant Cast Acrylic", "Samsung LED Module"],
     applications: "Commercial Centers, Retail Chains, Auto Dealerships",
     galleryCategory: "LED Sign Board",
   },
@@ -76,9 +76,9 @@ export const EXTERIOR_PRODUCTS: SignageProduct[] = [
     name: "Acrylic LED Sign Boards",
     category: "exterior",
     subtitle: "Glowing Edge & Face Lit Boards",
-    description: "Crystal-clear optical grade acrylic boards with embedded micro-LED illumination providing clean, luminous contrast day and night.",
+    description: "Optical grade acrylic boards with embedded micro-LED illumination providing clean, luminous contrast day and night.",
     image: "/assets/Acrylic LED Sign Boards.png",
-    specs: ["Virgin Cast Acrylic", "High CRI LED Strips", "Slim Extrusion Casing"],
+    specs: ["Virgin Cast Acrylic", "High CRI LED Strips"],
     applications: "Boutiques, Cafes, Dental Clinics, Spas & Salons",
     galleryCategory: "Acrylic & ACP Board",
   },
@@ -101,7 +101,7 @@ export const EXTERIOR_PRODUCTS: SignageProduct[] = [
     subtitle: "Uniformly Backlit Lightboxes",
     description: "High-grade flex and polycarbonate backlit sign boxes with heavy-gauge galvanized framing for reliable everyday commercial illumination.",
     image: "/assets/Glow Sign Boards.png",
-    specs: ["Galvanized Box Frame", "Uniform High-Lux Lighting", "Rubber Gasket Sealed"],
+    specs: ["Galvanized Box Frame", "Rubber Gasket Sealed", "ACP Board with LED 3D Letters"],
     applications: "Supermarkets, Departmental Stores, Distribution Centers",
     galleryCategory: "Vinyl Sign Boards",
   },
@@ -109,17 +109,17 @@ export const EXTERIOR_PRODUCTS: SignageProduct[] = [
     id: "ext-9",
     name: "SS & Titanium 3D Letters",
     category: "exterior",
-    subtitle: "Mirror Gold & Brushed Metal Letters",
-    description: "Grade 304/316 stainless steel and titanium-coated 3D letters offering an ultra-premium executive look that never tarnishes or fades.",
+    subtitle: "Mirror gold & Brushed Gold steel letter",
+    description: "Grade 304 stainless steel and titanium-coated 3D letters offering an ultra-premium executive look that never tarnishes or fades.",
     image: "/assets/SS & Titanium 3D Letters.png",
-    specs: ["Grade 304/316 Stainless Steel", "PVD Vacuum Titanium Finish", "Warm-White Halo Backlight"],
+    specs: ["Grade 304 Stainless Steel", "PVD Vacuum Titanium Finish", "Warm-White Halo Backlight"],
     applications: "Luxury Hotels, Corporate HQs, Real Estate Developments",
     badge: "Ultra Luxury",
     galleryCategory: "SS & Titanium Letters",
   },
   {
     id: "ext-10",
-    name: "Lollipop Projecting Signs",
+    name: "Double Sided Projecting signs",
     category: "exterior",
     subtitle: "Double-Sided Pedestrian Signage",
     description: "Double-sided illuminated signs mounted perpendicular to the building facade to capture high-density walking and driving footfall.",
@@ -143,10 +143,10 @@ export const EXTERIOR_PRODUCTS: SignageProduct[] = [
     id: "ext-12",
     name: "Building Identity Signage",
     category: "exterior",
-    subtitle: "Architectural Exterior Facade Nameplates",
+    subtitle: "Architectural Exterior Facade LED signage",
     description: "Massive skyline and mid-rise facade identity signage visible across entire city sectors, engineered with seismic and wind-resistant mountings.",
     image: "/assets/Building Identity Signage.png",
-    specs: ["Engineered Facade Anchors", "Surge-Protected Power Hub", "Automatic Daylight Sensors"],
+    specs: ["Engineered Facade Anchors", "Surge-Protected Power Hub", "Timer Settings for Day and Night"],
     applications: "IT Tech Parks, Corporate Towers, Industrial Plants",
     galleryCategory: "Building Signage",
   },
@@ -157,19 +157,19 @@ export const EXTERIOR_PRODUCTS: SignageProduct[] = [
     subtitle: "Vehicular & Pedestrian Navigational Signs",
     description: "Comprehensive outdoor directional signage systems guiding vehicles and visitors smoothly through commercial campuses and parking facilities.",
     image: "/assets/Directional Campus Wayfinding.png",
-    specs: ["Reflective Sheeting", "Modular Construction", "Anti-Graffiti Laminate"],
+    specs: ["Reflective Sheeting", "Modular Construction"],
     applications: "Hospitals, Educational Campuses, Gated Communities, Tech Parks",
     galleryCategory: "Building Signage",
   },
   {
     id: "ext-14",
-    name: "Healthcare Emergency Signage",
+    name: "UV Backlit with 4 dot LED Module",
     category: "exterior",
-    subtitle: "High-Priority 24/7 Illuminated Guides",
-    description: "Red and blue illuminated emergency signage engineered for instant recognition and clear navigation during critical healthcare emergencies.",
-    image: "/assets/Healthcare Emergency Signage.png",
-    specs: ["Battery Backup Ready", "High-Contrast Visual Codes", "Healthcare Standard"],
-    applications: "Hospitals, Trauma Centers, Diagnostic Labs, Blood Banks",
+    subtitle: "High-Intensity 4-Dot LED Illuminated Backlit Signs",
+    description: "High-definition UV printed backlit signage illuminated with high-brightness 4-dot injection LED modules, delivering vivid color reproduction and exceptional daytime & nighttime street visibility.",
+    image: "/assets/UV Backlit with 4 dot LED Module.png",
+    specs: ["High-Power 4-Dot LED Module", "Direct Flatbed UV Backlit Print", "Weatherproof IP68 Injection Housing"],
+    applications: "Retail Storefronts, Commercial Showrooms, Corporate Facades, Advertising Lightboxes",
     galleryCategory: "LED Sign Board",
   },
   {
@@ -190,7 +190,7 @@ export const EXTERIOR_PRODUCTS: SignageProduct[] = [
     subtitle: "City-Dominating Skyline Landmark Signs",
     description: "Mega-scale letter assemblies mounted on structural rooftop trusses, creating iconic city skyline landmarks visible for kilometers.",
     image: "/assets/Rooftop Sky Signage.png",
-    specs: ["Hot-Dipped Galvanized Trusses", "Lightning Protection", "Aviation Beacon Ready"],
+    specs: ["Hot-Dipped Galvanized Trusses", "Lightning Protection"],
     applications: "High-Rise Towers, Major Hotels, University Campuses",
     badge: "Mega Format",
     galleryCategory: "Building Signage",
@@ -209,8 +209,8 @@ export const INTERIOR_PRODUCTS: SignageProduct[] = [
     image: "/assets/Reception & Lobby Boards.png",
     specs: [
       "Standoff Pin Mounting",
-      "Backlit Warm/Cool LEDs",
-      "Brushed Metal / Acrylic",
+      "Backlit Warm LEDs",
+      "SS Metal / Acrylic",
     ],
     applications:
       "Corporate Offices, Tech HQs, Consulting Firms, Law Chambers",
@@ -239,7 +239,7 @@ export const INTERIOR_PRODUCTS: SignageProduct[] = [
 
   {
     id: "int-3",
-    name: "Multi Langugage Name Board",
+    name: "Multi Language Name Board",
     category: "interior",
     subtitle: "Regional & Dual-Language Storefront Displays",
     description:
@@ -248,7 +248,7 @@ export const INTERIOR_PRODUCTS: SignageProduct[] = [
     specs: [
       "Tamil / English Dual Script",
       "Laser Cut Acrylic / SS",
-      "Warm & Cool LED Backlit",
+      "Warm LED Backlit",
     ],
     applications:
       "Retail Stores, Supermarkets, Restaurants, Commercial Showrooms",
@@ -267,7 +267,7 @@ export const INTERIOR_PRODUCTS: SignageProduct[] = [
     specs: [
       "Direct Glass Fastening",
       "Concealed Micro-Wiring",
-      "Even Halo & Face Glow",
+      "Glow light",
     ],
     applications:
       "Shopping Mall Stores, Retail Showrooms, Flagship Outlets, Atriums",
@@ -277,7 +277,7 @@ export const INTERIOR_PRODUCTS: SignageProduct[] = [
 
   {
     id: "int-5",
-    name: "Custom Neon LED Art Signs",
+    name: "Interior Branding Signage ",
     category: "interior",
     subtitle: "Photogenic Social & Aesthetic Lighting",
     description:
@@ -304,8 +304,7 @@ export const INTERIOR_PRODUCTS: SignageProduct[] = [
     image: "/assets/Indoor Totem Directories.png",
     specs: [
       "Weighted Anti-Tip Base",
-      "Magnetic Directory Strips",
-      "Integrated Ambient Downlight",
+
     ],
     applications:
       "Commercial Buildings, Medical Centers, Shopping Malls",
@@ -333,19 +332,19 @@ export const INTERIOR_PRODUCTS: SignageProduct[] = [
 
   {
     id: "int-8",
-    name: "Safety & Emergency Exit Signs",
+    name: "Foam Board Signage",
     category: "interior",
-    subtitle: "Photoluminescent & LED Exit Signs",
+    subtitle: "Lightweight High-Density PVC Foam Board Displays",
     description:
-      "High-reliability fire exit and emergency evacuation signs with built-in backup power and photoluminescent glow-in-the-dark visibility.",
-    image: "/assets/Safety & Emergency Exit Signs.png",
+      "High-density PVC foam board (Sunpack/Forex) signage with direct flatbed UV printing, offering lightweight, cost-effective, and sleek branding for indoor corporate and retail spaces.",
+    image: "/assets/Foam Board Signage.png",
     specs: [
-      "IS/ISO Compliant Icons",
-      "Emergency Battery Backup",
-      "Phosphor Glow Option",
+      "High-Density PVC Foam Sheet",
+      "Direct Flatbed UV Printing",
+      "Lightweight Wall Standoff Mount",
     ],
     applications:
-      "Industrial Facilities, Warehouses, Cinema Halls, Commercial Towers",
+      "Corporate Offices, Retail Stores, Indoor Promotional Displays, Exhibitions, Educational Campuses",
     galleryCategory: "Inshop Branding",
   },
 
@@ -359,7 +358,7 @@ export const INTERIOR_PRODUCTS: SignageProduct[] = [
     image: "/assets/Retail Aisle & Category Markers.png",
     specs: [
       "Lightweight Forex / Acrylic",
-      "Magnetic / Clip Mount",
+      "Clip Mount",
       "High-Contrast Typography",
     ],
     applications:
@@ -369,7 +368,7 @@ export const INTERIOR_PRODUCTS: SignageProduct[] = [
 
   {
     id: "int-10",
-    name: "LED Message Tickers",
+    name: "Multicolor in LED Message Tickers",
     category: "interior",
     subtitle: "Real-Time Information & Rate Displays",
     description:
@@ -387,7 +386,7 @@ export const INTERIOR_PRODUCTS: SignageProduct[] = [
 
   {
     id: "int-11",
-    name: "Lollipop Projecting Signs",
+    name: "Double Sided Projecting signs",
     category: "interior",
     subtitle: "Double-Sided Corridor & Arcade Blade Signs",
     description:
@@ -410,10 +409,10 @@ export const INTERIOR_PRODUCTS: SignageProduct[] = [
     category: "interior",
     subtitle: "Slim Front-Opening Menu Boards",
     description:
-      "Magnetic front-opening snap frame lightboxes with laser-dotted light guides ensuring 100% even backlighting across high-resolution food menus.",
+      "Front-opening snap frame lightboxes with laser-dotted light guides ensuring 100% even backlighting across high-resolution food menus.",
     image: "/assets/Illuminated Menu Lightboxes.png",
     specs: [
-      "Magnetic Quick-Swap Face",
+      "Quick-Swap Face",
       "Corner-to-Corner Diffusion",
       "Ultra-Slim 18mm Depth",
     ],
@@ -471,7 +470,7 @@ export const INTERIOR_PRODUCTS: SignageProduct[] = [
     specs: [
       "Food-Grade Silicone Tubing",
       "Dimmable Driver & Controller",
-      "50,000+ Hours Rated Lifespan",
+
     ],
     applications:
       "Cafes, Restaurants, Lounges, Creative Studios, Boutiques",
@@ -481,7 +480,7 @@ export const INTERIOR_PRODUCTS: SignageProduct[] = [
 
   {
     id: "int-16",
-    name: "Outdoor LED Video Walls (indoor LED Video)",
+    name: "Indoor LED Video Walls",
     category: "interior",
     subtitle: "High-Definition Commercial Modular Screen Displays",
     description:

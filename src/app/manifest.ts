@@ -4,9 +4,9 @@ export const dynamic = "force-static";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Hi5 Creation — Signage & LED Boards Coimbatore",
+    name: "Hi5 Creation — Shop Sign Boards & LED Sign Board Manufacturers Coimbatore",
     short_name: "Hi5 Creation",
-    description: "Premier LED sign boards, ACP cladding, and storefront branding in Coimbatore.",
+    description: "Coimbatore's premier signage manufacturer: Shop Sign Boards, 3D Lettering Signage, Pylon Signage, Aluminium Channel Letters, Acrylic & Neon LED Boards.",
     start_url: "/",
     display: "standalone",
     background_color: "#faf9f7",

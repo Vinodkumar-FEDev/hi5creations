@@ -5,51 +5,51 @@ export interface FaqItem {
 
 export const FAQ_ITEMS: FaqItem[] = [
   {
-    q: "What type of sign board is best for a shop?",
-    a: "The best sign board depends on the shop location, brand style, visibility, budget, and whether the sign is needed for indoor or outdoor use. Common options include 3D signage, LED signage, acrylic signage, glow sign boards, channel letters, and aluminum channel letters. For outdoor shops, weather-resistant and illuminated signage can improve visibility, especially at night.",
+    q: "What is a Shop Sign Board and which type is best for retail stores?",
+    a: "A Shop Sign Board is the primary exterior visual identity displayed above a retail storefront to attract foot traffic and establish brand recognition. The best options include 3D Lettering Signage, Acrylic LED Sign Boards, Aluminium Channel Letters, and illuminated Glow Sign Boards mounted on weatherproof ACP cladding. For high-footfall commercial areas, combining illuminated 3D Signage with Retail Digital Signage delivers 24/7 visibility and maximum brand impact.",
   },
   {
-    q: "What is the difference between an acrylic sign board and an LED sign board?",
-    a: "An acrylic sign board uses acrylic sheets as the main visible material and can include printed graphics, raised letters, or illumination. LED signage uses LED lighting to make the sign visible and can include LED channel letters, acrylic LED signage, neon LED signage, or illuminated boards. The right choice depends on the required appearance, brightness, and installation location.",
+    q: "What is 3D Lettering Signage and how do Aluminium Channel Letters compare with Acrylic letters?",
+    a: "3D Lettering Signage features individual three-dimensional characters fabricated from acrylic, aluminium, or stainless steel. Aluminium Channel Letters (also spelled Aluminum Channel Letters) are fabricated with precision-bent aluminium returns and acrylic faces, making them lightweight, corrosion-free, and ideal for large outdoor building facades. Solid acrylic 3D letters provide crystal-clear edge glow and refined elegance suited for luxury showrooms and corporate interior sign boards.",
   },
   {
-    q: "How much does a shop sign board cost in India?",
-    a: "Sign board pricing depends on the size, material, design, lighting, letters, finishing, structure, installation, and location. A simple board can cost less than a large illuminated 3D sign with a custom metal structure. The exact cost is normally calculated after understanding the required dimensions, material, design, and installation requirements.",
+    q: "What is Pylon Signage Design and when should a business use Lollipop & Pylon Signage?",
+    a: "Pylon Signage Design refers to freestanding, ground-mounted monolithic towers engineered with heavy structural steel frameworks to achieve high visibility from distant highways, busy roads, and commercial complexes. Lollipop & Pylon Signage features a circular, oval, or custom-shaped illuminated double-sided pod elevated on a single sturdy pole. Businesses such as retail petrol stations, multi-tenant shopping malls, automotive showrooms, and highway restaurants rely on pylon signs to capture high-speed vehicle traffic.",
   },
   {
-    q: "What are 3D channel letter signs and where are they used?",
-    a: "3D channel letters are individually fabricated letters that create a raised, three-dimensional appearance. They can be illuminated using LED modules and are commonly used for shops, showrooms, restaurants, offices, hotels, hospitals, banks, and commercial buildings.",
+    q: "What signage solutions are recommended for Hospitals, Clinics, and Healthcare facilities?",
+    a: "Hospitals require a comprehensive system comprising Hospital Signage, Hospital Wayfinding Signage, Directional Signages, Custom Braille Signs (Braille Signages), and emergency Safety Signages. HI 5 Creation manufactures tactile Braille signs compliant with accessibility norms, high-contrast overhead wayfinding suspended signs, glowing emergency exit notices, and room identification nameplates designed with antibacterial, easy-to-sanitize acrylic surfaces.",
   },
   {
-    q: "What signage is suitable for a restaurant or retail shop?",
-    a: "Restaurants and retail shops commonly use 3D signage, LED signage, acrylic signage, channel letters, neon LED signage, and glow sign boards. The choice depends on the storefront, brand identity, visibility requirements, and whether the signage needs to work during both daytime and nighttime.",
+    q: "What is the difference between an Acrylic LED Sign Board, Neon LED Signage, and a Glow Sign Board?",
+    a: "An Acrylic LED Sign Board utilizes laser-cut optical-grade cast acrylic illuminated by high-efficiency Samsung or Osram LED modules for clean, uniform front and edge lighting. Neon LED Signage uses flexible silicone tubing embedded with micro-LEDs to produce vibrant, curved retro-modern neon glow with 80% lower power consumption than traditional glass neon. A Glow Sign Board (or Glow Signage) typically features an internally illuminated box with translucent flex or polycarbonate face, providing cost-effective commercial coverage for large outdoor advertising.",
   },
   {
-    q: "What is a pylon sign and where is it used?",
-    a: "A pylon sign is a large freestanding sign installed on a supporting structure, usually positioned where it can be seen from a distance. It is commonly used for commercial buildings, retail stores, petrol stations, business parks, malls, hotels, and large properties where high-visibility signage is required.",
+    q: "What signage is required for Bank Sign Boards, Corporate Offices, and Financial Institutions?",
+    a: "Banking institutions and corporate offices demand polished Bank Signage, Bank Sign Boards, and bespoke Office Sign Board Design. Typical installations include brushed titanium gold or SS 304 stainless steel reception 3D letters, illuminated ATM fascia signage, security-compliant directional signages, frosted glass manifestations, and executive indoor sign boards that communicate trust, stability, and corporate prestige.",
   },
   {
-    q: "What is the difference between indoor and outdoor signage?",
-    a: "Indoor signage is designed for environments such as shops, offices, malls, hotels, hospitals, and commercial interiors. Outdoor signage needs to consider factors such as weather, sunlight, wind, visibility, mounting structure, and durability. Examples include directional signs, safety signs, building signs, shop signs, pylon signs, and illuminated signage.",
+    q: "What signage designs work best for Restaurants, Cafes, and Hotels?",
+    a: "Hospitality venues require inviting, high-aesthetic signage including Restaurant Led Boards, Restaurant Signage, Hotel Led Board Design, and Hotel Sign Boards. Popular choices include warm-white architectural halo-lit channel letters, vibrant custom Neon LED Signage for interior photo-spots and bar counters, backlit menu displays, and weather-resistant outdoor pylon entrance signages that create an upscale ambience.",
   },
   {
-    q: "What types of signage are used for offices, hospitals and commercial buildings?",
-    a: "Common signage includes building name boards, reception signs, directional signage, room signs, safety signage, wayfinding signs, acrylic signs, illuminated signs, and outdoor identification boards. The signage system can be planned according to the building layout and the information customers or visitors need to find.",
+    q: "What solutions are available for Real Estate Sign Boards and Commercial Property Signage?",
+    a: "Real Estate Sign Boards and Real Estate Signage require large-format Outdoor Signage Design, heavy-duty site hoarding sign boards, monolith project entry totems, and structural ACP elevations. These signs are engineered to withstand severe monsoon winds, intense UV exposure, and environmental weathering while clearly presenting property layouts, developer branding, and project contact details.",
   },
   {
-    q: "What signage services does HI5 Creation provide?",
-    a: "HI5 Creation provides signage solutions including shop sign boards, 3D signage, pylon and lollipop signage, retail and restaurant signage, bank and office sign boards, hotel and hospital signage, real estate signage, LED and neon LED signage, video walls, acrylic LED signage, aluminum channel letters, glow sign boards, directional signage, indoor and outdoor signage, and safety signage.",
+    q: "What is the difference between Outdoor Signage Design and Indoor Sign Boards?",
+    a: "Outdoor Signage Design focuses on weatherproofing, wind-load structural engineering, UV-resistant pigments, IP67 waterproof LED encapsulation, and long-range legibility. Indoor Sign Boards and Indoor Signages emphasize close-up viewing resolution, refined material finishes, glare reduction, ADA tactile Braille compliance, and seamless integration with interior architectural decor.",
   },
   {
-    q: "How can I get a customized signage solution from HI5 Creation?",
-    a: "HI5 Creation can develop signage based on the business type, location, available space, required dimensions, branding, material, lighting, and installation requirements. Customers can discuss their signage requirement with HI5 Creation to determine the appropriate signage type, design, materials, and installation approach.",
+    q: "What types of Directional Signages, Wayfinding Signages, and Safety Signages do you fabricate?",
+    a: "HI 5 Creation designs modular Directional Signages and wayfinding signages for campuses, IT parks, airports, and commercial towers. Our safety signage and Safety Signages range includes fire exit indicators, photoluminescent glow-in-the-dark escape route signs, caution markers, hazard warnings, and emergency assembly point boards manufactured according to national safety standards.",
   },
   {
-    q: "Where is Hi5 Creation located in Coimbatore, and how can I visit or contact them?",
-    a: "Hi5 Creation is located at No. 437, Kumaran Garden, Pooja Marbles Opp, Idayarpalayam Pirivu, Kuniyamuthur, Coimbatore, Tamil Nadu 641008. Customers can call or WhatsApp +91 63792 39878 / +91 78453 63330, or email hi5creationbe@gmail.com. Workshop hours are Monday to Saturday, 9:00 AM to 8:00 PM, with on-site consultation and installation across South India.",
+    q: "Where is Hi5 Creation located in Coimbatore, and how can customers request on-site consultation?",
+    a: "Hi5 Creation is headquartered at No. 437, Kumaran Garden, Pooja Marbles Opp, Idayarpalayam Pirivu, Kuniyamuthur, Coimbatore – 641 008, Tamil Nadu (Coordinates: 10.9912° N, 76.9419° E). Customers across Coimbatore, Tiruppur, Erode, Salem, Pollachi, Palakkad, and South India can contact us at +91 63792 39878 / +91 78453 63330 or email hi5creationbe@gmail.com for a free 24-hour design quotation and on-site measurement.",
   },
   {
-    q: "What materials, LED modules, and quality standards does Hi5 Creation use?",
-    a: "Hi5 Creation uses premium cast acrylic sheets, Aludecor architectural ACP panels, SS 304 grade stainless steel, titanium-finished 3D channel letters, and IP67-rated waterproof Samsung and Osram LED modules powered by BIS-certified outdoor power supplies. All signage is built for high heat, UV resistance, and heavy monsoon weather.",
+    q: "What materials, LED chips, and structural warranties does Hi5 Creation provide?",
+    a: "Hi5 Creation fabricates signage exclusively with architectural cast acrylic sheets, Aludecor ACP cladding, rustproof SS 304 stainless steel, and IP67 waterproof Samsung and Osram LED modules powered by BIS-certified outdoor Mean Well drivers. All structural frameworks are welded with anti-corrosion treated mild steel or aluminium, backed by comprehensive warranties and after-sales service.",
   },
 ];
