@@ -79,7 +79,7 @@ export default function HomeGallerySection() {
           </Link> */}
         </div>
 
-        {/* Dynamic Image Grid — Images with Categories & Badges (Image Name Removed) */}
+        {/* Dynamic Image Grid Images with Categories & Badges (Image Name Removed) */}
         {displayItems.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {displayItems.map((img) => (
@@ -126,49 +126,14 @@ export default function HomeGallerySection() {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {DEFAULT_GALLERY_ITEMS.map((item, i) => (
-              <Link
-                key={i}
-                href="/gallery"
-                className={`${item.span} rounded-2xl overflow-hidden relative group cursor-pointer bg-stone-100 border border-stone-200 shadow-sm hover:shadow-xl transition-all block`}
-              >
-                <img
-                  src={item.img}
-                  alt={`${item.cat} by Hi5 Creation Coimbatore`}
-                  loading="lazy"
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-
-                {/* Automatic Brand Watermark Overlay */}
-                <div className="absolute top-3 right-3 z-10 pointer-events-none opacity-90 group-hover:opacity-100 transition-opacity">
-                  <div className="bg-stone-950/85 backdrop-blur-xs border border-orange-500/40 px-2 py-1 rounded-lg flex items-center shadow-sm">
-                    <img
-                      src="/assets/logo.svg"
-                      alt="Hi5 Creation"
-                      className="h-4 w-auto object-contain brightness-110"
-                    />
-                  </div>
-                </div>
-
-                {/* Soft Bottom Gradient for Tag Legibility */}
-                <div className="absolute inset-0 bg-gradient-to-t from-stone-950/85 via-stone-950/25 to-transparent opacity-85 group-hover:opacity-95 transition-opacity" />
-
-                {/* Category & Subcategory Badge (No Image Name / Title) */}
-                <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-5">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[10px] font-bold tracking-widest text-orange-400 uppercase bg-orange-500/20 border border-orange-400/40 px-2.5 py-1 rounded-full shadow-xs">
-                      {item.cat}
-                    </span>
-                    {item.subcat && (
-                      <span className="text-[10px] font-medium tracking-wide text-stone-300 bg-stone-900/80 border border-stone-700/50 px-2.5 py-1 rounded-full">
-                        {item.subcat}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </Link>
-            ))}
+          <div className="text-center py-16">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-stone-100 mb-4">
+              <svg className="w-8 h-8 text-stone-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </div>
+            <p className="text-stone-600 font-medium">Loading gallery images...</p>
           </div>
         )}
 

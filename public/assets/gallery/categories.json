@@ -1,6 +1,7 @@
 [
   {
     "name": "Vinyl Sign Boards",
+    "imageUrl": "/assets/Shop Sign Boards.png",
     "subcategories": [
       "2D Design Boards",
       "3D Design Boards",
@@ -21,6 +22,7 @@
   },
   {
     "name": "Building Signage",
+    "imageUrl": "/assets/Building Identity Signage.png",
     "subcategories": [
       "ACP Cladding",
       "ACP Elevation Works",
@@ -30,6 +32,7 @@
   },
   {
     "name": "Neon & LED Boards",
+    "imageUrl": "/assets/Neon LED Signage.png",
     "subcategories": [
       "3D LED Letters",
       "Acrylic LED Letters",
@@ -55,6 +58,7 @@
   },
   {
     "name": "Acrylic Signage",
+    "imageUrl": "/assets/Acrylic LED Sign Boards.png",
     "subcategories": [
       "Acrylic 3D Letters",
       "Acrylic LED Name Boards",
@@ -68,6 +72,7 @@
   },
   {
     "name": "Lighting & Glow",
+    "imageUrl": "/assets/Glow Sign Boards.png",
     "subcategories": [
       "Glow Sign Boards",
       "Crystal LED Boards",
@@ -80,50 +85,115 @@
   },
   {
     "name": "LED Sign Board",
-    "subcategories": ["3D Acrylic LED", "Single Color Scrolling", "RGB Pixel LED", "Neon Flex", "Backlit Box"]
+    "imageUrl": "/assets/Shop Sign Boards.png",
+    "subcategories": [
+      "3D Acrylic LED",
+      "Single Color Scrolling",
+      "RGB Pixel LED",
+      "Neon Flex",
+      "Backlit Box"
+    ]
   },
   {
     "name": "ACP Elevation",
-    "subcategories": ["Exterior Cladding", "Glossy ACP Facade", "Wooden Finish ACP", "Custom Structural ACP"]
+    "imageUrl": "/assets/ACP Elevation & Cladding.png",
+    "subcategories": [
+      "Exterior Cladding",
+      "Glossy ACP Facade",
+      "Wooden Finish ACP",
+      "Custom Structural ACP"
+    ]
   },
   {
     "name": "Trimcap Letters",
-    "subcategories": ["Acrylic Trimcap", "3D Illuminated Channel", "Aluminum Trimcap"]
+    "imageUrl": "/assets/Aluminium Channel Letters.png",
+    "subcategories": [
+      "Acrylic Trimcap",
+      "3D Illuminated Channel",
+      "Aluminum Trimcap"
+    ]
   },
   {
     "name": "Multicolor LED Board",
-    "subcategories": ["Full Color Video Wall", "Programmable RGB Ticker", "P10 Outdoor Display"]
+    "imageUrl": "/assets/Indoor LED Video Walls.png",
+    "subcategories": [
+      "Full Color Video Wall",
+      "Programmable RGB Ticker",
+      "P10 Outdoor Display"
+    ]
   },
   {
     "name": "Pole Sign Board",
-    "subcategories": ["High-Rise Monolith", "Unipole Signage", "Fuel Forecourt Pole"]
+    "imageUrl": "/assets/Pylon & Monolith Signage.png",
+    "subcategories": [
+      "High-Rise Monolith",
+      "Unipole Signage",
+      "Fuel Forecourt Pole"
+    ]
   },
   {
     "name": "Inshop Branding",
-    "subcategories": ["Retail Display Shelf", "Acrylic Wall Signage", "Fabric Lightbox", "Counter Branding"]
+    "imageUrl": "/assets/Reception & Lobby Boards.png",
+    "subcategories": [
+      "Retail Display Shelf",
+      "Acrylic Wall Signage",
+      "Fabric Lightbox",
+      "Counter Branding"
+    ]
   },
   {
     "name": "Backlight Board",
-    "subcategories": ["Vinyl Backlit Box", "Flex Lightbox", "Fabric Edge-Lit"]
+    "imageUrl": "/assets/Frameless Fabric Lightboxes (SEG).png",
+    "subcategories": [
+      "Vinyl Backlit Box",
+      "Flex Lightbox",
+      "Fabric Edge-Lit"
+    ]
   },
   {
     "name": "Acrylic & ACP Board",
-    "subcategories": ["Laser Cut Acrylic", "Stand-Off Acrylic Board", "Engraved ACP"]
+    "imageUrl": "/assets/Acrylic LED Sign Boards Indoor.png",
+    "subcategories": [
+      "Laser Cut Acrylic",
+      "Stand-Off Acrylic Board",
+      "Engraved ACP"
+    ]
   },
   {
     "name": "Totem Pylon Board",
-    "subcategories": ["Architectural Monolith", "Double-Sided Wayfinder", "Corporate Entry Totem"]
+    "imageUrl": "/assets/Indoor Totem Directories.png",
+    "subcategories": [
+      "Architectural Monolith",
+      "Double-Sided Wayfinder",
+      "Corporate Entry Totem"
+    ]
   },
   {
     "name": "Programming LED Board",
-    "subcategories": ["Scrolling Text Display", "Time & Temp Board", "Wireless Controlled LED"]
+    "imageUrl": "/assets/LED Message Tickers.png",
+    "subcategories": [
+      "Scrolling Text Display",
+      "Time & Temp Board",
+      "Wireless Controlled LED"
+    ]
   },
   {
     "name": "Scrolling LED & Videowall",
-    "subcategories": ["Indoor P2.5 Video Wall", "Outdoor P4 Video Panel", "Curved LED Screen"]
+    "imageUrl": "/assets/Outdoor LED Video Walls.png",
+    "subcategories": [
+      "Indoor P2.5 Video Wall",
+      "Outdoor P4 Video Panel",
+      "Curved LED Screen"
+    ]
   },
   {
     "name": "SS & Titanium Letters",
-    "subcategories": ["Mirror SS 3D Letters", "Brush Titanium 3D", "Rose Gold SS Letters", "Brass Metal Letters"]
+    "imageUrl": "/assets/SS & Titanium 3D Letters.png",
+    "subcategories": [
+      "Mirror SS 3D Letters",
+      "Brush Titanium 3D",
+      "Rose Gold SS Letters",
+      "Brass Metal Letters"
+    ]
   }
 ]

@@ -75,7 +75,7 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row justify-between items-center pt-8 gap-4">
+        <div className="flex flex-col sm:flex-row justify-between items-center pt-8 gap-4 mb-8">
           <p className="text-stone-600 text-xs">© 2026 Hi 5 Creation. All Rights Reserved.</p>
           <div className="flex flex-wrap gap-6 text-xs text-stone-600">
             <Link href="/" className="hover:text-stone-400 transition-colors">Home</Link>
@@ -83,6 +83,24 @@ export default function Footer() {
             <Link href="/#faq" className="hover:text-stone-400 transition-colors">FAQs</Link>
             <a href="https://share.google/DioyICsZPa8S9QXpo" target="_blank" rel="noopener noreferrer" className="hover:text-stone-400 transition-colors">Google Reviews</a>
           </div>
+        </div>
+
+        {/* Designed by Fuzyne Design Studio */}
+        <div className="flex items-center justify-center gap-2 pt-6 border-t border-stone-800">
+          <span className="text-stone-600 text-xs">Designed by</span>
+          <a 
+            href="https://www.instagram.com/fuzyne_?cplk=YjZiZnZzb2xiNDZw" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+          >
+            <span className="text-stone-500 text-xs font-medium">Fuzyne Design Studio</span>
+            <img 
+              src="/assets/Vector 725.png" 
+              alt="Fuzyne Design Studio Logo" 
+              className="h-4 w-auto object-contain"
+            />
+          </a>
         </div>
       </div>
     </footer>

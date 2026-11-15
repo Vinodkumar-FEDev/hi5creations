@@ -17,6 +17,7 @@ import {
   DEFAULT_CATEGORY_IMAGES,
   fetchDynamicCategories,
   saveLocalCustomCategories,
+  normalizeCategoryData,
 } from "@/src/utils/galleryStorage";
 import {
   WatermarkOptions,
@@ -293,7 +294,7 @@ function WatermarkPreviewCanvas({ options }: { options: WatermarkOptions }) {
       ctx.fillStyle = "#94a3b8";
       ctx.font = "600 14px system-ui, -apple-system, sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText("⚠️ Automatic Watermark Disabled — Images Upload Clean", width / 2, height - 72);
+      ctx.fillText("⚠️ Automatic Watermark Disabled Images Upload Clean", width / 2, height - 72);
       ctx.restore();
     }
   }, [options]);
@@ -841,6 +842,12 @@ export default function UploadClient() {
           setNewCatImageFile(null);
           setNewCatImagePreview(null);
           showToast("success", `Category "${name}" added successfully!`);
+          if (Array.isArray(data.categories) && data.categories.length > 0) {
+            const normalized = normalizeCategoryData(data.categories);
+            saveLocalCustomCategories(normalized);
+            setDynamicCategories(normalized);
+            return;
+          }
           await loadCategories();
           return;
         }
@@ -889,8 +896,22 @@ export default function UploadClient() {
       if (contentType.includes("application/json")) {
         const data = await res.json().catch(() => ({}));
         if (res.ok && data.success) {
+          const newUrl = data.imageUrl;
+          if (Array.isArray(data.categories) && data.categories.length > 0) {
+            const normalized = normalizeCategoryData(data.categories);
+            saveLocalCustomCategories(normalized);
+            setDynamicCategories(normalized);
+          } else {
+            const updated = dynamicCategories.map((c) =>
+              c.name.toLowerCase() === categoryName.toLowerCase()
+                ? { ...c, imageUrl: newUrl || c.imageUrl }
+                : c
+            );
+            const normalized = normalizeCategoryData(updated);
+            saveLocalCustomCategories(normalized);
+            setDynamicCategories(normalized);
+          }
           showToast("success", `Image for "${categoryName}" updated successfully!`);
-          await loadCategories();
           return true;
         }
       }
@@ -926,7 +947,7 @@ export default function UploadClient() {
   };
 
   const promptDeleteCategory = (categoryName: string) => {
-    const cat = dynamicCategories.find((c) => c.name === categoryName);
+    const cat = dynamicCategories.find((c) => c.name.toLowerCase() === categoryName.toLowerCase()) || dynamicCategories.find((c) => c.name === categoryName);
     const subCount = cat?.subcategories?.length || 0;
     setDeleteConfirm({
       type: "category",
@@ -942,6 +963,15 @@ export default function UploadClient() {
     const subName = (subCatInputs[categoryName] || "").trim();
     if (!subName || addingSubcategoryFor === categoryName) return;
 
+    // Preserve existing category image so it is NEVER changed or lost
+    const currentCat = dynamicCategories.find(
+      (c) => c.name.toLowerCase() === categoryName.toLowerCase()
+    );
+    const existingImageUrl =
+      currentCat?.imageUrl && currentCat.imageUrl !== "/assets/Shop Sign Boards.png"
+        ? currentCat.imageUrl
+        : (DEFAULT_CATEGORY_IMAGES[categoryName] || currentCat?.imageUrl || "/assets/Shop Sign Boards.png");
+
     setAddingSubcategoryFor(categoryName);
     setActionLoading({
       loading: true,
@@ -955,6 +985,7 @@ export default function UploadClient() {
           action: "add_subcategory",
           categoryName,
           subcategoryName: subName,
+          imageUrl: existingImageUrl, // IMPORTANT: Send current image so backend preserves it
         }),
       });
       const contentType = res.headers.get("content-type") || "";
@@ -963,24 +994,63 @@ export default function UploadClient() {
         if (res.ok && data.success) {
           setSubCatInputs((prev) => ({ ...prev, [categoryName]: "" }));
           showToast("success", `Subcategory "${subName}" added under ${categoryName}!`);
-          await loadCategories();
+
+          if (Array.isArray(data.categories) && data.categories.length > 0) {
+            const existingMap = new Map(
+              dynamicCategories.map((c) => [c.name.toLowerCase(), c.imageUrl])
+            );
+            const preserved = data.categories.map((c: CategoryData) => {
+              const prevImg = existingMap.get(c.name.toLowerCase());
+              if (c.name.toLowerCase() === categoryName.toLowerCase()) {
+                return { ...c, imageUrl: existingImageUrl };
+              }
+              if (prevImg && (!c.imageUrl || c.imageUrl === "/assets/Shop Sign Boards.png")) {
+                return { ...c, imageUrl: prevImg };
+              }
+              return c;
+            });
+            const normalized = normalizeCategoryData(preserved);
+            saveLocalCustomCategories(normalized);
+            setDynamicCategories(normalized);
+            return;
+          }
+
+          const updated = dynamicCategories.map((c) => {
+            if (c.name.toLowerCase() === categoryName.toLowerCase()) {
+              const existingSubs = c.subcategories || [];
+              if (!existingSubs.includes(subName)) {
+                return { ...c, subcategories: [...existingSubs, subName], imageUrl: existingImageUrl };
+              }
+            }
+            return c;
+          });
+          const normalized = normalizeCategoryData(updated);
+          saveLocalCustomCategories(normalized);
+          setDynamicCategories(normalized);
           return;
         }
       }
 
       // Static Hosting / LocalStorage fallback
-      const currentCats = await fetchDynamicCategories(true);
+      const currentCats = dynamicCategories.length > 0
+        ? dynamicCategories
+        : await fetchDynamicCategories(true);
       const updated = currentCats.map((c) => {
-        if (c.name === categoryName) {
+        if (c.name.toLowerCase() === categoryName.toLowerCase()) {
           const existingSubs = c.subcategories || [];
           if (!existingSubs.includes(subName)) {
-            return { ...c, subcategories: [...existingSubs, subName] };
+            return {
+              ...c,
+              subcategories: [...existingSubs, subName],
+              imageUrl: existingImageUrl,
+            };
           }
         }
         return c;
       });
-      saveLocalCustomCategories(updated);
-      setDynamicCategories(updated);
+      const normalized = normalizeCategoryData(updated);
+      saveLocalCustomCategories(normalized);
+      setDynamicCategories(normalized);
       setSubCatInputs((prev) => ({ ...prev, [categoryName]: "" }));
       showToast("success", `Subcategory "${subName}" added under ${categoryName}!`);
     } catch (_) {
@@ -1215,6 +1285,14 @@ export default function UploadClient() {
       } else if (deleteConfirm.type === "subcategory" && deleteConfirm.categoryName && deleteConfirm.subcategoryName) {
         const catName = deleteConfirm.categoryName;
         const subName = deleteConfirm.subcategoryName;
+        const currentCat = dynamicCategories.find(
+          (c) => c.name.toLowerCase() === catName.toLowerCase()
+        );
+        const existingImageUrl =
+          currentCat?.imageUrl && currentCat.imageUrl !== "/assets/Shop Sign Boards.png"
+            ? currentCat.imageUrl
+            : (DEFAULT_CATEGORY_IMAGES[catName] || currentCat?.imageUrl || "/assets/Shop Sign Boards.png");
+
         setActionLoading({ loading: true, message: `Deleting Subcategory "${subName}"...` });
         try {
           const res = await fetch("/api/categories", {
@@ -1231,6 +1309,25 @@ export default function UploadClient() {
             const data = await res.json().catch(() => ({}));
             if (res.ok && data.success) {
               showToast("info", `Subcategory "${subName}" deleted.`);
+              if (Array.isArray(data.categories) && data.categories.length > 0) {
+                const existingMap = new Map(
+                  dynamicCategories.map((c) => [c.name.toLowerCase(), c.imageUrl])
+                );
+                const preserved = data.categories.map((c: CategoryData) => {
+                  const prevImg = existingMap.get(c.name.toLowerCase());
+                  if (c.name.toLowerCase() === catName.toLowerCase()) {
+                    return { ...c, imageUrl: existingImageUrl };
+                  }
+                  if (prevImg && (!c.imageUrl || c.imageUrl === "/assets/Shop Sign Boards.png")) {
+                    return { ...c, imageUrl: prevImg };
+                  }
+                  return c;
+                });
+                const normalized = normalizeCategoryData(preserved);
+                saveLocalCustomCategories(normalized);
+                setDynamicCategories(normalized);
+                return;
+              }
               await loadCategories();
               return;
             }
@@ -1238,18 +1335,20 @@ export default function UploadClient() {
         } catch (_) { }
 
         // Local fallback
-        const currentCats = await fetchDynamicCategories(true);
+        const currentCats = dynamicCategories.length > 0 ? dynamicCategories : await fetchDynamicCategories(true);
         const updated = currentCats.map((c) => {
-          if (c.name === catName) {
+          if (c.name.toLowerCase() === catName.toLowerCase()) {
             return {
               ...c,
-              subcategories: (c.subcategories || []).filter((s) => s !== subName),
+              subcategories: (c.subcategories || []).filter((s) => s.toLowerCase() !== subName.toLowerCase()),
+              imageUrl: existingImageUrl,
             };
           }
           return c;
         });
-        saveLocalCustomCategories(updated);
-        setDynamicCategories(updated);
+        const normalized = normalizeCategoryData(updated);
+        saveLocalCustomCategories(normalized);
+        setDynamicCategories(normalized);
         showToast("info", `Subcategory "${subName}" deleted.`);
       } else if (deleteConfirm.type === "image" && deleteConfirm.imageId) {
         const imgId = deleteConfirm.imageId;
@@ -1866,7 +1965,7 @@ export default function UploadClient() {
         )}
 
 
-        {/* Navigation Tabs Bar — Mobile Friendly Adaptive 2x2 on Mobile, 4-col on Tablet & Desktop */}
+        {/* Navigation Tabs Bar Mobile Friendly Adaptive 2x2 on Mobile, 4-col on Tablet & Desktop */}
         <div ref={tabsRef} className="w-full">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-2.5 p-1.5 sm:p-2 bg-stone-100/90 rounded-2xl border border-stone-200/90 shadow-2xs">
             {/* Tab 1: Image Upload */}
@@ -2145,7 +2244,7 @@ export default function UploadClient() {
                             <div>
                               <span className="text-xs font-bold text-stone-900 block">Official Hi-5 Creation Logo</span>
                               <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
-                                ✓ Permanently integrated (New Watermark.png) — automatically applied to all uploads
+                                ✓ Permanently integrated (New Watermark.png) automatically applied to all uploads
                               </span>
                             </div>
                           </div>
@@ -3045,7 +3144,7 @@ export default function UploadClient() {
 
               {/* Small Dialog Modal for Subcategories */}
               {selectedCategoryModal && (() => {
-                const activeCat = dynamicCategories.find((c) => c.name === selectedCategoryModal);
+                const activeCat = dynamicCategories.find((c) => c.name.toLowerCase() === selectedCategoryModal.toLowerCase()) || dynamicCategories.find((c) => c.name === selectedCategoryModal);
                 if (!activeCat) return null;
 
                 return typeof document !== "undefined" && createPortal(

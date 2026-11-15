@@ -117,6 +117,25 @@ h1, h2, h3, h4, h5, h6 {
   animation: marquee 25s linear infinite;
 }
 
+/* Smooth infinite marquee - no sudden cuts */
+@keyframes marquee-scroll {
+  0% { 
+    transform: translateX(0); 
+  }
+  100% { 
+    transform: translateX(-50%);
+  }
+}
+
+.marquee-track {
+  display: flex;
+  animation: marquee-scroll 20s linear infinite;
+}
+
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
 /* Fade-up animation */
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(24px); }

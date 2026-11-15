@@ -17,7 +17,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL("https://hi5creation.in"),
   title: {
-    default: "Hi5 Creation — Premier LED & ACP Sign Board Manufacturers in Coimbatore",
+    default: "Hi5 Creation Premier LED & ACP Sign Board Manufacturers in Coimbatore",
     template: "%s | Hi5 Creation Coimbatore",
   },
   description:
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
     canonical: "https://hi5creation.in",
   },
   openGraph: {
-    title: "Hi5 Creation — Premier Signage & LED Board Manufacturers in Coimbatore",
+    title: "Hi5 Creation Premier Signage & LED Board Manufacturers in Coimbatore",
     description:
       "Custom Shop Sign Boards, 3D Lettering Signage, Pylon Signs, Acrylic & Neon LED Boards, Aluminium Channel Letters & commercial visual branding across Coimbatore & South India.",
     url: "https://hi5creation.in",
@@ -62,7 +62,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Hi5 Creation — Premier LED & ACP Sign Boards Coimbatore",
+    title: "Hi5 Creation Premier LED & ACP Sign Boards Coimbatore",
     description:
       "High quality custom LED sign boards, ACP cladding, acrylic signage, and visual branding solutions in Coimbatore.",
     images: ["https://images.unsplash.com/photo-1765448806017-cc2c746a0f35?w=1200&h=630&fit=crop&auto=format"],

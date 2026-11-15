@@ -6,10 +6,6 @@ import { useCompanyDetails } from "@/src/context/CompanyDetailsContext";
 
 const HERO_BACKGROUND_SLIDES = [
   {
-    src: "/assets/Lollipop Projecting Signs.png",
-    alt: "Hi5 Creation Lollipop Projecting Signs Coimbatore",
-  },
-  {
     src: "/assets/Aluminium Channel Letters.png",
     alt: "Hi5 Creation Aluminium Channel Letters Signage Coimbatore",
   },
@@ -18,8 +14,12 @@ const HERO_BACKGROUND_SLIDES = [
     alt: "Hi5 Creation Neon LED Signage Coimbatore",
   },
   {
-    src: "/assets/Multi Langugage Name Board.png",
-    alt: "Hi5 Creation Multi Language Name Board Coimbatore",
+    src: "/assets/3D Lettering Signage.png",
+    alt: "Hi5 Creation 3D Lettering Signage Coimbatore",
+  },
+  {
+    src: "/assets/ACP Elevation & Cladding.png",
+    alt: "Hi5 Creation ACP Elevation and Cladding Coimbatore",
   },
 ];
 
@@ -69,7 +69,7 @@ export default function FullHeroSlider() {
         <div className="max-w-3xl">
           {/* Top Sub-Header */}
           <div className="flex items-center gap-2 mb-4 sm:mb-6">
-            <span className="w-6 sm:w-8 h-[2px] bg-orange-500 flex-shrink-0" />
+            
             <p className="text-[10px] sm:text-xs lg:text-sm font-bold tracking-[0.2em] sm:tracking-[0.25em] text-orange-400 uppercase">
               COIMBATORE · SOUTH INDIA · SINCE 2018
             </p>
@@ -82,7 +82,7 @@ export default function FullHeroSlider() {
 
           {/* Subtitle Paragraph */}
           <p className="text-stone-300 text-sm sm:text-base lg:text-lg leading-relaxed mb-4 max-w-2xl font-normal">
-            From illuminated name boards and acrylic letters to ACP elevations, metal signage and large-format LED displays — we design, manufacture and install signage that makes your business stand out.
+            From illuminated name boards and acrylic letters to ACP elevations, metal signage and large-format LED displays we design, manufacture and install signage that makes your business stand out.
           </p>
 
           {/* Location Tagline */}

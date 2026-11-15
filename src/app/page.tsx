@@ -11,7 +11,7 @@ import { TARGET_SIGNAGE_KEYWORDS } from "@/src/data/keywords";
 
 export const metadata: Metadata = {
   title: {
-    absolute: "Hi5 Creation — Premier LED & ACP Sign Board Manufacturers in Coimbatore",
+    absolute: "Hi5 Creation Premier LED & ACP Sign Board Manufacturers in Coimbatore",
   },
   description:
     "Hi5 Creation is Coimbatore's premier manufacturer of Shop Sign Boards, 3D Lettering Signage, Pylon Signage, Acrylic & Neon LED Boards, Aluminium Channel Letters, and Commercial Storefront Branding across South India.",
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     canonical: "https://hi5creation.in",
   },
   openGraph: {
-    title: "Hi5 Creation — Premier Signage & LED Board Manufacturers in Coimbatore",
+    title: "Hi5 Creation Premier Signage & LED Board Manufacturers in Coimbatore",
     description:
       "Custom Shop Sign Boards, 3D Lettering Signage, Pylon Signs, Acrylic & Neon LED Boards, Aluminium Channel Letters & visual branding in Coimbatore.",
     url: "https://hi5creation.in",
@@ -105,11 +105,18 @@ const GALLERY_ITEMS = [
   },
 ];
 
-const CLIENTS = [
-  "Studio 7", "Hexa Clinic", "Jockey", "Coffee 4 U",
-  "Lifestyle Retail", "Zara", "Apollo", "Reliance Trends",
-  "Studio 7", "Hexa Clinic", "Jockey", "Coffee 4 U",
-  "Lifestyle Retail", "Zara", "Apollo", "Reliance Trends",
+const CLIENT_LOGOS = [
+  "/assets/TRUSTED BY BUSINESSES/152-1527262_ttk-prestige-logo-prestige-pressure-cooker 1.png",
+  "/assets/TRUSTED BY BUSINESSES/Frame 2147239044.png",
+  "/assets/TRUSTED BY BUSINESSES/Frame 2147239045.png",
+  "/assets/TRUSTED BY BUSINESSES/Frame 2147239046.png",
+  "/assets/TRUSTED BY BUSINESSES/Frame 2147239047.png",
+  "/assets/TRUSTED BY BUSINESSES/Frame 2147239048.png",
+  "/assets/TRUSTED BY BUSINESSES/images 2.png",
+  "/assets/TRUSTED BY BUSINESSES/images 3.png",
+  "/assets/TRUSTED BY BUSINESSES/images 4.png",
+  "/assets/TRUSTED BY BUSINESSES/Lenskart Logo White 1.png",
+  "/assets/TRUSTED BY BUSINESSES/lX4cKrrqDaWuUMbUytlsNTX9j4Ixtu 1.png",
 ];
 
 const SIGNAGE_KEYWORD_TAGS = [
@@ -334,18 +341,12 @@ export default function HomePage() {
 
               <div className="flex flex-wrap gap-2 mb-8">
                 {[
-                  "Shop Sign Boards",
-                  "3D Lettering Signage",
-                  "Aluminium Channel Letters",
-                  "Pylon Signage Design",
-                  "Acrylic LED Sign Boards",
-                  "Hospital Wayfinding",
-                  "Custom Braille Signs",
-                ].map((tag) => (
-                  <span key={tag} className="border border-stone-200 text-stone-700 text-xs font-semibold px-3 py-1 rounded-full bg-white shadow-2xs">
-                    {tag}
-                  </span>
-                ))}
+                  "Design", "Fabrication", "Materials", "Lighting", "Branding", "Installation"]
+                  .map((tag) => (
+                    <span key={tag} className="border border-stone-200 text-stone-700 text-xs font-semibold px-3 py-1 rounded-full bg-white shadow-2xs">
+                      {tag}
+                    </span>
+                  ))}
               </div>
               <a
                 href={WHATSAPP_URL}
@@ -375,7 +376,7 @@ export default function HomePage() {
               From Exterior Identity to Interior Signage
             </h2>
             <p className="text-stone-500 text-sm sm:text-base leading-relaxed">
-              Explore the range of signage products we design and create for commercial spaces — from large-scale exterior branding to detailed interior signs, wayfinding and illuminated displays.
+              Explore the range of signage products we design and create for commercial spaces from large-scale exterior branding to detailed interior signs, wayfinding and illuminated displays.
             </p>
           </div>
 
@@ -387,7 +388,7 @@ export default function HomePage() {
                 <div className="relative w-full aspect-[16/10] bg-stone-900 overflow-hidden">
                   <img
                     src="/assets/exterior-products.png"
-                    alt="Exterior Products — Large-scale signage and building identity"
+                    alt="Exterior Products Large-scale signage and building identity"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                     loading="lazy"
                   />
@@ -420,7 +421,7 @@ export default function HomePage() {
                 <div className="relative w-full aspect-[16/10] bg-stone-900 overflow-hidden">
                   <img
                     src="/assets/interior-products.png"
-                    alt="Interior Products — Indoor signage, name boards and wayfinding"
+                    alt="Interior Products Indoor signage, name boards and wayfinding"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                     loading="lazy"
                   />
@@ -474,13 +475,20 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-5 lg:px-8 mb-8">
           <p className="text-s font-bold tracking-[0.2em] text-stone-500 uppercase text-center">TRUSTED BY BUSINESSES</p>
         </div>
-        <div className="relative flex">
-          <div className="flex gap-12 animate-marquee whitespace-nowrap">
-            {CLIENTS.map((c, i) => (
-              <span key={i} className="text-stone-500 font-semibold text-sm tracking-wide hover:text-orange-400 transition-colors cursor-default px-2">
-                {c}
-              </span>
-            ))}
+        <div className="flex justify-center">
+          <div className="w-full overflow-hidden">
+            <div className="marquee-track gap-8">
+              {/* Display logos duplicated for infinite seamless scroll */}
+              {[...CLIENT_LOGOS, ...CLIENT_LOGOS].map((logo, i) => (
+                <div key={i} className="flex-shrink-0 h-20 flex items-center justify-center px-6">
+                  <img
+                    src={logo}
+                    alt="Client logo"
+                    className="h-full max-w-[110px] object-contain opacity-70 hover:opacity-100 transition-opacity duration-300"
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -711,7 +719,7 @@ export default function HomePage() {
       </section>
 
       {/* AEO & GEO SIGNAGE DIRECTORY & CAPABILITIES */}
-      <AeoGeoKnowledgeSection />
+      {/* <AeoGeoKnowledgeSection /> */}
 
       {/* CONTACT / LOCATION */}
       <HomeContactSection />

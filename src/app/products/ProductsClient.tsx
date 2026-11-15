@@ -48,7 +48,7 @@ export default function ProductsClient() {
       <section className="px-5 lg:px-8 max-w-7xl mx-auto text-center mb-8 sm:mb-10">
         {/* Eyebrow */}
         <p className="text-xs sm:text-[13px] font-bold tracking-[0.2em] text-orange-500 uppercase mb-4">
-          — HI 5 CREATION · SIGNAGE PRODUCTS —
+           HI 5 CREATION · SIGNAGE PRODUCTS
         </p>
 
         {/* Heading */}
@@ -60,7 +60,7 @@ export default function ProductsClient() {
         {/* Description */}
         <p className="text-stone-500 text-sm sm:text-base leading-relaxed max-w-2xl mx-auto mb-10">
           Custom signage, LED letters, name boards and visual branding solutions built for commercial
-          spaces — from storefronts to full mall installations.
+          spaces from storefronts to full mall installations.
         </p>
 
         {/* TAB SWITCHER (Matching Reference Screenshot) */}
@@ -127,7 +127,7 @@ export default function ProductsClient() {
         </div>
       </section>
 
-      {/* ACTIVE TAB HERO SHOWCASE BANNER — FULLY VISIBLE IMAGE */}
+      {/* ACTIVE TAB HERO SHOWCASE BANNER FULLY VISIBLE IMAGE */}
       <section className="px-5 lg:px-8 max-w-7xl mx-auto mb-10 sm:mb-12">
         <div className="rounded-2xl sm:rounded-3xl overflow-hidden shadow-sm bg-white border border-stone-200/90 group transition-all">
           <img
@@ -170,7 +170,7 @@ export default function ProductsClient() {
         </div>
       </section>
 
-      {/* 4-COLUMN PRODUCTS GRID — PROFESSIONAL, MINIMALISTIC, AESTHETIC */}
+      {/* 4-COLUMN PRODUCTS GRID PROFESSIONAL, MINIMALISTIC, AESTHETIC */}
       <section className="px-5 lg:px-8 max-w-7xl mx-auto mb-20">
         {filteredProducts.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-3xl border border-stone-200 p-8">
@@ -184,7 +184,7 @@ export default function ProductsClient() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
             {filteredProducts.map((product, idx) => {
               const itemNum = (idx + 1).toString().padStart(2, "0");
               const whatsAppUrl = getWhatsAppProductUrl(product);
@@ -218,28 +218,28 @@ export default function ProductsClient() {
                     </div>
 
                     {/* Card Body */}
-                    <div className="p-4 sm:p-5">
+                    <div className="p-3 sm:p-4">
                       {/* Product Name */}
-                      <h3 className="text-base sm:text-[17px] font-extrabold text-stone-900 group-hover:text-orange-600 transition-colors font-display leading-snug mb-1">
+                      <h3 className="text-sm sm:text-base font-extrabold text-stone-900 group-hover:text-orange-600 transition-colors font-display leading-snug mb-1">
                         {product.name}
                       </h3>
 
                       {/* Subtitle */}
-                      <p className="text-[11px] sm:text-xs font-semibold text-orange-500 mb-2 line-clamp-1">
+                      <p className="text-[10px] sm:text-xs font-semibold text-orange-500 mb-2 line-clamp-1">
                         {product.subtitle}
                       </p>
 
-                      {/* Description */}
-                      <p className="text-stone-500 text-xs leading-relaxed line-clamp-2 mb-3.5 font-normal">
+                      {/* Full Description */}
+                      <p className="text-stone-600 text-xs leading-relaxed mb-3 font-normal">
                         {product.description}
                       </p>
 
                       {/* Minimalist Specs */}
-                      <div className="flex flex-wrap gap-1 mb-2">
-                        {product.specs.slice(0, 3).map((spec) => (
+                      <div className="flex flex-wrap gap-1">
+                        {product.specs.slice(0, 2).map((spec) => (
                           <span
                             key={spec}
-                            className="bg-stone-50 border border-stone-200/80 text-stone-600 text-[10px] font-medium px-2 py-0.5 rounded-md"
+                            className="bg-stone-50 border border-stone-200/80 text-stone-600 text-[9px] font-medium px-1.5 py-0.5 rounded-sm whitespace-nowrap"
                           >
                             {spec}
                           </span>
@@ -249,12 +249,12 @@ export default function ProductsClient() {
                   </div>
 
                   {/* Card Action Footer */}
-                  <div className="p-4 sm:p-5 pt-0 mt-auto border-t border-stone-100 flex items-center justify-between gap-2">
+                  <div className="p-3 sm:p-4 pt-0 mt-auto border-t border-stone-100 flex items-center gap-2">
                     <a
                       href={whatsAppUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs py-2 px-3 rounded-lg transition-all hover:shadow-xs inline-flex items-center justify-center gap-1.5"
+                      className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs py-2 px-2.5 rounded-lg transition-all hover:shadow-xs inline-flex items-center justify-center gap-1"
                     >
                       <span>Inquire</span>
                       <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
@@ -266,7 +266,7 @@ export default function ProductsClient() {
                       href={`/gallery?category=${encodeURIComponent(product.galleryCategory)}`}
                       className="text-xs font-semibold text-stone-500 hover:text-orange-600 px-2 py-1.5 transition-colors whitespace-nowrap"
                     >
-                      Gallery &rarr;
+                      Gallery
                     </Link>
                   </div>
                 </div>

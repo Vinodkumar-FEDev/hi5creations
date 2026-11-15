@@ -138,11 +138,17 @@ const DEFAULT_CATEGORIES: CategoryItem[] = [
 ];
 
 function sanitizeCategories(cats: CategoryItem[]): CategoryItem[] {
-  return cats.map((c) => ({
-    name: c.name,
-    subcategories: Array.isArray(c.subcategories) ? c.subcategories : [],
-    imageUrl: c.imageUrl || DEFAULT_CATEGORY_IMAGES[c.name] || "/assets/Shop Sign Boards.png",
-  }));
+  return cats.map((c) => {
+    let img = c.imageUrl?.trim();
+    if (!img || img === "/assets/Shop Sign Boards.png") {
+      img = DEFAULT_CATEGORY_IMAGES[c.name] || img || "/assets/Shop Sign Boards.png";
+    }
+    return {
+      name: c.name,
+      subcategories: Array.isArray(c.subcategories) ? c.subcategories : [],
+      imageUrl: img,
+    };
+  });
 }
 
 async function readS3Categories(userId = "admin"): Promise<CategoryItem[] | null> {
@@ -282,8 +288,9 @@ export async function POST(req: Request) {
         }
       }
 
-      await writeS3Categories("admin", categories);
-      return NextResponse.json({ success: true, categories, imageUrl: uploadedImageUrl });
+      const sanitized = sanitizeCategories(categories);
+      await writeS3Categories("admin", sanitized);
+      return NextResponse.json({ success: true, categories: sanitized, imageUrl: uploadedImageUrl });
     } catch (err: any) {
       console.error("Error processing category form upload:", err);
       return NextResponse.json({ error: "Failed to process category upload", details: err.message }, { status: 500 });
@@ -334,9 +341,20 @@ export async function POST(req: Request) {
       catObj = {
         name: cleanCat,
         subcategories: [],
-        imageUrl: DEFAULT_CATEGORY_IMAGES[cleanCat] || "/assets/Shop Sign Boards.png",
+        imageUrl: imageUrl || DEFAULT_CATEGORY_IMAGES[cleanCat] || "/assets/Shop Sign Boards.png",
       };
       categories.push(catObj);
+    } else {
+      // PRESERVE IMAGE: Never overwrite existing image with default when adding a subcategory
+      if (!catObj.imageUrl || catObj.imageUrl === "/assets/Shop Sign Boards.png") {
+        if (imageUrl && imageUrl !== "/assets/Shop Sign Boards.png") {
+          catObj.imageUrl = imageUrl;
+        } else {
+          catObj.imageUrl = DEFAULT_CATEGORY_IMAGES[cleanCat] || "/assets/Shop Sign Boards.png";
+        }
+      } else if (imageUrl && (imageUrl.startsWith("data:") || imageUrl.startsWith("http"))) {
+        catObj.imageUrl = imageUrl;
+      }
     }
     if (!catObj.subcategories.some((s) => s.toLowerCase() === cleanSub.toLowerCase())) {
       catObj.subcategories.push(cleanSub);
@@ -345,8 +363,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   }
 
-  await writeS3Categories("admin", categories);
-  return NextResponse.json({ success: true, categories });
+  const sanitized = sanitizeCategories(categories);
+  await writeS3Categories("admin", sanitized);
+  return NextResponse.json({ success: true, categories: sanitized });
 }
 
 export async function DELETE(req: Request) {
@@ -377,7 +396,8 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   }
 
-  await writeS3Categories("admin", categories);
-  return NextResponse.json({ success: true, categories });
+  const sanitized = sanitizeCategories(categories);
+  await writeS3Categories("admin", sanitized);
+  return NextResponse.json({ success: true, categories: sanitized });
 }
 

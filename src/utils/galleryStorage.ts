@@ -245,11 +245,61 @@ const S3_PUBLIC_BASE = `https://${S3_BUCKET_NAME}.s3.${S3_REGION}.amazonaws.com`
 let categoriesCache: CategoryData[] | null = null;
 
 export function normalizeCategoryData(cats: CategoryData[]): CategoryData[] {
-  return cats.map((cat) => ({
-    name: cat.name,
-    subcategories: Array.isArray(cat.subcategories) ? cat.subcategories : [],
-    imageUrl: cat.imageUrl || DEFAULT_CATEGORY_IMAGES[cat.name] || "/assets/Shop Sign Boards.png",
-  }));
+  const localCats = getLocalCustomCategories();
+  const localMap = new Map((localCats || []).map((c) => [c.name.toLowerCase(), c.imageUrl]));
+
+  return cats.map((cat) => {
+    const rawImg = cat.imageUrl?.trim();
+    const localImg = localMap.get(cat.name.toLowerCase())?.trim();
+    const defaultImg = DEFAULT_CATEGORY_IMAGES[cat.name] || "/assets/Shop Sign Boards.png";
+
+    const isLocalCustom = Boolean(
+      localImg && (
+        localImg.startsWith("data:") ||
+        localImg.startsWith("blob:") ||
+        localImg.includes("s3.") ||
+        localImg.includes("amazonaws.com") ||
+        localImg.includes("/api/") ||
+        (localImg !== "/assets/Shop Sign Boards.png" && !localImg.startsWith("/assets/"))
+      )
+    );
+
+    const isRawCustom = Boolean(
+      rawImg && (
+        rawImg.startsWith("data:") ||
+        rawImg.startsWith("blob:") ||
+        rawImg.includes("s3.") ||
+        rawImg.includes("amazonaws.com") ||
+        rawImg.includes("/api/")
+      )
+    );
+
+    let finalImg = rawImg;
+
+    if (isRawCustom) {
+      // Server has custom image
+      finalImg = rawImg;
+    } else if (isLocalCustom) {
+      // User uploaded custom image locally
+      finalImg = localImg;
+    } else if (!rawImg || rawImg === "/assets/Shop Sign Boards.png") {
+      // Raw image is empty or generic fallback
+      if (localImg && localImg !== "/assets/Shop Sign Boards.png") {
+        finalImg = localImg;
+      } else {
+        finalImg = defaultImg;
+      }
+    } else {
+      // Raw image is a specific static asset
+      finalImg = rawImg;
+    }
+
+    return {
+      name: cat.name,
+      subcategories: Array.isArray(cat.subcategories) ? cat.subcategories : [],
+      imageUrl: finalImg || defaultImg,
+    };
+  });
 }
 
 export async function fetchDynamicCategories(forceRefresh = false): Promise<CategoryData[]> {
@@ -304,7 +354,15 @@ export async function fetchDynamicCategories(forceRefresh = false): Promise<Cate
     }
   } catch (_) { }
 
-  // 3. Fallback to static JSON file in assets/gallery
+  // 3. Fallback to locally saved categories if user added any on static hosting
+  const localCats = getLocalCustomCategories();
+  if (localCats && localCats.length > 0) {
+    const normalized = normalizeCategoryData(localCats);
+    categoriesCache = normalized;
+    return normalized;
+  }
+
+  // 4. Fallback to static JSON file in assets/gallery
   try {
     const staticRes = await fetch(`/assets/gallery/categories.json?t=${timestamp}`).catch(() => null);
     if (staticRes && staticRes.ok) {
@@ -316,14 +374,6 @@ export async function fetchDynamicCategories(forceRefresh = false): Promise<Cate
       }
     }
   } catch (_) { }
-
-  // 4. Fallback to locally saved categories if user added any on static hosting
-  const localCats = getLocalCustomCategories();
-  if (localCats && localCats.length > 0) {
-    const normalized = normalizeCategoryData(localCats);
-    categoriesCache = normalized;
-    return normalized;
-  }
 
   const defaultNormalized = normalizeCategoryData(DEFAULT_CATEGORY_DATA);
   categoriesCache = defaultNormalized;

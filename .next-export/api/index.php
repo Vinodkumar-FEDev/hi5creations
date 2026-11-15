@@ -241,10 +241,32 @@ function is_admin_authenticated() {
     return false;
 }
 
+// Default Category Images
+$defaultCategoryImages = [
+    "Vinyl Sign Boards" => "/assets/Shop Sign Boards.png",
+    "Building Signage" => "/assets/Building Identity Signage.png",
+    "Neon & LED Boards" => "/assets/Neon LED Signage.png",
+    "Acrylic Signage" => "/assets/Acrylic LED Sign Boards.png",
+    "Lighting & Glow" => "/assets/Glow Sign Boards.png",
+    "LED Sign Board" => "/assets/Shop Sign Boards.png",
+    "ACP Elevation" => "/assets/ACP Elevation & Cladding.png",
+    "Trimcap Letters" => "/assets/Aluminium Channel Letters.png",
+    "Multicolor LED Board" => "/assets/Indoor LED Video Walls.png",
+    "Pole Sign Board" => "/assets/Pylon & Monolith Signage.png",
+    "Inshop Branding" => "/assets/Reception & Lobby Boards.png",
+    "Backlight Board" => "/assets/Frameless Fabric Lightboxes (SEG).png",
+    "Acrylic & ACP Board" => "/assets/Acrylic LED Sign Boards Indoor.png",
+    "Totem Pylon Board" => "/assets/Indoor Totem Directories.png",
+    "Programming LED Board" => "/assets/LED Message Tickers.png",
+    "Scrolling LED & Videowall" => "/assets/Outdoor LED Video Walls.png",
+    "SS & Titanium Letters" => "/assets/SS & Titanium 3D Letters.png",
+];
+
 // Default Categories
 $defaultCategories = [
     [
         "name" => "Vinyl Sign Boards",
+        "imageUrl" => "/assets/Shop Sign Boards.png",
         "subcategories" => [
             "2D Design Boards", "3D Design Boards", "Backlit Boards", "Bakery Boards",
             "Boutique Boards", "Brass Letters", "Dot LED Boards", "Dot Matrix Letters",
@@ -254,12 +276,14 @@ $defaultCategories = [
     ],
     [
         "name" => "Building Signage",
+        "imageUrl" => "/assets/Building Identity Signage.png",
         "subcategories" => [
             "ACP Cladding", "ACP Elevation Works", "Building Identity Signage", "Architectural Facades"
         ]
     ],
     [
         "name" => "Neon & LED Boards",
+        "imageUrl" => "/assets/Neon LED Signage.png",
         "subcategories" => [
             "3D LED Letters", "Acrylic LED Letters", "Backlit LED Letters", "Commercial LED Displays",
             "Custom Neon Art", "Digital Window Signs", "Edge-Lit LED Panels", "Frontlit LED Boards",
@@ -270,6 +294,7 @@ $defaultCategories = [
     ],
     [
         "name" => "Acrylic Signage",
+        "imageUrl" => "/assets/Acrylic LED Sign Boards.png",
         "subcategories" => [
             "Acrylic 3D Letters", "Acrylic LED Name Boards", "Multi-Colour Acrylic Letters", "Acrylic Shop Displays",
             "Laser-Cut Acrylic Logos", "Frosted Acrylic Panels", "Stand-Off Acrylic Plaques", "Clear Acrylic Display Signs"
@@ -277,6 +302,7 @@ $defaultCategories = [
     ],
     [
         "name" => "Lighting & Glow",
+        "imageUrl" => "/assets/Glow Sign Boards.png",
         "subcategories" => [
             "Glow Sign Boards", "Crystal LED Boards", "Pylon & Totem Boards", "Highway Boards",
             "Outlet Name Boards", "Circular Lollipop Signs", "Ultra-Slim Fabric Lightboxes"
@@ -284,64 +310,96 @@ $defaultCategories = [
     ],
     [
         "name" => "LED Sign Board",
+        "imageUrl" => "/assets/Shop Sign Boards.png",
         "subcategories" => ["3D Acrylic LED", "Single Color Scrolling", "RGB Pixel LED", "Neon Flex", "Backlit Box"]
     ],
     [
         "name" => "ACP Elevation",
+        "imageUrl" => "/assets/ACP Elevation & Cladding.png",
         "subcategories" => ["Exterior Cladding", "Glossy ACP Facade", "Wooden Finish ACP", "Custom Structural ACP"]
     ],
     [
         "name" => "Trimcap Letters",
+        "imageUrl" => "/assets/Aluminium Channel Letters.png",
         "subcategories" => ["Acrylic Trimcap", "3D Illuminated Channel", "Aluminum Trimcap"]
     ],
     [
         "name" => "Multicolor LED Board",
+        "imageUrl" => "/assets/Indoor LED Video Walls.png",
         "subcategories" => ["Full Color Video Wall", "Programmable RGB Ticker", "P10 Outdoor Display"]
     ],
     [
         "name" => "Pole Sign Board",
+        "imageUrl" => "/assets/Pylon & Monolith Signage.png",
         "subcategories" => ["High-Rise Monolith", "Unipole Signage", "Fuel Forecourt Pole"]
     ],
     [
         "name" => "Inshop Branding",
+        "imageUrl" => "/assets/Reception & Lobby Boards.png",
         "subcategories" => ["Retail Display Shelf", "Acrylic Wall Signage", "Fabric Lightbox", "Counter Branding"]
     ],
     [
         "name" => "Backlight Board",
+        "imageUrl" => "/assets/Frameless Fabric Lightboxes (SEG).png",
         "subcategories" => ["Vinyl Backlit Box", "Flex Lightbox", "Fabric Edge-Lit"]
     ],
     [
         "name" => "Acrylic & ACP Board",
+        "imageUrl" => "/assets/Acrylic LED Sign Boards Indoor.png",
         "subcategories" => ["Laser Cut Acrylic", "Stand-Off Acrylic Board", "Engraved ACP"]
     ],
     [
         "name" => "Totem Pylon Board",
+        "imageUrl" => "/assets/Indoor Totem Directories.png",
         "subcategories" => ["Architectural Monolith", "Double-Sided Wayfinder", "Corporate Entry Totem"]
     ],
     [
         "name" => "Programming LED Board",
+        "imageUrl" => "/assets/LED Message Tickers.png",
         "subcategories" => ["Scrolling Text Display", "Time & Temp Board", "Wireless Controlled LED"]
     ],
     [
         "name" => "Scrolling LED & Videowall",
+        "imageUrl" => "/assets/Outdoor LED Video Walls.png",
         "subcategories" => ["Indoor P2.5 Video Wall", "Outdoor P4 Video Panel", "Curved LED Screen"]
     ],
     [
         "name" => "SS & Titanium Letters",
+        "imageUrl" => "/assets/SS & Titanium 3D Letters.png",
         "subcategories" => ["Mirror SS 3D Letters", "Brush Titanium 3D", "Rose Gold SS Letters", "Brass Metal Letters"]
     ]
 ];
 
+// Helper: Sanitize Categories and Ensure imageUrl
+function sanitize_php_categories($cats, $defaultCategoryImages) {
+    if (!is_array($cats)) return [];
+    $sanitized = [];
+    foreach ($cats as $c) {
+        $name = trim($c['name'] ?? '');
+        if (empty($name)) continue;
+        $subs = isset($c['subcategories']) && is_array($c['subcategories']) ? $c['subcategories'] : [];
+        $img = !empty($c['imageUrl']) ? $c['imageUrl'] : ($defaultCategoryImages[$name] ?? '/assets/Shop Sign Boards.png');
+        $sanitized[] = [
+            "name" => $name,
+            "imageUrl" => $img,
+            "subcategories" => $subs
+        ];
+    }
+    return $sanitized;
+}
+
 // Helper: Read Categories (Reads from AWS S3 cloud first, then local disk)
 function read_categories_cloud_first($categoriesPath, $defaultCategories, $hasS3) {
+    global $defaultCategoryImages;
     if ($hasS3) {
         $s3Res = s3_v4_request('GET', 'users/admin/categories.json');
         if ($s3Res['success'] && !empty($s3Res['body'])) {
             $parsed = json_decode($s3Res['body'], true);
             if (is_array($parsed) && count($parsed) > 0) {
+                $clean = sanitize_php_categories($parsed, $defaultCategoryImages);
                 // Update local cache
-                @file_put_contents($categoriesPath, json_encode($parsed, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
-                return $parsed;
+                @file_put_contents($categoriesPath, json_encode($clean, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+                return $clean;
             }
         }
     }
@@ -350,7 +408,9 @@ function read_categories_cloud_first($categoriesPath, $defaultCategories, $hasS3
         $content = @file_get_contents($categoriesPath);
         if ($content !== false) {
             $data = json_decode($content, true);
-            if (is_array($data) && count($data) > 0) return $data;
+            if (is_array($data) && count($data) > 0) {
+                return sanitize_php_categories($data, $defaultCategoryImages);
+            }
         }
     }
     return $defaultCategories;
@@ -603,6 +663,7 @@ if ($endpoint === 'categories') {
         $action = $body['action'] ?? '';
         $catName = trim($body['categoryName'] ?? '');
         $subName = trim($body['subcategoryName'] ?? '');
+        $imgUrl = trim($body['imageUrl'] ?? '');
 
         if (empty($catName)) {
             send_json(["error" => "Category name is required"], 400);
@@ -612,15 +673,24 @@ if ($endpoint === 'categories') {
 
         if ($action === 'add_category') {
             $exists = false;
-            foreach ($cats as $c) {
+            foreach ($cats as &$c) {
                 if (strcasecmp($c['name'], $catName) === 0) {
                     $exists = true;
+                    if (!empty($imgUrl)) {
+                        $c['imageUrl'] = $imgUrl;
+                    }
                     break;
                 }
             }
+            unset($c);
             if (!$exists) {
                 // Prepend new category to the beginning so latest appears on top
-                array_unshift($cats, ["name" => $catName, "subcategories" => []]);
+                $newCat = [
+                    "name" => $catName,
+                    "imageUrl" => !empty($imgUrl) ? $imgUrl : ($defaultCategoryImages[$catName] ?? '/assets/Shop Sign Boards.png'),
+                    "subcategories" => []
+                ];
+                array_unshift($cats, $newCat);
             }
         } elseif ($action === 'add_subcategory') {
             if (empty($subName)) {
@@ -630,6 +700,9 @@ if ($endpoint === 'categories') {
             foreach ($cats as &$c) {
                 if (strcasecmp($c['name'], $catName) === 0) {
                     $catFound = true;
+                    if (!empty($imgUrl) && (empty($c['imageUrl']) || $c['imageUrl'] === '/assets/Shop Sign Boards.png')) {
+                        $c['imageUrl'] = $imgUrl;
+                    }
                     if (!isset($c['subcategories'])) $c['subcategories'] = [];
                     $subExists = false;
                     foreach ($c['subcategories'] as $s) {
@@ -647,10 +720,36 @@ if ($endpoint === 'categories') {
             }
             unset($c);
             if (!$catFound) {
-                array_unshift($cats, ["name" => $catName, "subcategories" => [$subName]]);
+                $newCat = [
+                    "name" => $catName,
+                    "imageUrl" => !empty($imgUrl) ? $imgUrl : ($defaultCategoryImages[$catName] ?? '/assets/Shop Sign Boards.png'),
+                    "subcategories" => [$subName]
+                ];
+                array_unshift($cats, $newCat);
+            }
+        } elseif ($action === 'update_category_image') {
+            if (empty($imgUrl)) {
+                send_json(["error" => "Image URL is required"], 400);
+            }
+            $catFound = false;
+            foreach ($cats as &$c) {
+                if (strcasecmp($c['name'], $catName) === 0) {
+                    $c['imageUrl'] = $imgUrl;
+                    $catFound = true;
+                    break;
+                }
+            }
+            unset($c);
+            if (!$catFound) {
+                array_unshift($cats, [
+                    "name" => $catName,
+                    "imageUrl" => $imgUrl,
+                    "subcategories" => []
+                ]);
             }
         }
 
+        $cats = sanitize_php_categories($cats, $defaultCategoryImages);
         write_categories_cloud($categoriesPath, $cats, $hasS3);
         send_json(["success" => true, "categories" => $cats]);
     }
@@ -678,6 +777,7 @@ if ($endpoint === 'categories') {
             unset($c);
         }
 
+        $cats = sanitize_php_categories($cats, $defaultCategoryImages);
         write_categories_cloud($categoriesPath, $cats, $hasS3);
         send_json(["success" => true, "categories" => $cats]);
     }

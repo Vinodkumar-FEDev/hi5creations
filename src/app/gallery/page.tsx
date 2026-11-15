@@ -4,7 +4,7 @@ import { TARGET_SIGNAGE_KEYWORDS } from "@/src/data/keywords";
 
 export const metadata: Metadata = {
   title: {
-    absolute: "Signage & LED Board Project Gallery — Hi5 Creation Coimbatore",
+    absolute: "Signage & LED Board Project Gallery Hi5 Creation Coimbatore",
   },
   description:
     "Explore our extensive portfolio of custom signage projects: Shop Sign Boards, 3D Lettering Signage, Pylon Signage, Acrylic LED Sign Boards, Aluminium Channel Letters, and Hospital & Hotel Signage in Coimbatore.",
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     canonical: "https://hi5creation.in/gallery",
   },
   openGraph: {
-    title: "Signage & LED Board Project Gallery — Hi5 Creation Coimbatore",
+    title: "Signage & LED Board Project Gallery Hi5 Creation Coimbatore",
     description:
       "Browse our completed LED sign boards, ACP cladding, acrylic signage, and custom business branding projects.",
     url: "https://hi5creation.in/gallery",

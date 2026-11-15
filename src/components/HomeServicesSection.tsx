@@ -298,7 +298,7 @@ export default function HomeServicesSection() {
             Complete Signage Solutions for Every Business.
           </h2>
           <p className="text-stone-500 text-sm sm:text-base leading-relaxed max-w-2xl">
-            From storefront name boards to large commercial installations — we manufacture,
+            From storefront name boards to large commercial installations we manufacture,
             finish and install signage that makes your brand impossible to miss.
           </p>
         </div>

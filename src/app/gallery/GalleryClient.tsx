@@ -553,7 +553,7 @@ export default function GalleryClient() {
                   >
                     <img
                       src={img.imageDataUrl}
-                      alt={`${img.title} — ${img.category} by Hi5 Creation Coimbatore`}
+                      alt={`${img.title} ${img.category} by Hi5 Creation Coimbatore`}
                       loading="lazy"
                       decoding="async"
                       className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-[1.03] block"
@@ -581,7 +581,7 @@ export default function GalleryClient() {
                   >
                     <img
                       src={img.imageDataUrl}
-                      alt={`${img.title} — ${img.category} by Hi5 Creation Coimbatore`}
+                      alt={`${img.title} ${img.category} by Hi5 Creation Coimbatore`}
                       loading="lazy"
                       decoding="async"
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"

@@ -89,7 +89,7 @@ export const EXTERIOR_PRODUCTS: SignageProduct[] = [
     subtitle: "Vibrant Flexible Neon Lighting",
     description: "Modern silicone flex neon LED signage with eye-catching brilliance, 80% lower power consumption than glass neon, and shatterproof durability.",
     image: "/assets/Neon LED Signage.png",
-    specs: ["Flexible Food-Grade Silicone", "12V Safe Low Voltage", "50,000+ Hour Lifespan"],
+    specs: ["Flexible Food-Grade Silicone", "12V Safe Low Voltage"],
     applications: "Restaurants, Bars, Coffee Shops, Entertainment Venues",
     badge: "Trending",
     galleryCategory: "Neon & LED Boards",

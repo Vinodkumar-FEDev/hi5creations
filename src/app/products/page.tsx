@@ -7,7 +7,7 @@ import { TARGET_SIGNAGE_KEYWORDS } from "@/src/data/keywords";
 
 export const metadata: Metadata = {
   title: {
-    absolute: "Signage Products — Exterior & Interior Commercial Signage | Hi5 Creation Coimbatore",
+    absolute: "Signage Products Exterior & Interior Commercial Signage | Hi5 Creation Coimbatore",
   },
   description:
     "Explore our complete range of precision-crafted exterior and interior commercial signage products: Shop Sign Boards, 3D Lettering Signage, Pylon Signage, ACP Elevation, Acrylic & Neon LED Boards, Aluminium Channel Letters, and Hospital & Hotel Signage.",
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     canonical: "https://hi5creation.in/products",
   },
   openGraph: {
-    title: "Commercial Signage Products — Hi5 Creation Coimbatore",
+    title: "Commercial Signage Products Hi5 Creation Coimbatore",
     description:
       "Precision-crafted exterior and interior signage products: Shop signs, 3D channel letters, pylon signs, ACP cladding, and architectural wayfinding.",
     url: "https://hi5creation.in/products",
